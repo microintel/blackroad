@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B0D10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Stocks — BlackRoad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+/* ============ TOKENS (matches blackroad-dashboard.html) ============ */
+:root{
+  --gold:#E8B84B; --gold-dim:#B8912F; --green:#4ADE80; --blue:#60A5FA;
+  --violet:#A78BFA; --paleGold:#F0D48A; --red:#F2545B;
+  --radius-sm:8px; --radius-md:14px; --radius-lg:20px;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+html[data-theme="dark"]{
+  --bg:#0B0D10; --bg-elevated:#0F1216; --surface:#14171D; --surface-2:#1B1F26;
+  --border:#262B33; --text:#F2F0EA; --text-dim:#9BA1AC; --text-faint:#5C6270;
+  --accent:var(--gold); --shadow:0 10px 30px -12px rgba(0,0,0,.55);
+  --dash-color: rgba(232,184,75,.55);
+}
+html[data-theme="light"]{
+  --bg:#F3F1EA; --bg-elevated:#FFFFFF; --surface:#FFFFFF; --surface-2:#ECE9DF;
+  --border:#DEDACD; --text:#171A1F; --text-dim:#5B6270; --text-faint:#8A8F99;
+  --accent:#B8862A; --shadow:0 10px 30px -14px rgba(30,25,10,.18);
+  --dash-color: rgba(184,134,42,.45);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{ -webkit-tap-highlight-color:transparent; overscroll-behavior-y:none; }
+*{ -webkit-tap-highlight-color:transparent; }
+body{
+  font-family:'Inter',sans-serif; background:var(--bg); color:var(--text);
+  overflow-x:hidden; transition:background .35s var(--ease), color .35s var(--ease);
+  -webkit-overflow-scrolling:touch;
+}
+h1,h2,h3,h4,.display{font-family:'Outfit',sans-serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
+a{color:inherit;text-decoration:none;}
+::selection{background:var(--accent);color:#0B0D10;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+input,select{font-family:inherit;}
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+
+.lane{ height:3px; width:100%; background-image:repeating-linear-gradient(90deg, var(--dash-color) 0 26px, transparent 26px 46px); opacity:.9; }
+
+/* ---- Layout ---- */
+.app{ display:flex; min-height:100vh; }
+.sidebar{
+  width:250px; flex-shrink:0; background:var(--bg-elevated);
+  border-right:1px solid var(--border); display:flex; flex-direction:column;
+  position:fixed; top:0; left:0; bottom:0; z-index:100;
+}
+.brand{ display:flex; align-items:center; gap:10px; padding:26px 22px 18px; }
+.brand-mark{ width:34px;height:34px;border-radius:9px; background:var(--accent); display:flex;align-items:center;justify-content:center; color:#0B0D10;font-weight:800;font-size:16px; }
+.brand-name{font-weight:700;font-size:18.5px;letter-spacing:.2px;}
+.brand-name span{color:var(--accent);}
+.side-body{ flex:1; padding:20px 18px; display:flex; flex-direction:column; gap:18px; }
+.back-link{
+  display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:var(--radius-sm);
+  color:var(--text-dim); font-size:14px; font-weight:500; border:1px solid var(--border);
+  background:var(--surface); transition:all .2s var(--ease);
+}
+.back-link:hover{ color:var(--accent); border-color:var(--accent); transform:translateX(-2px); }
+.back-link i{ font-size:16px; }
+.side-note{ font-size:12px; color:var(--text-faint); line-height:1.6; padding:0 2px; }
+.side-note b{ color:var(--text-dim); }
+.side-stat{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; }
+.side-stat .lbl{ font-size:11px; letter-spacing:.6px; text-transform:uppercase; color:var(--text-faint); }
+.side-stat .val{ font-size:20px; font-weight:700; margin-top:6px; font-family:'JetBrains Mono',monospace; }
+.sidebar-footer{ padding:16px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.theme-toggle{ display:flex; align-items:center; gap:8px; background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:6px 12px; font-size:13px; color:var(--text-dim); }
+.theme-toggle:hover{ color:var(--text); }
+.theme-toggle i{ font-size:15px; color:var(--accent); }
+
+.main{ flex:1; margin-left:250px; min-height:100vh; }
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  padding:20px 34px 16px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+}
+.hamburger{ display:none; font-size:22px; color:var(--text); }
+.greet-eyebrow{ font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--text-faint); display:flex; align-items:center; gap:8px; }
+.greet-title{ font-size:24px; font-weight:700; margin-top:2px; }
+.topbar-actions{ display:flex; align-items:center; gap:12px; }
+.icon-btn{
+  width:38px;height:38px;border-radius:10px; display:flex;align-items:center;justify-content:center;
+  background:var(--surface); border:1px solid var(--border); color:var(--text-dim); font-size:16px;
+  transition:all .2s var(--ease);
+}
+.icon-btn:hover{ color:var(--accent); border-color:var(--accent); transform:translateY(-1px); }
+.content{ padding:6px 34px 70px; }
+
+.card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); }
+
+/* ---- Summary stat cards ---- */
+.stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:18px 0 30px; }
+@media (max-width:980px){ .stat-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:560px){ .stat-grid{ grid-template-columns:1fr; } }
+.stat-card{ padding:20px 22px; }
+.stat-eyebrow{ display:flex; align-items:center; gap:8px; color:var(--text-faint); font-size:12px; letter-spacing:.8px; text-transform:uppercase; }
+.stat-eyebrow i{ color:var(--accent); }
+.stat-value{ font-size:26px; font-weight:800; margin-top:8px; font-family:'JetBrains Mono',monospace; letter-spacing:-.5px; }
+.stat-sub{ font-size:12.5px; margin-top:6px; display:flex; align-items:center; gap:6px; color:var(--text-faint); }
+
+/* ---- Section head ---- */
+.section-head{ display:flex; align-items:center; justify-content:space-between; margin:8px 0 16px; gap:14px; flex-wrap:wrap; }
+.section-head h3{ font-size:19px; font-weight:700; display:flex; align-items:center; gap:9px; }
+.section-head p{ font-size:13px; color:var(--text-faint); margin-top:2px; }
+.head-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+.search-box{ position:relative; }
+.search-box input{
+  background:var(--surface); border:1px solid var(--border); border-radius:999px;
+  padding:9px 16px 9px 38px; font-size:13.5px; color:var(--text); width:220px;
+  transition:border-color .2s var(--ease);
+}
+.search-box input:focus{ outline:none; border-color:var(--accent); }
+.search-box i{ position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-faint); font-size:14px; }
+
+.btn-primary, .btn-secondary, .btn-danger, .btn-ghost{
+  display:inline-flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600;
+  padding:10px 18px; border-radius:999px; transition:all .2s var(--ease); border:1px solid transparent; white-space:nowrap;
+}
+.btn-primary{ background:var(--accent); color:#0B0D10; }
+.btn-primary:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+.btn-secondary{ background:var(--surface-2); border-color:var(--border); color:var(--text); }
+.btn-secondary:hover{ border-color:var(--accent); color:var(--accent); }
+.btn-danger{ background:color-mix(in srgb, var(--red) 14%, transparent); color:var(--red); }
+.btn-danger:hover{ background:color-mix(in srgb, var(--red) 24%, transparent); }
+.btn-ghost{ color:var(--text-dim); padding:8px; }
+.btn-ghost:hover{ color:var(--accent); }
+
+/* ---- Table card ---- */
+.table-card{ padding:8px 8px 4px; margin-bottom:26px; overflow-x:auto; }
+table{ width:100%; border-collapse:collapse; min-width:820px; }
+th{ text-align:left; font-size:11px; letter-spacing:.6px; text-transform:uppercase; color:var(--text-faint); padding:16px 14px 12px; font-weight:600; }
+td{ padding:14px; font-size:13.5px; border-top:1px solid var(--border); }
+tr td:first-child, th:first-child{ padding-left:20px; }
+tr td:last-child, th:last-child{ padding-right:20px; }
+.row-name{ display:flex; align-items:center; gap:10px; font-weight:500; }
+.row-icon{ width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center; font-size:13px; flex-shrink:0; font-weight:700; }
+.row-sym{ font-size:11.5px; color:var(--text-faint); }
+.mono-cell{ font-family:'JetBrains Mono',monospace; }
+.pos{ color:var(--green); }
+.neg{ color:var(--red); }
+.row-actions{ display:flex; align-items:center; gap:6px; justify-content:flex-end; }
+.mobile-only-label{ display:none; }
+tbody tr{ transition:background .2s var(--ease); }
+tbody tr:hover{ background:var(--surface-2); }
+
+.empty-state{ padding:60px 20px; text-align:center; color:var(--text-faint); }
+.empty-state i{ font-size:38px; color:var(--text-faint); margin-bottom:14px; display:block; }
+.empty-state h4{ color:var(--text); font-size:16px; margin-bottom:6px; }
+.empty-state p{ font-size:13.5px; margin-bottom:18px; }
+
+/* ---- Modal (Add/Edit) ---- */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center; z-index:300;
+  opacity:0; pointer-events:none; transition:opacity .25s var(--ease);
+}
+.modal-overlay.open{ opacity:1; pointer-events:auto; }
+.modal{
+  width:100%; max-width:460px; margin:20px; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:26px 26px 22px;
+  transform:translateY(14px) scale(.98); opacity:0; transition:transform .25s var(--ease), opacity .25s var(--ease);
+  max-height:90vh; overflow-y:auto;
+}
+.modal-overlay.open .modal{ transform:translateY(0) scale(1); opacity:1; }
+.modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.modal-head h3{ font-size:18px; font-weight:700; }
+.modal-close{ width:32px;height:32px;border-radius:9px; display:flex;align-items:center;justify-content:center; color:var(--text-faint); }
+.modal-close:hover{ color:var(--text); background:var(--surface-2); }
+
+.field{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.field span{ font-size:12px; color:var(--text-faint); font-weight:500; }
+.field input{
+  font-size:14px; color:var(--text); background:var(--surface-2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:10px 13px; transition:border-color .2s var(--ease);
+}
+.field input:focus{ outline:none; border-color:var(--accent); background:var(--bg-elevated); }
+.form-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+.field-err{ font-size:11.5px; color:var(--red); display:none; }
+.field.invalid input{ border-color:var(--red); }
+.field.invalid .field-err{ display:block; }
+.modal-actions{ display:flex; gap:10px; margin-top:10px; }
+.modal-actions button{ flex:1; justify-content:center; }
+.live-preview{ background:var(--surface-2); border-radius:var(--radius-sm); padding:12px 14px; font-size:12.5px; color:var(--text-dim); margin-bottom:16px; display:flex; justify-content:space-between; }
+.live-preview b{ font-family:'JetBrains Mono',monospace; color:var(--text); }
+
+/* Small confirm modal reuses .modal styling */
+#confirmModal .modal{ max-width:380px; text-align:center; padding:30px 26px 24px; }
+#confirmModal .confirm-icon{ width:52px;height:52px;border-radius:14px;background:color-mix(in srgb,var(--red) 16%,transparent); color:var(--red); display:flex;align-items:center;justify-content:center; font-size:22px; margin:0 auto 16px; }
+#confirmModal h3{ font-size:17px; margin-bottom:8px; }
+#confirmModal p{ font-size:13.5px; color:var(--text-faint); margin-bottom:20px; }
+
+/* ---- Toast ---- */
+.toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  padding:12px 20px; border-radius:999px; font-size:13.5px; font-weight:500;
+  display:flex; align-items:center; gap:9px; box-shadow:var(--shadow);
+  z-index:400; opacity:0; pointer-events:none; transition:opacity .3s var(--ease), transform .3s var(--ease);
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+.toast i{ color:var(--green); }
+
+/* fade-in for freshly rendered rows */
+@keyframes rowIn{ from{ opacity:0; transform:translateY(4px);} to{ opacity:1; transform:translateY(0);} }
+tbody tr{ animation:rowIn .3s var(--ease); }
+
+/* ============================================================
+   RESPONSIVE + NATIVE APP MOBILE EXPERIENCE
+   ============================================================ */
+:root{ --fab-h:56px; }
+
+/* ---- Tablet (768–1024px) ---- */
+@media (max-width:1024px){
+  .sidebar{ width:220px; }
+  .main{ margin-left:220px; }
+  .stat-grid{ grid-template-columns:repeat(2,1fr); }
+}
+
+/* ---- Mobile (<=940px): sidebar collapses, topbar + FAB take over ---- */
+@media (max-width:940px){
+  .sidebar{ display:none; }
+  .main{ margin-left:0; }
+
+  .topbar{
+    padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;
+    position:sticky; top:0;
+  }
+  .hamburger{ display:flex; }
+  .greet-eyebrow{ font-size:10.5px; }
+  .greet-title{ font-size:19px; }
+  .topbar-actions{ gap:6px; }
+  .icon-btn{ width:36px; height:36px; border-radius:10px; }
+  .icon-btn:active{ transform:scale(.9); background:var(--surface-2); }
+  #addStockBtn{ display:none; }              /* replaced by the FAB below */
+
+  .content{ padding:4px 16px calc(var(--fab-h) + 46px); }
+
+  /* ---- Stat cards become a native horizontally-snapping strip ---- */
+  .stat-grid{
+    display:flex; gap:12px; margin:14px 0 24px;
+    overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+    padding-bottom:2px; scrollbar-width:none;
+  }
+  .stat-grid::-webkit-scrollbar{ display:none; }
+  .stat-card{ flex:0 0 76%; scroll-snap-align:start; padding:18px 20px; border-radius:16px; }
+  .stat-value{ font-size:22px; }
+
+  .section-head{ margin:4px 0 12px; flex-direction:column; align-items:flex-start; gap:10px; }
+  .section-head h3{ font-size:16.5px; }
+  .head-actions{ width:100%; }
+  .search-box{ width:100%; }
+  .search-box input{ width:100%; }
+
+  /* ---- Holdings table becomes stacked native cards ---- */
+  .table-card{ padding:0; background:transparent; border:none; box-shadow:none; overflow:visible; }
+  table{ min-width:0; }
+  table, thead, tbody, tr, td{ display:block; }
+  thead{ display:none; }
+  tbody{ display:flex; flex-direction:column; gap:10px; }
+  tbody tr{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:14px 16px; box-shadow:var(--shadow);
+  }
+  tbody tr:active{ transform:scale(.985); }
+  tbody tr:hover{ background:var(--surface); }
+  td{ border-top:none; padding:6px 0; display:flex; align-items:center; justify-content:space-between; font-size:13px; }
+  td.row-name{
+    justify-content:flex-start; font-size:14.5px; padding-bottom:10px; margin-bottom:6px;
+    border-bottom:1px dashed var(--border);
+  }
+  td:not(.row-name)::before{ content:attr(data-label); color:var(--text-faint); font-size:11.5px; font-weight:500; }
+  td:last-child{ padding-top:10px; margin-top:4px; border-top:1px dashed var(--border); }
+  .row-actions{ width:100%; justify-content:stretch; gap:8px; }
+  .row-actions .btn-ghost{
+    flex:1; justify-content:center; padding:9px; border-radius:10px; background:var(--surface-2);
+    border:1px solid var(--border); font-size:12.5px; gap:6px;
+  }
+  .row-actions .edit-btn:active{ transform:scale(.95); }
+  .row-actions .price-btn:active{ transform:scale(.95); }
+  .row-actions .price-btn{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 30%, var(--border)); }
+  .row-actions .delete-btn{ color:var(--red); border-color:color-mix(in srgb, var(--red) 30%, var(--border)); }
+  .row-actions .delete-btn:active{ transform:scale(.95); }
+  .mobile-only-label{ display:inline; }
+
+  .empty-state{ padding:50px 16px; }
+
+  footer{ padding:16px 16px calc(var(--fab-h) + 34px); }
+}
+
+/* ---- Floating Action Button: native "Add Stock" affordance on mobile ---- */
+.fab{
+  display:none;
+  position:fixed; right:20px; bottom:calc(env(safe-area-inset-bottom) + 20px); z-index:200;
+  width:var(--fab-h); height:var(--fab-h); border-radius:50%;
+  background:var(--accent); color:#0B0D10; font-size:22px;
+  align-items:center; justify-content:center;
+  box-shadow:0 10px 24px -6px color-mix(in srgb, var(--accent) 55%, transparent);
+  transition:transform .18s var(--ease), box-shadow .18s var(--ease);
+}
+.fab:active{ transform:scale(.9); }
+@media (max-width:940px){ .fab{ display:flex; } }
+
+/* ---- Modals become native bottom sheets on mobile ---- */
+@media (max-width:640px){
+  .modal-overlay{ align-items:flex-end; }
+  .modal{
+    max-width:none; width:100%; margin:0; border-radius:22px 22px 0 0;
+    padding:14px 20px calc(env(safe-area-inset-bottom) + 20px);
+    transform:translateY(100%);
+    max-height:88vh;
+  }
+  .modal-overlay.open .modal{ transform:translateY(0); }
+  .modal::before{
+    content:""; display:block; width:38px; height:4px; border-radius:4px;
+    background:var(--border); margin:2px auto 14px;
+  }
+  .form-grid2{ grid-template-columns:1fr; gap:0; }
+  .live-preview{ flex-direction:column; gap:6px; }
+  .modal-actions{ position:sticky; bottom:0; background:var(--surface); padding-top:8px; }
+}
+
+/* ---- General tap feedback across buttons (native app feel) ---- */
+.btn-primary:active, .btn-secondary:active, .btn-danger:active{ transform:scale(.96); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">BR</div>
+      <div class="brand-name">Black<span>Road</span></div>
+    </div>
+    <div class="lane"></div>
+    <div class="side-body">
+      <a class="back-link" href="../blackroad-dashboard.html"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+
+      <div class="side-stat">
+        <div class="lbl">Portfolio Value</div>
+        <div class="val mono" id="sideValue">₹0</div>
+      </div>
+
+      <p class="side-note">Every change here — <b>add, edit, or delete</b> — is saved straight to your browser's IndexedDB and reflected back on the Dashboard automatically.</p>
+    </div>
+    <div class="sidebar-footer">
+      <button class="theme-toggle" id="themeToggle">
+        <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+        <span id="themeLabel">Dark mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="greet-eyebrow"><i class="bi bi-graph-up-arrow"></i> Direct Equity</div>
+        <div class="greet-title">Stocks Portfolio</div>
+      </div>
+      <div class="topbar-actions">
+        <a class="icon-btn hamburger" href="../blackroad-dashboard.html" title="Back to dashboard"><i class="bi bi-arrow-left"></i></a>
+        <button class="btn-primary" id="addStockBtn"><i class="bi bi-plus-lg"></i> Add Stock</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="stat-grid" id="statGrid">
+        <div class="card stat-card">
+          <div class="stat-eyebrow"><i class="bi bi-wallet2"></i> Invested</div>
+          <div class="stat-value mono" id="statInvested">₹0</div>
+          <div class="stat-sub">Total capital deployed</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-eyebrow"><i class="bi bi-graph-up"></i> Current Value</div>
+          <div class="stat-value mono" id="statCurrent">₹0</div>
+          <div class="stat-sub">Live mark-to-market</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-eyebrow"><i class="bi bi-arrow-left-right"></i> Total P&amp;L</div>
+          <div class="stat-value mono" id="statPnl">₹0</div>
+          <div class="stat-sub" id="statPnlPct">+0.0% overall</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-eyebrow"><i class="bi bi-collection"></i> Holdings</div>
+          <div class="stat-value mono" id="statHoldings">0</div>
+          <div class="stat-sub">Stocks in portfolio</div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <div>
+          <h3><i class="bi bi-graph-up-arrow" style="color:var(--accent);font-size:16px;"></i> Your Holdings</h3>
+          <p>Full CRUD — add, edit, or remove any position.</p>
+        </div>
+        <div class="head-actions">
+          <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="searchInput" placeholder="Search stock or symbol...">
+          </div>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <table id="stocksTable">
+          <thead>
+            <tr>
+              <th>Stock</th><th>Qty</th><th>Avg. Price</th><th>LTP</th>
+              <th>Invested</th><th>Current Value</th><th>P&amp;L</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="stocksBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none;">
+          <i class="bi bi-inbox"></i>
+          <h4>No holdings yet</h4>
+          <p>Add your first stock to start tracking your portfolio.</p>
+          <button class="btn-primary" id="emptyAddBtn"><i class="bi bi-plus-lg"></i> Add Stock</button>
+        </div>
+      </div>
+    </div>
+
+    <footer style="padding:20px 34px 40px;">
+      <div class="lane" style="margin-bottom:20px;"></div>
+      <div style="color:var(--text-faint);font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div><i class="bi bi-code-slash"></i> Developed by <b style="color:var(--accent);">Microintel</b></div>
+        <div>© 2026 BlackRoad. All rights reserved.</div>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<!-- FAB: native mobile "Add Stock" shortcut -->
+<button class="fab" id="fabAddBtn" title="Add Stock" aria-label="Add Stock"><i class="bi bi-plus-lg"></i></button>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="stockModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">Add Stock</h3>
+      <button class="modal-close" id="modalCloseBtn"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <form id="stockForm">
+      <input type="hidden" id="stockId">
+      <div class="field" id="fld-name">
+        <span>Stock name</span>
+        <input type="text" id="stockName" placeholder="e.g. Reliance Industries" required>
+        <span class="field-err">Please enter a stock name.</span>
+      </div>
+      <div class="field" id="fld-symbol">
+        <span>Symbol</span>
+        <input type="text" id="stockSymbol" placeholder="e.g. RELIANCE" required style="text-transform:uppercase;">
+        <span class="field-err">Please enter a ticker symbol.</span>
+      </div>
+      <div class="form-grid2">
+        <div class="field" id="fld-qty">
+          <span>Quantity</span>
+          <input type="number" id="stockQty" min="0.0001" step="any" placeholder="0" required>
+          <span class="field-err">Enter a valid quantity.</span>
+        </div>
+        <div class="field" id="fld-avg">
+          <span>Avg. buy price (₹)</span>
+          <input type="number" id="stockAvg" min="0" step="any" placeholder="0" required>
+          <span class="field-err">Enter a valid price.</span>
+        </div>
+      </div>
+      <div class="field" id="fld-ltp">
+        <span>Current market price / LTP (₹)</span>
+        <input type="number" id="stockLtp" min="0" step="any" placeholder="0" required>
+        <span class="field-err">Enter a valid price.</span>
+      </div>
+
+      <div class="live-preview">
+        <span>Invested: <b id="prevInvested">₹0</b></span>
+        <span>Current: <b id="prevCurrent">₹0</b></span>
+        <span>P&amp;L: <b id="prevPnl">₹0</b></span>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="saveBtn"><i class="bi bi-check2"></i> Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <div class="confirm-icon"><i class="bi bi-trash3"></i></div>
+    <h3>Remove this holding?</h3>
+    <p id="confirmText">This will permanently delete the stock from your portfolio.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="confirmCancelBtn">Cancel</button>
+      <button class="btn-danger" id="confirmDeleteBtn" style="flex:1;justify-content:center;"><i class="bi bi-trash3"></i> Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPDATE PRICE (LTP-ONLY) MODAL -->
+<div class="modal-overlay" id="priceModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3>Update Price</h3>
+        <span style="font-size:12.5px;color:var(--text-faint);"><span id="priceStockName"></span> · <span id="priceStockSymbol"></span></span>
+      </div>
+      <button class="modal-close" id="priceModalCloseBtn"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <form id="priceForm">
+      <div class="live-preview" style="margin-bottom:16px;">
+        <span>Old LTP: <b id="priceOldLtp">₹0</b></span>
+      </div>
+      <div class="field" id="fld-newltp">
+        <span>New LTP (₹)</span>
+        <input type="number" id="newLtpInput" min="0" step="any" placeholder="0" required inputmode="decimal">
+        <span class="field-err">Enter a valid price.</span>
+      </div>
+      <div class="live-preview">
+        <span>New P&amp;L: <b id="priceNewPnl">₹0</b></span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="priceCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="priceSaveBtn"><i class="bi bi-check2"></i> Update</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ===== Inlined StocksStore (IndexedDB) — no external file dependency ===== */
+/* ============================================================
+   BlackRoad — Stocks IndexedDB Store
+   Shared, dependency-free CRUD layer over IndexedDB.
+   Used by both /blackroad-dashboard.html and /pages/stocks.html
+   so both pages read/write the exact same data.
+   ============================================================ */
+(function (global) {
+  "use strict";
+
+  const DB_NAME = "BlackRoadDB";
+  const DB_VERSION = 1;
+  const STORE = "stocks";
+  const CHANNEL_NAME = "blackroad-stocks-sync";
+
+  let dbPromise = null;
+  let channel = null;
+  try {
+    channel = ("BroadcastChannel" in global) ? new BroadcastChannel(CHANNEL_NAME) : null;
+  } catch (e) { channel = null; }
+
+  function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          const store = db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+          store.createIndex("symbol", "symbol", { unique: false });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+    return dbPromise;
+  }
+
+  function store(mode) {
+    return openDB().then((db) => db.transaction(STORE, mode).objectStore(STORE));
+  }
+
+  function notify(type, payload) {
+    if (channel) { try { channel.postMessage({ type, payload, at: Date.now() }); } catch (e) {} }
+    try { global.dispatchEvent(new CustomEvent("stocks:changed", { detail: { type, payload } })); } catch (e) {}
+  }
+
+  function onChange(handler) {
+    if (channel) channel.onmessage = (e) => handler(e.data);
+    global.addEventListener("stocks:changed", (e) => handler(e.detail));
+  }
+
+  async function getAll() {
+    const s = await store("readonly");
+    return new Promise((resolve, reject) => {
+      const req = s.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function get(id) {
+    const s = await store("readonly");
+    return new Promise((resolve, reject) => {
+      const req = s.get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function add(stock) {
+    const s = await store("readwrite");
+    const now = new Date().toISOString();
+    const record = Object.assign({ createdAt: now, updatedAt: now }, stock);
+    const id = await new Promise((resolve, reject) => {
+      const req = s.add(record);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    notify("add", Object.assign({ id }, record));
+    return id;
+  }
+
+  async function update(id, changes) {
+    const s = await store("readwrite");
+    const updated = await new Promise((resolve, reject) => {
+      const getReq = s.get(id);
+      getReq.onsuccess = () => {
+        const existing = getReq.result;
+        if (!existing) return reject(new Error("Stock not found"));
+        const merged = Object.assign({}, existing, changes, { id, updatedAt: new Date().toISOString() });
+        const putReq = s.put(merged);
+        putReq.onsuccess = () => resolve(merged);
+        putReq.onerror = () => reject(putReq.error);
+      };
+      getReq.onerror = () => reject(getReq.error);
+    });
+    notify("update", updated);
+    return updated;
+  }
+
+  async function remove(id) {
+    const s = await store("readwrite");
+    await new Promise((resolve, reject) => {
+      const req = s.delete(id);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+    notify("remove", { id });
+    return true;
+  }
+
+  /** Seed the store with defaults, but only if it is completely empty. */
+  async function seedIfEmpty(defaults) {
+    const rows = await getAll();
+    if (rows.length > 0) return rows;
+    const s = await store("readwrite");
+    const now = new Date().toISOString();
+    await Promise.all(defaults.map((d) => new Promise((resolve, reject) => {
+      const req = s.add(Object.assign({ createdAt: now, updatedAt: now }, d));
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    })));
+    return getAll();
+  }
+
+  function computeMetrics(row) {
+    const qty = Number(row.qty) || 0;
+    const avgPrice = Number(row.avgPrice) || 0;
+    const ltp = Number(row.ltp) || 0;
+    const invested = qty * avgPrice;
+    const currentValue = qty * ltp;
+    const pnl = currentValue - invested;
+    const pnlPct = invested ? (pnl / invested) * 100 : 0;
+    return { invested, currentValue, pnl, pnlPct };
+  }
+
+  async function getSummary() {
+    const rows = await getAll();
+    let invested = 0, currentValue = 0;
+    rows.forEach((r) => {
+      const m = computeMetrics(r);
+      invested += m.invested;
+      currentValue += m.currentValue;
+    });
+    const pnl = currentValue - invested;
+    const pnlPct = invested ? (pnl / invested) * 100 : 0;
+    return { holdings: rows.length, invested, currentValue, pnl, pnlPct, rows };
+  }
+
+  function formatINR(n) {
+    const sign = n < 0 ? "-" : "";
+    const abs = Math.abs(Math.round(n));
+    return sign + "₹" + abs.toLocaleString("en-IN");
+  }
+
+  global.StocksStore = {
+    getAll, get, add, update, remove, seedIfEmpty,
+    computeMetrics, getSummary, formatINR, onChange
+  };
+})(window);
+
+</script>
+<script>
+/* ============================================================
+   THEME (persisted per-browser via localStorage, cosmetic only)
+   ============================================================ */
+const root = document.documentElement;
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+const themeLabel = document.getElementById('themeLabel');
+function applyTheme(t){
+  root.setAttribute('data-theme', t);
+  themeIcon.className = t === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
+  themeLabel.textContent = t === 'dark' ? 'Dark mode' : 'Light mode';
+}
+(function initTheme(){
+  let saved = 'dark';
+  try{ saved = localStorage.getItem('br-theme') || 'dark'; }catch(e){}
+  applyTheme(saved);
+})();
+themeToggle.addEventListener('click', ()=>{
+  const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try{ localStorage.setItem('br-theme', next); }catch(e){}
+});
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+const toastEl = document.createElement('div');
+toastEl.className = 'toast';
+toastEl.innerHTML = '<i class="bi bi-check-circle-fill"></i><span id="toastMsg"></span>';
+document.body.appendChild(toastEl);
+let toastTimer = null;
+function showToast(msg, icon='bi-check-circle-fill'){
+  toastEl.querySelector('i').className = 'bi ' + icon;
+  document.getElementById('toastMsg').textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 2400);
+}
+
+/* ============================================================
+   SEED DATA (first run only — mirrors the dashboard sample data)
+   ============================================================ */
+const SEED = [
+  { name:'Reliance Industries', symbol:'RELIANCE', qty:120, avgPrice:2410, ltp:2890, color:'blue' },
+  { name:'HDFC Bank',           symbol:'HDFCBANK', qty:85,  avgPrice:1480, ltp:1690, color:'gold' },
+  { name:'TCS',                 symbol:'TCS',       qty:40,  avgPrice:3650, ltp:3510, color:'violet' },
+  { name:'Infosys',             symbol:'INFY',      qty:60,  avgPrice:1410, ltp:1595, color:'red' },
+  { name:'Bajaj Finance',       symbol:'BAJFINANCE',qty:15,  avgPrice:6900, ltp:7820, color:'green' },
+];
+const PALETTE = ['blue','gold','violet','red','green'];
+
+/* ============================================================
+   STATE + RENDER (in-memory cache kept in sync with IndexedDB,
+   so CRUD ops don't need a full re-fetch — keeps the UI snappy)
+   ============================================================ */
+let cache = [];          // full list of stock rows
+let filterText = '';
+
+const stocksBody = document.getElementById('stocksBody');
+const emptyState = document.getElementById('emptyState');
+const fmt = (n)=> StocksStore.formatINR(n);
+const fmtPct = (n)=> (n>=0 ? '+' : '') + n.toFixed(1) + '%';
+
+function rowIcon(name, idx){
+  const color = PALETTE[idx % PALETTE.length];
+  return `<span class="row-icon" style="background:color-mix(in srgb,var(--${color}) 18%,transparent);color:var(--${color})">${(name||'?').trim().charAt(0).toUpperCase()}</span>`;
+}
+
+function renderTable(){
+  const rows = cache
+    .filter(r => !filterText || (r.name+' '+r.symbol).toLowerCase().includes(filterText))
+    .sort((a,b)=> (b.updatedAt||'').localeCompare(a.updatedAt||''));
+
+  if(rows.length === 0){
+    stocksBody.innerHTML = '';
+    emptyState.style.display = 'block';
+    document.getElementById('stocksTable').style.display = cache.length ? 'table' : 'none';
+    return;
+  }
+  emptyState.style.display = 'none';
+  document.getElementById('stocksTable').style.display = 'table';
+
+  const frag = document.createDocumentFragment();
+  rows.forEach((r, idx)=>{
+    const m = StocksStore.computeMetrics(r);
+    const tr = document.createElement('tr');
+    tr.dataset.id = r.id;
+    tr.innerHTML = `
+      <td class="row-name">${rowIcon(r.name, idx)}<div><div>${escapeHtml(r.name)}</div><div class="row-sym">${escapeHtml(r.symbol||'')}</div></div></td>
+      <td class="mono-cell" data-label="Qty">${r.qty}</td>
+      <td class="mono-cell" data-label="Avg. Price">${fmt(r.avgPrice)}</td>
+      <td class="mono-cell" data-label="LTP">${fmt(r.ltp)}</td>
+      <td class="mono-cell" data-label="Invested">${fmt(m.invested)}</td>
+      <td class="mono-cell" data-label="Current Value">${fmt(m.currentValue)}</td>
+      <td class="mono-cell ${m.pnl>=0?'pos':'neg'}" data-label="P&amp;L">${fmt(m.pnl)} <span style="opacity:.75">(${fmtPct(m.pnlPct)})</span></td>
+      <td data-label="">
+        <div class="row-actions">
+          <button class="btn-ghost price-btn" title="Update Price"><i class="bi bi-arrow-repeat"></i> <span class="mobile-only-label">Price</span></button>
+          <button class="btn-ghost edit-btn" title="Edit"><i class="bi bi-pencil"></i> <span class="mobile-only-label">Edit</span></button>
+          <button class="btn-ghost delete-btn" title="Delete"><i class="bi bi-trash3"></i> <span class="mobile-only-label">Delete</span></button>
+        </div>
+      </td>`;
+    frag.appendChild(tr);
+  });
+  stocksBody.innerHTML = '';
+  stocksBody.appendChild(frag);
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderStats(){
+  let invested=0, currentValue=0;
+  cache.forEach(r=>{ const m = StocksStore.computeMetrics(r); invested+=m.invested; currentValue+=m.currentValue; });
+  const pnl = currentValue - invested;
+  const pnlPct = invested ? (pnl/invested*100) : 0;
+
+  document.getElementById('statInvested').textContent = fmt(invested);
+  document.getElementById('statCurrent').textContent = fmt(currentValue);
+  document.getElementById('statPnl').textContent = fmt(pnl);
+  document.getElementById('statPnl').className = 'stat-value mono ' + (pnl>=0?'pos':'neg');
+  document.getElementById('statPnlPct').textContent = fmtPct(pnlPct) + ' overall';
+  document.getElementById('statPnlPct').className = 'stat-sub ' + (pnl>=0?'pos':'neg');
+  document.getElementById('statHoldings').textContent = String(cache.length);
+  document.getElementById('sideValue').textContent = fmt(currentValue);
+}
+
+function renderAll(){ renderStats(); renderTable(); }
+
+/* ============================================================
+   LOAD (seed once, then hydrate cache from IndexedDB)
+   ============================================================ */
+(async function init(){
+  try{
+    await StocksStore.seedIfEmpty(SEED);
+    cache = await StocksStore.getAll();
+    renderAll();
+  }catch(e){
+    console.error('IndexedDB init failed', e);
+    showToast('Could not access local storage', 'bi-exclamation-triangle-fill');
+  }
+})();
+
+/* Keep this tab's view fresh if data changes elsewhere (e.g. another tab) */
+StocksStore.onChange(async ()=>{
+  cache = await StocksStore.getAll();
+  renderAll();
+});
+
+/* ============================================================
+   SEARCH (debounced)
+   ============================================================ */
+let searchTimer = null;
+document.getElementById('searchInput').addEventListener('input', (e)=>{
+  clearTimeout(searchTimer);
+  const val = e.target.value;
+  searchTimer = setTimeout(()=>{
+    filterText = val.trim().toLowerCase();
+    renderTable();
+  }, 150);
+});
+
+/* ============================================================
+   ADD / EDIT MODAL
+   ============================================================ */
+const stockModalOverlay = document.getElementById('stockModalOverlay');
+const stockForm = document.getElementById('stockForm');
+const modalTitle = document.getElementById('modalTitle');
+const fName = document.getElementById('stockName');
+const fSymbol = document.getElementById('stockSymbol');
+const fQty = document.getElementById('stockQty');
+const fAvg = document.getElementById('stockAvg');
+const fLtp = document.getElementById('stockLtp');
+const fId = document.getElementById('stockId');
+
+function openModal(editingRow){
+  stockForm.reset();
+  ['fld-name','fld-symbol','fld-qty','fld-avg','fld-ltp'].forEach(id=> document.getElementById(id).classList.remove('invalid'));
+  if(editingRow){
+    modalTitle.textContent = 'Edit Stock';
+    fId.value = editingRow.id;
+    fName.value = editingRow.name;
+    fSymbol.value = editingRow.symbol || '';
+    fQty.value = editingRow.qty;
+    fAvg.value = editingRow.avgPrice;
+    fLtp.value = editingRow.ltp;
+  } else {
+    modalTitle.textContent = 'Add Stock';
+    fId.value = '';
+  }
+  updateLivePreview();
+  stockModalOverlay.classList.add('open');
+  setTimeout(()=> fName.focus(), 50);
+}
+function closeModal(){ stockModalOverlay.classList.remove('open'); }
+
+document.getElementById('addStockBtn').addEventListener('click', ()=> openModal(null));
+document.getElementById('emptyAddBtn').addEventListener('click', ()=> openModal(null));
+document.getElementById('fabAddBtn').addEventListener('click', ()=> openModal(null));
+document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+stockModalOverlay.addEventListener('click', (e)=>{ if(e.target === stockModalOverlay) closeModal(); });
+
+function updateLivePreview(){
+  const qty = Number(fQty.value)||0, avg = Number(fAvg.value)||0, ltp = Number(fLtp.value)||0;
+  const invested = qty*avg, current = qty*ltp, pnl = current-invested;
+  document.getElementById('prevInvested').textContent = fmt(invested);
+  document.getElementById('prevCurrent').textContent = fmt(current);
+  const prevPnl = document.getElementById('prevPnl');
+  prevPnl.textContent = fmt(pnl);
+  prevPnl.style.color = pnl>=0 ? 'var(--green)' : 'var(--red)';
+}
+[fQty, fAvg, fLtp].forEach(el=> el.addEventListener('input', updateLivePreview));
+
+function validateForm(){
+  let ok = true;
+  const checks = [
+    [fName, 'fld-name', fName.value.trim().length>0],
+    [fSymbol, 'fld-symbol', fSymbol.value.trim().length>0],
+    [fQty, 'fld-qty', Number(fQty.value) > 0],
+    [fAvg, 'fld-avg', Number(fAvg.value) >= 0],
+    [fLtp, 'fld-ltp', Number(fLtp.value) >= 0],
+  ];
+  checks.forEach(([el, id, valid])=>{
+    document.getElementById(id).classList.toggle('invalid', !valid);
+    if(!valid) ok = false;
+  });
+  return ok;
+}
+
+stockForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!validateForm()) return;
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+
+  const payload = {
+    name: fName.value.trim(),
+    symbol: fSymbol.value.trim().toUpperCase(),
+    qty: Number(fQty.value),
+    avgPrice: Number(fAvg.value),
+    ltp: Number(fLtp.value),
+  };
+
+  try{
+    if(fId.value){
+      const updated = await StocksStore.update(Number(fId.value), payload);
+      const i = cache.findIndex(r=> r.id === updated.id);
+      if(i>-1) cache[i] = updated; else cache.push(updated);
+      showToast('Stock updated');
+    } else {
+      const id = await StocksStore.add(payload);
+      cache.push(Object.assign({ id }, payload));
+      showToast('Stock added');
+    }
+    renderAll();
+    closeModal();
+  }catch(err){
+    console.error(err);
+    showToast('Something went wrong saving this stock', 'bi-exclamation-triangle-fill');
+  }finally{
+    saveBtn.disabled = false;
+  }
+});
+
+/* ============================================================
+   EDIT / DELETE — event delegation (fast, no per-row listeners)
+   ============================================================ */
+let pendingDeleteId = null;
+const confirmModal = document.getElementById('confirmModal');
+
+stocksBody.addEventListener('click', (e)=>{
+  const tr = e.target.closest('tr');
+  if(!tr) return;
+  const id = Number(tr.dataset.id);
+  if(e.target.closest('.price-btn')){
+    const row = cache.find(r=> r.id === id);
+    if(row) openPriceModal(row);
+  } else if(e.target.closest('.edit-btn')){
+    const row = cache.find(r=> r.id === id);
+    if(row) openModal(row);
+  } else if(e.target.closest('.delete-btn')){
+    const row = cache.find(r=> r.id === id);
+    pendingDeleteId = id;
+    document.getElementById('confirmText').textContent = row
+      ? `This will permanently remove "${row.name}" from your portfolio.`
+      : 'This will permanently delete the stock from your portfolio.';
+    confirmModal.classList.add('open');
+  }
+});
+
+document.getElementById('confirmCancelBtn').addEventListener('click', ()=>{
+  confirmModal.classList.remove('open'); pendingDeleteId = null;
+});
+confirmModal.addEventListener('click', (e)=>{ if(e.target === confirmModal){ confirmModal.classList.remove('open'); pendingDeleteId = null; } });
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async ()=>{
+  if(pendingDeleteId == null) return;
+  try{
+    await StocksStore.remove(pendingDeleteId);
+    cache = cache.filter(r=> r.id !== pendingDeleteId);
+    renderAll();
+    showToast('Stock removed', 'bi-trash3');
+  }catch(err){
+    console.error(err);
+    showToast('Could not delete this stock', 'bi-exclamation-triangle-fill');
+  }finally{
+    pendingDeleteId = null;
+    confirmModal.classList.remove('open');
+  }
+});
+
+/* ============================================================
+   QUICK UPDATE — LTP ONLY
+   Lets the user refresh just the current market price of a
+   stock without opening the full edit form.
+   ============================================================ */
+const priceModal = document.getElementById('priceModalOverlay');
+const priceForm = document.getElementById('priceForm');
+let priceEditId = null;
+
+function openPriceModal(row){
+  priceEditId = row.id;
+  document.getElementById('priceStockName').textContent = row.name;
+  document.getElementById('priceStockSymbol').textContent = row.symbol || '';
+  document.getElementById('priceOldLtp').textContent = fmt(row.ltp);
+  const input = document.getElementById('newLtpInput');
+  input.value = row.ltp;
+  document.getElementById('fld-newltp').classList.remove('invalid');
+  updatePricePreview(row);
+  priceModal.classList.add('open');
+  setTimeout(()=>{ input.focus(); input.select(); }, 50);
+}
+function closePriceModal(){ priceModal.classList.remove('open'); priceEditId = null; }
+
+function updatePricePreview(row){
+  const input = document.getElementById('newLtpInput');
+  const newLtp = Number(input.value) || 0;
+  const m = StocksStore.computeMetrics(Object.assign({}, row, { ltp:newLtp }));
+  const pnlEl = document.getElementById('priceNewPnl');
+  pnlEl.textContent = `${fmt(m.pnl)} (${fmtPct(m.pnlPct)})`;
+  pnlEl.style.color = m.pnl>=0 ? 'var(--green)' : 'var(--red)';
+}
+
+document.getElementById('newLtpInput').addEventListener('input', ()=>{
+  const row = cache.find(r=> r.id === priceEditId);
+  if(row) updatePricePreview(row);
+});
+document.getElementById('priceModalCloseBtn').addEventListener('click', closePriceModal);
+document.getElementById('priceCancelBtn').addEventListener('click', closePriceModal);
+priceModal.addEventListener('click', (e)=>{ if(e.target === priceModal) closePriceModal(); });
+
+priceForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const input = document.getElementById('newLtpInput');
+  const newLtp = Number(input.value);
+  if(!(newLtp >= 0) || input.value.trim()===''){
+    document.getElementById('fld-newltp').classList.add('invalid');
+    return;
+  }
+  const saveBtn = document.getElementById('priceSaveBtn');
+  saveBtn.disabled = true;
+  try{
+    const updated = await StocksStore.update(priceEditId, { ltp:newLtp });
+    const i = cache.findIndex(r=> r.id === updated.id);
+    if(i>-1) cache[i] = updated;
+    renderAll();
+    showToast('Price updated');
+    closePriceModal();
+  }catch(err){
+    console.error(err);
+    showToast('Could not update the price', 'bi-exclamation-triangle-fill');
+  }finally{
+    saveBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
+
+
