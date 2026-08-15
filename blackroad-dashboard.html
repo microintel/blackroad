@@ -825,15 +825,15 @@ footer{
             <div class="hero-eyebrow"><i class="bi bi-graph-up"></i> Total Net Worth</div>
             <div class="hero-value mono" id="netWorthValue">₹0</div>
             <div class="hero-sub">
-              <span class="chip up"><i class="bi bi-arrow-up-right"></i> +3.2% this month</span>
+              <span class="chip up" id="heroMonthChip"><i class="bi bi-arrow-up-right"></i> 0.0% this month</span>
               <span class="stat-mini">Updated <b>Today, 9:41 AM</b></span>
             </div>
             <div class="hero-lane lane"></div>
             <div class="hero-footrow">
-              <div class="footrow-item">Total Assets<b class="mono">₹1,57,15,600</b></div>
-              <div class="footrow-item">Total Liabilities<b class="mono" style="color:var(--red)">₹20,60,000</b></div>
-              <div class="footrow-item">Insurance Cover<b class="mono">₹1.20 Cr</b></div>
-              <div class="footrow-item">Monthly Surplus<b class="mono" style="color:var(--green)">₹62,000</b></div>
+              <div class="footrow-item">Total Assets<b class="mono" id="footTotalAssets">₹0</b></div>
+              <div class="footrow-item">Total Liabilities<b class="mono" style="color:var(--red)" id="footTotalLiabilities">₹0</b></div>
+              <div class="footrow-item">Insurance Cover<b class="mono" id="footInsuranceCover">₹0</b></div>
+              <div class="footrow-item">Monthly Surplus<b class="mono" style="color:var(--green)" id="footMonthlySurplus">₹0</b></div>
             </div>
           </div>
 
@@ -842,7 +842,7 @@ footer{
             <div class="donut-wrap">
               <div class="donut" id="donut">
                 <canvas id="assetChart" width="132" height="132"></canvas>
-                <div class="donut-center"><small>ASSETS</small><b>₹1.57Cr</b></div>
+                <div class="donut-center"><small>ASSETS</small><b id="donutCenterTotal">₹0</b></div>
               </div>
               <div class="legend" id="legend"></div>
             </div>
@@ -915,21 +915,17 @@ footer{
         <div class="panel-head">
           <div class="panel-title">
             <div class="pi" style="background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green);"><i class="bi bi-graph-up-arrow"></i></div>
-            <div><h3>Stocks</h3><span id="stocksHoldingsCount">Direct equity · 8 holdings</span></div>
+            <div><h3>Stocks</h3><span id="stocksHoldingsCount">Direct equity · 0 holdings</span></div>
           </div>
           <div class="panel-head-right">
-            <div class="panel-total"><b id="stocksPanelTotal">₹28,64,300</b><small class="pos" id="stocksPanelPct">+12.1% overall</small></div>
+            <div class="panel-total"><b id="stocksPanelTotal">₹0</b><small class="pos" id="stocksPanelPct">0.0% overall</small></div>
             <a class="btn-secondary" href="pages/stocks.html">Manage <i class="bi bi-arrow-up-right"></i></a>
           </div>
         </div>
         <table>
           <thead><tr><th>Stock</th><th>Qty</th><th>Avg. Price</th><th>LTP</th><th>P&amp;L</th></tr></thead>
           <tbody id="stocksTableBody">
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)">R</span>Reliance Industries</td><td class="mono-cell">120</td><td class="mono-cell">₹2,410</td><td class="mono-cell">₹2,890</td><td class="mono-cell pos">+19.9%</td></tr>
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--gold)">H</span>HDFC Bank</td><td class="mono-cell">85</td><td class="mono-cell">₹1,480</td><td class="mono-cell">₹1,690</td><td class="mono-cell pos">+14.2%</td></tr>
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--violet) 18%,transparent);color:var(--violet)">T</span>TCS</td><td class="mono-cell">40</td><td class="mono-cell">₹3,650</td><td class="mono-cell">₹3,510</td><td class="mono-cell neg">-3.8%</td></tr>
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)">I</span>Infosys</td><td class="mono-cell">60</td><td class="mono-cell">₹1,410</td><td class="mono-cell">₹1,595</td><td class="mono-cell pos">+13.1%</td></tr>
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)">B</span>Bajaj Finance</td><td class="mono-cell">15</td><td class="mono-cell">₹6,900</td><td class="mono-cell">₹7,820</td><td class="mono-cell pos">+13.3%</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No holdings yet — <a href="pages/stocks.html" style="color:var(--accent);">add your first stock</a>.</td></tr>
           </tbody>
         </table>
       </section>
@@ -942,14 +938,14 @@ footer{
             <div><h3>Gold</h3><span>Physical, digital &amp; sovereign bonds</span></div>
           </div>
           <div class="panel-head-right">
-            <div class="panel-total"><b>₹8,92,400</b><small class="pos">+9.6% YoY</small></div>
+            <div class="panel-total"><b>₹0</b><small>No holdings yet</small></div>
             <a class="btn-secondary" href="pages/gold.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <div class="bars" data-bars>
-          <div class="bar-row"><span class="label">Physical Jewellery</span><div class="bar-track"><div class="bar-fill" data-w="52" style="background:var(--gold)"></div></div><span class="amt">₹4,64,000</span></div>
-          <div class="bar-row"><span class="label">Sovereign Gold Bonds</span><div class="bar-track"><div class="bar-fill" data-w="33" style="background:var(--blue)"></div></div><span class="amt">₹2,95,000</span></div>
-          <div class="bar-row"><span class="label">Digital Gold</span><div class="bar-track"><div class="bar-fill" data-w="15" style="background:var(--green)"></div></div><span class="amt">₹1,33,400</span></div>
+          <div class="bar-row"><span class="label">Physical Jewellery</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--gold)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">Sovereign Gold Bonds</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--blue)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">Digital Gold</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--green)"></div></div><span class="amt">₹0</span></div>
         </div>
       </section>
 
@@ -961,15 +957,15 @@ footer{
             <div><h3>Real Estate</h3><span>2 properties</span></div>
           </div>
           <div class="panel-head-right">
-            <div class="panel-total"><b>₹65,00,000</b><small class="pos">+6.4% valuation</small></div>
+            <div class="panel-total"><b>₹0</b><small>No properties yet</small></div>
             <a class="btn-secondary" href="pages/real-estate.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <table>
           <thead><tr><th>Property</th><th>Type</th><th>Purchase Value</th><th>Est. Value</th><th>Gain</th></tr></thead>
           <tbody>
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)"><i class="bi bi-house-door"></i></span>2BHK, Whitefield, Bengaluru</td><td><span class="tag">Residential</span></td><td class="mono-cell">₹42,00,000</td><td class="mono-cell">₹48,50,000</td><td class="mono-cell pos">+15.5%</td></tr>
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)"><i class="bi bi-tree"></i></span>Farm Plot, Mysuru</td><td><span class="tag">Land</span></td><td class="mono-cell">₹14,00,000</td><td class="mono-cell">₹16,50,000</td><td class="mono-cell pos">+17.9%</td></tr>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)"><i class="bi bi-house-door"></i></span>2BHK, Whitefield, Bengaluru</td><td><span class="tag">Residential</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0</td><td class="mono-cell">0.0%</td></tr>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)"><i class="bi bi-tree"></i></span>Farm Plot, Mysuru</td><td><span class="tag">Land</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0</td><td class="mono-cell">0.0%</td></tr>
           </tbody>
         </table>
       </section>
@@ -982,15 +978,15 @@ footer{
             <div><h3>Fixed Deposits &amp; Bonds</h3><span>4 instruments</span></div>
           </div>
           <div class="panel-head-right">
-            <div class="panel-total"><b>₹12,40,000</b><small>Avg. 7.1% p.a.</small></div>
+            <div class="panel-total"><b>₹0</b><small>No instruments yet</small></div>
             <a class="btn-secondary" href="pages/fixed-deposits.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <div class="bars" data-bars>
-          <div class="bar-row"><span class="label">HDFC Bank FD</span><div class="bar-track"><div class="bar-fill" data-w="40" style="background:var(--violet)"></div></div><span class="amt">₹5,00,000</span></div>
-          <div class="bar-row"><span class="label">SBI Tax Saver FD</span><div class="bar-track"><div class="bar-fill" data-w="24" style="background:var(--blue)"></div></div><span class="amt">₹3,00,000</span></div>
-          <div class="bar-row"><span class="label">Corporate Bonds</span><div class="bar-track"><div class="bar-fill" data-w="20" style="background:var(--gold)"></div></div><span class="amt">₹2,50,000</span></div>
-          <div class="bar-row"><span class="label">PPF</span><div class="bar-track"><div class="bar-fill" data-w="15" style="background:var(--green)"></div></div><span class="amt">₹1,90,000</span></div>
+          <div class="bar-row"><span class="label">HDFC Bank FD</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--violet)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">SBI Tax Saver FD</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--blue)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">Corporate Bonds</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--gold)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">PPF</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--green)"></div></div><span class="amt">₹0</span></div>
         </div>
       </section>
 
@@ -1002,16 +998,16 @@ footer{
             <div><h3>Insurance</h3><span>Protection cover across 3 policies</span></div>
           </div>
           <div class="panel-head-right">
-            <div class="panel-total"><b>₹1.20 Cr</b><small>Total cover</small></div>
+            <div class="panel-total"><b>₹0</b><small>No policies yet</small></div>
             <a class="btn-secondary" href="pages/insurance.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <table>
           <thead><tr><th>Policy</th><th>Type</th><th>Cover</th><th>Premium</th><th>Renewal</th></tr></thead>
           <tbody>
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)"><i class="bi bi-heart-pulse"></i></span>LIC Term Plan</td><td><span class="tag">Term Life</span></td><td class="mono-cell">₹1,00,00,000</td><td class="mono-cell">₹14,200/yr</td><td class="mono-cell">Mar 2027</td></tr>
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)"><i class="bi bi-hospital"></i></span>Star Health Family Floater</td><td><span class="tag">Health</span></td><td class="mono-cell">₹15,00,000</td><td class="mono-cell">₹22,800/yr</td><td class="mono-cell">Jan 2027</td></tr>
-            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--gold)"><i class="bi bi-car-front"></i></span>ICICI Lombard Motor</td><td><span class="tag">Vehicle</span></td><td class="mono-cell">₹5,00,000</td><td class="mono-cell">₹8,900/yr</td><td class="mono-cell">Sep 2026</td></tr>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)"><i class="bi bi-heart-pulse"></i></span>LIC Term Plan</td><td><span class="tag">Term Life</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0/yr</td><td class="mono-cell">—</td></tr>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)"><i class="bi bi-hospital"></i></span>Star Health Family Floater</td><td><span class="tag">Health</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0/yr</td><td class="mono-cell">—</td></tr>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--gold)"><i class="bi bi-car-front"></i></span>ICICI Lombard Motor</td><td><span class="tag">Vehicle</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0/yr</td><td class="mono-cell">—</td></tr>
           </tbody>
         </table>
       </section>
@@ -1024,13 +1020,13 @@ footer{
             <div><h3>Loans &amp; Liabilities</h3><span>Outstanding balances</span></div>
           </div>
           <div class="panel-head-right">
-            <div class="panel-total"><b style="color:var(--red)">₹20,60,000</b><small>Total outstanding</small></div>
+            <div class="panel-total"><b style="color:var(--red)">₹0</b><small>No liabilities yet</small></div>
             <a class="btn-secondary" href="pages/loans.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <div class="bars" data-bars>
-          <div class="bar-row"><span class="label">Home Loan</span><div class="bar-track"><div class="bar-fill" data-w="90" style="background:var(--red)"></div></div><span class="amt">₹18,50,000</span></div>
-          <div class="bar-row"><span class="label">Car Loan</span><div class="bar-track"><div class="bar-fill" data-w="10" style="background:var(--gold)"></div></div><span class="amt">₹2,10,000</span></div>
+          <div class="bar-row"><span class="label">Home Loan</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--red)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">Car Loan</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--gold)"></div></div><span class="amt">₹0</span></div>
         </div>
       </section>
 
@@ -1345,12 +1341,12 @@ footer{
 const categories = [
   { id:'income',       name:'Income & Expenses',   icon:'bi-cash-coin',        value:'₹0', trend:'Loading…', trendUp:true,  color:'green', page:'incomeStatement/statement.html' },
   { id:'mutualfunds',  name:'Mutual Funds',         icon:'bi-pie-chart-fill',   value:'₹42,18,900',  trend:'+18.4% XIRR', trendUp:true,  color:'gold',  page:'https://microintel.github.io/stepup/' },
-  { id:'stocks',       name:'Stocks',                icon:'bi-graph-up-arrow',   value:'₹28,64,300',  trend:'+12.1%',      trendUp:true,  color:'green', page:'pages/stocks.html' },
-  { id:'gold',         name:'Gold',                  icon:'bi-gem',              value:'₹8,92,400',   trend:'+9.6% YoY',   trendUp:true,  color:'paleGold', page:'pages/gold.html' },
-  { id:'realestate',   name:'Real Estate',           icon:'bi-building',         value:'₹65,00,000',  trend:'+6.4%',       trendUp:true,  color:'blue',  page:'pages/real-estate.html' },
-  { id:'deposits',     name:'Fixed Deposits',        icon:'bi-bank2',            value:'₹12,40,000',  trend:'7.1% p.a.',   trendUp:true,  color:'violet', page:'pages/fixed-deposits.html' },
-  { id:'insurance',    name:'Insurance',             icon:'bi-shield-check',     value:'₹1.20 Cr',    trend:'Cover active',trendUp:true,  color:'green', page:'pages/insurance.html' },
-  { id:'loans',        name:'Loans & Liabilities',   icon:'bi-file-earmark-minus', value:'₹20,60,000', trend:'-2.1% this yr', trendUp:false, color:'red', page:'pages/loans.html' },
+  { id:'stocks',       name:'Stocks',                icon:'bi-graph-up-arrow',   value:'₹0',  trend:'No holdings yet',      trendUp:true,  color:'green', page:'pages/stocks.html' },
+  { id:'gold',         name:'Gold',                  icon:'bi-gem',              value:'₹0',   trend:'No holdings yet',   trendUp:true,  color:'paleGold', page:'pages/gold.html' },
+  { id:'realestate',   name:'Real Estate',           icon:'bi-building',         value:'₹0',   trend:'No properties yet',       trendUp:true,  color:'blue',  page:'pages/real-estate.html' },
+  { id:'deposits',     name:'Fixed Deposits',        icon:'bi-bank2',            value:'₹0',  trend:'No instruments yet',   trendUp:true,  color:'violet', page:'pages/fixed-deposits.html' },
+  { id:'insurance',    name:'Insurance',             icon:'bi-shield-check',     value:'₹0',    trend:'No policies yet',trendUp:true,  color:'green', page:'pages/insurance.html' },
+  { id:'loans',        name:'Loans & Liabilities',   icon:'bi-file-earmark-minus', value:'₹0', trend:'No liabilities yet', trendUp:true, color:'red', page:'pages/loans.html' },
 ];
 
 const allocation = [
@@ -1518,10 +1514,11 @@ document.querySelectorAll('[data-bars]').forEach(b=> barObserver.observe(b));
 function formatINR(n){
   return '₹' + Math.round(n).toLocaleString('en-IN');
 }
-const GOLD_VALUE       = 892400;
-const REALESTATE_VALUE = 6500000;
-const DEPOSITS_VALUE   = 1240000;
-const LOANS_VALUE      = 2060000; // liability — subtracted from net worth
+const GOLD_VALUE       = 0;
+const REALESTATE_VALUE = 0;
+const DEPOSITS_VALUE   = 0;
+const INSURANCE_VALUE  = 0; // cover amount — shown in the footrow, not counted toward net worth
+const LOANS_VALUE      = 0; // liability — subtracted from net worth
 
 const nwEl = document.getElementById('netWorthValue');
 let nwCurrent = 0;
@@ -1574,8 +1571,24 @@ async function recalcNetWorth(){
     { label:'Fixed Deposits', amount:DEPOSITS_VALUE,    color:'var(--violet)' },
     { label:'Gold',           amount:GOLD_VALUE,        color:'var(--paleGold)'},
   ];
-  const totalAssets = items.reduce((s,i)=> s + i.amount, 0) || 1;
+  const rawTotalAssets = items.reduce((s,i)=> s + i.amount, 0);
+  const totalAssets = rawTotalAssets || 1; // avoid /0 in percentages
   renderAllocation(items.map(i => ({ ...i, pct: +(i.amount / totalAssets * 100).toFixed(1) })));
+
+  // Hero footrow + donut center total
+  const footAssets = document.getElementById('footTotalAssets');
+  const footLiab = document.getElementById('footTotalLiabilities');
+  const footIns = document.getElementById('footInsuranceCover');
+  const footSurplus = document.getElementById('footMonthlySurplus');
+  const donutCenter = document.getElementById('donutCenterTotal');
+  if(footAssets) footAssets.textContent = formatINR(rawTotalAssets);
+  if(footLiab) footLiab.textContent = formatINR(LOANS_VALUE);
+  if(footIns) footIns.textContent = formatINR(INSURANCE_VALUE);
+  if(footSurplus){
+    footSurplus.textContent = formatINR(incomeNet);
+    footSurplus.style.color = incomeNet >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+  if(donutCenter) donutCenter.textContent = formatINR(rawTotalAssets);
 }
 recalcNetWorth();
 
@@ -1851,13 +1864,7 @@ autoBackupSwitch.addEventListener('click', async ()=>{
    Dashboard tile, panel total, and holdings table in sync with
    whatever CRUD changes were made on the Stocks page.
    ============================================================ */
-const STOCKS_SEED = [
-  { name:'Reliance Industries', symbol:'RELIANCE', qty:120, avgPrice:2410, ltp:2890, color:'blue' },
-  { name:'HDFC Bank',           symbol:'HDFCBANK', qty:85,  avgPrice:1480, ltp:1690, color:'gold' },
-  { name:'TCS',                 symbol:'TCS',       qty:40,  avgPrice:3650, ltp:3510, color:'violet' },
-  { name:'Infosys',             symbol:'INFY',      qty:60,  avgPrice:1410, ltp:1595, color:'red' },
-  { name:'Bajaj Finance',       symbol:'BAJFINANCE',qty:15,  avgPrice:6900, ltp:7820, color:'green' },
-];
+const STOCKS_SEED = [];
 const STOCK_PALETTE = ['blue','gold','violet','red','green'];
 
 function stockRowIcon(name, idx){
@@ -1868,9 +1875,26 @@ function escapeHtmlDash(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+/* One-time cleanup: earlier versions of this dashboard seeded 5 demo
+   stocks into IndexedDB. If a browser already has that old data
+   sitting in storage, seedIfEmpty() won't touch it (it only seeds an
+   empty store). This clears it out exactly once so Stocks genuinely
+   starts at ₹0 for everyone, without wiping anything a user adds
+   themselves afterward. */
+async function resetStocksOnce(){
+  const FLAG = 'brStocksResetV1';
+  if(localStorage.getItem(FLAG)) return;
+  try{
+    const rows = await StocksStore.getAll();
+    await Promise.all(rows.map(r => StocksStore.remove(r.id)));
+  }catch(e){ console.error('Could not reset existing stocks data', e); }
+  localStorage.setItem(FLAG, '1');
+}
+
 async function refreshStocksSummary(){
   if(typeof StocksStore === 'undefined') return; // storage unavailable (e.g. private browsing)
   try{
+    await resetStocksOnce();
     await StocksStore.seedIfEmpty(STOCKS_SEED);
     const summary = await StocksStore.getSummary();
 
