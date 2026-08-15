@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BlackRoad — Dashboard</title>
+<title>BlackRoad — Statement</title>
 <script>
   /* apply saved theme immediately, before first paint, on every page */
   (function(){ try{
@@ -13,9 +13,8 @@
 </script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body data-page="dashboard">
+<body data-page="statement">
 
 <!-- ============ LEFT NAVIGATION (persistent, same on every page) ============ -->
 <nav class="side-nav" aria-label="Main menu">
@@ -90,88 +89,99 @@
   </div>
 </nav>
 
-<!-- ============ DASHBOARD (summary only — full ledger lives on the Statement tab) ============ -->
-<div class="dashboard-shell">
+<!-- ============ STATEMENT (the full income/expense ledger) ============ -->
+<main id="ledger">
+  <div class="ledger-toolbar">
+    <div class="ledger-head">
+      <h2>Statement</h2>
+      <button class="add-income-btn top-add-income-btn" id="addIncomeBtn" type="button"><i class="bi bi-plus-lg"></i> Add income</button>
+    </div>
 
-  <div class="dashboard-head">
-    <h2>BlackRoad</h2>
-    <a href="statement.html" class="ghost-btn"><i class="bi bi-journal-text"></i> View statement</a>
+    <!-- ---- Date range filter + collapse-all (large-ledger controls) ---- -->
+    <div class="filter-row">
+      <div class="date-filter">
+        <i class="bi bi-calendar-event"></i>
+        <input type="date" id="dateFrom" title="From date" aria-label="From date">
+        <span class="date-sep">–</span>
+        <input type="date" id="dateTo" title="To date" aria-label="To date">
+        <button class="date-filter-clear" id="dateFilterClear" type="button" title="Clear date filter" style="display:none;"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <button class="ghost-btn" id="collapseAllBtn" type="button"><i class="bi bi-arrows-collapse"></i> Collapse all</button>
+      <a class="ghost-btn" href="search.html"><i class="bi bi-search"></i> Search</a>
+      <a class="ghost-btn" href="jumpto.html"><i class="bi bi-calendar3"></i> Jump to</a>
+    </div>
+
+    <div class="search-status" id="searchStatus" style="display:none;"></div>
   </div>
 
-  <!-- ---- 4 quick-stat cards: income, expenses, balance, transactions ---- -->
-  <div class="quick-stats" id="quickStats">
-    <div class="qs-item qs-in">
-      <span class="qs-ico"><i class="bi bi-arrow-down-left"></i></span>
-      <span class="qs-label">Income</span>
-      <span class="qs-val" id="qsIncome">₹0</span>
+  <div id="ledgerBody"><!-- rendered by statement.js --></div>
+</main>
+
+<!-- ============ ADD INCOME DIALOG ============ -->
+<dialog id="incomeDialog">
+  <form class="dialog-inner" id="incomeForm">
+    <h3 id="incomeDialogTitle"><i class="bi bi-arrow-down-left"></i> Add income</h3>
+    <div class="field">
+      <label for="incAmount">Amount</label>
+      <input type="number" id="incAmount" step="0.01" min="0" required>
     </div>
-    <div class="qs-item qs-out">
-      <span class="qs-ico"><i class="bi bi-arrow-up-right"></i></span>
-      <span class="qs-label">Expense</span>
-      <span class="qs-val" id="qsExpense">₹0</span>
+    <div class="field">
+      <label for="incFrom">Source</label>
+      <input type="text" id="incFrom" placeholder="e.g. Salary, Dad, Freelance" required>
     </div>
-    <div class="qs-item qs-net">
-      <span class="qs-ico"><i class="bi bi-wallet2"></i></span>
-      <span class="qs-label">Balance</span>
-      <span class="qs-val" id="qsBalance">₹0</span>
+    <div class="field">
+      <label for="incDate">Date</label>
+      <input type="date" id="incDate" required>
     </div>
-    <div class="qs-item qs-count">
-      <span class="qs-ico"><i class="bi bi-receipt"></i></span>
-      <span class="qs-label">Transactions</span>
-      <span class="qs-val" id="qsCount">0</span>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close="incomeDialog">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ ADD/EDIT TRANSACTION DIALOG ============ -->
+<dialog id="txnDialog">
+  <form class="dialog-inner" id="txnForm">
+    <h3 id="txnDialogTitle"><i class="bi bi-arrow-up-right"></i> Add expense</h3>
+    <div class="field">
+      <label for="txnAmount">Amount</label>
+      <input type="number" id="txnAmount" step="0.01" min="0" required>
+    </div>
+    <div class="field">
+      <label for="txnDesc">Description</label>
+      <input type="text" id="txnDesc" placeholder="e.g. Groceries" required>
+    </div>
+    <div class="field">
+      <label for="txnCategory">Category</label>
+      <input type="text" id="txnCategory" placeholder="e.g. food, rent, apparel">
+    </div>
+    <div class="field">
+      <label for="txnDate">Date</label>
+      <input type="date" id="txnDate" required>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close="txnDialog">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ CONFIRM DELETE DIALOG ============ -->
+<dialog id="confirmDialog">
+  <div class="dialog-inner">
+    <h3 id="confirmTitle"><i class="bi bi-exclamation-triangle"></i> Delete this?</h3>
+    <p id="confirmBody" style="color:var(--text-dim); font-size:0.86rem; margin-top:-8px;"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close="confirmDialog">Cancel</button>
+      <button type="button" class="btn danger-solid" id="confirmYesBtn"><i class="bi bi-trash3"></i> Delete</button>
     </div>
   </div>
-
-  <div class="dashboard-grid">
-
-    <!-- Hero net-balance card -->
-    <section class="hero-card">
-      <div class="hero-top">
-        <span class="hero-label">Net balance</span>
-        <span class="hero-badge"><i class="bi bi-wallet2"></i></span>
-      </div>
-      <div class="hero-figure" id="statNet">₹0</div>
-      <div class="hero-split">
-        <div class="hero-split-item in">
-          <span class="hero-split-ico"><i class="bi bi-arrow-down-left"></i></span>
-          <div class="hero-split-text">
-            <span class="hero-split-label">Income</span>
-            <span class="hero-split-val" id="statIncome">₹0</span>
-          </div>
-        </div>
-        <div class="hero-split-item out">
-          <span class="hero-split-ico"><i class="bi bi-arrow-up-right"></i></span>
-          <div class="hero-split-text">
-            <span class="hero-split-label">Expense</span>
-            <span class="hero-split-val" id="statExpense">₹0</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2>Expense by category</h2>
-      <div class="chart-wrap">
-        <div class="chart-canvas-inner" id="catChartInner">
-          <canvas id="catChart"></canvas>
-        </div>
-        <div class="chart-empty" id="catChartEmpty">No expenses logged yet</div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2>Income by source</h2>
-      <div id="sourceList">
-        <div class="chart-empty">No income logged yet</div>
-      </div>
-    </section>
-
-  </div>
-</div>
+</dialog>
 
 <div id="toast"></div>
 
 <script src="shared.js"></script>
-<script src="app.js"></script>
+<script src="statement.js"></script>
 </body>
 </html>
