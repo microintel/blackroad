@@ -1391,14 +1391,13 @@ function resolveColor(v){
   const m = v.match(/--[\w-]+/);
   return m ? getComputedStyle(document.documentElement).getPropertyValue(m[0]).trim() : v;
 }
-const donutColors = allocation.map(a => resolveColor(a.color));
-new Chart(document.getElementById('assetChart'), {
+const assetChart = new Chart(document.getElementById('assetChart'), {
   type: 'doughnut',
   data: {
     labels: allocation.map(a => a.label),
     datasets: [{
       data: allocation.map(a => a.pct),
-      backgroundColor: donutColors,
+      backgroundColor: allocation.map(a => resolveColor(a.color)),
       borderWidth: 0,
       hoverOffset: 4
     }]
@@ -1417,12 +1416,24 @@ new Chart(document.getElementById('assetChart'), {
 });
 
 const legend = document.getElementById('legend');
-allocation.forEach(a=>{
-  const row = document.createElement('div');
-  row.className = 'legend-item';
-  row.innerHTML = `<span class="legend-dot" style="background:${a.color}"></span>${a.label}<b>${a.pct}%</b>`;
-  legend.appendChild(row);
-});
+/* Re-render the donut + legend from a fresh set of {label, pct, color} items.
+   Called once on load with the static placeholder `allocation`, then again
+   every time recalcNetWorth() has real numbers from the live stores. */
+function renderAllocation(items){
+  assetChart.data.labels = items.map(a => a.label);
+  assetChart.data.datasets[0].data = items.map(a => a.pct);
+  assetChart.data.datasets[0].backgroundColor = items.map(a => resolveColor(a.color));
+  assetChart.update();
+
+  legend.innerHTML = '';
+  items.forEach(a=>{
+    const row = document.createElement('div');
+    row.className = 'legend-item';
+    row.innerHTML = `<span class="legend-dot" style="background:${a.color}"></span>${a.label}<b>${a.pct}%</b>`;
+    legend.appendChild(row);
+  });
+}
+renderAllocation(allocation);
 
 /* ============ NAV: click to scroll ============ */
 function scrollToSection(id){
@@ -1498,21 +1509,75 @@ const barObserver = new IntersectionObserver((entries)=>{
 }, { threshold:.2 });
 document.querySelectorAll('[data-bars]').forEach(b=> barObserver.observe(b));
 
-/* ============ NET WORTH COUNT-UP ============ */
+/* ============ NET WORTH — live, summed from real data ============
+   Stocks + Mutual Funds + Income net all come from their live
+   IndexedDB stores (StocksStore / MutualFundStore / IncomeStore).
+   Gold, Real Estate, Fixed Deposits and Loans don't have their own
+   editable stores yet, so their current category figures are used
+   as-is until those get wired up too. */
 function formatINR(n){
   return '₹' + Math.round(n).toLocaleString('en-IN');
 }
-const netWorthTarget = 13655600;
+const GOLD_VALUE       = 892400;
+const REALESTATE_VALUE = 6500000;
+const DEPOSITS_VALUE   = 1240000;
+const LOANS_VALUE      = 2060000; // liability — subtracted from net worth
+
 const nwEl = document.getElementById('netWorthValue');
-let startTime = null;
-function animateCount(ts){
-  if(!startTime) startTime = ts;
-  const progress = Math.min((ts - startTime) / 1200, 1);
-  const eased = 1 - Math.pow(1-progress, 3);
-  nwEl.textContent = formatINR(netWorthTarget * eased);
-  if(progress < 1) requestAnimationFrame(animateCount);
+let nwCurrent = 0;
+let nwAnimating = false;
+
+/* First paint animates the count-up from 0; every later recalc
+   (triggered after a stocks/mutual-fund/income refresh) just jumps
+   straight to the new total so it doesn't re-animate on every tab
+   focus. */
+function setNetWorth(target){
+  if(nwAnimating){ nwCurrent = target; return; }
+  if(nwCurrent === 0 && target !== 0){
+    nwAnimating = true;
+    let startTime = null;
+    function step(ts){
+      if(!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / 1200, 1);
+      const eased = 1 - Math.pow(1-progress, 3);
+      nwEl.textContent = formatINR(target * eased);
+      if(progress < 1){
+        requestAnimationFrame(step);
+      } else {
+        nwCurrent = target;
+        nwAnimating = false;
+        nwEl.textContent = formatINR(target);
+      }
+    }
+    requestAnimationFrame(step);
+  } else {
+    nwCurrent = target;
+    nwEl.textContent = formatINR(target);
+  }
 }
-requestAnimationFrame(animateCount);
+
+async function recalcNetWorth(){
+  let stocksVal = 0, mfVal = 0, incomeNet = 0;
+  try{ if(typeof StocksStore !== 'undefined') stocksVal = (await StocksStore.getSummary()).currentValue; }catch(e){ console.error(e); }
+  try{ if(typeof MutualFundStore !== 'undefined') mfVal = (await MutualFundStore.getSummary()).currentValue; }catch(e){ console.error(e); }
+  try{ if(typeof IncomeStore !== 'undefined') incomeNet = (await IncomeStore.getSummary()).net; }catch(e){ console.error(e); }
+
+  const netWorth = stocksVal + mfVal + GOLD_VALUE + REALESTATE_VALUE + DEPOSITS_VALUE + incomeNet - LOANS_VALUE;
+  setNetWorth(netWorth);
+
+  // Live asset-allocation donut (assets only — Loans and the Income
+  // surplus/deficit aren't "holdings", so they stay out of this pie).
+  const items = [
+    { label:'Real Estate',    amount:REALESTATE_VALUE, color:'var(--blue)'    },
+    { label:'Mutual Funds',   amount:mfVal,             color:'var(--gold)'   },
+    { label:'Stocks',         amount:stocksVal,         color:'var(--green)'  },
+    { label:'Fixed Deposits', amount:DEPOSITS_VALUE,    color:'var(--violet)' },
+    { label:'Gold',           amount:GOLD_VALUE,        color:'var(--paleGold)'},
+  ];
+  const totalAssets = items.reduce((s,i)=> s + i.amount, 0) || 1;
+  renderAllocation(items.map(i => ({ ...i, pct: +(i.amount / totalAssets * 100).toFixed(1) })));
+}
+recalcNetWorth();
 
 /* ============ THEME TOGGLE ============ */
 const html = document.documentElement;
@@ -1856,6 +1921,7 @@ async function refreshStocksSummary(){
         tbody.appendChild(frag);
       }
     }
+    recalcNetWorth();
   }catch(e){
     console.error('Could not refresh stocks summary from IndexedDB', e);
   }
@@ -2025,6 +2091,7 @@ async function refreshMutualFundsSummary(){
         tbody.appendChild(frag);
       }
     }
+    recalcNetWorth();
   }catch(e){
     console.error('Could not refresh mutual funds summary from IndexedDB', e);
   }
@@ -2174,6 +2241,7 @@ async function refreshIncomeSummary(){
         }).join('');
       }
     }
+    recalcNetWorth();
   }catch(e){
     console.error('Could not refresh income summary from IndexedDB', e);
   }
