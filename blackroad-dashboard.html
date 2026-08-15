@@ -869,28 +869,24 @@ footer{
             <div><h3>Income &amp; Expenses</h3><span>Cash flow · This month</span></div>
           </div>
           <div class="panel-head-right">
-            <div class="panel-total"><b style="color:var(--green)">+₹62,000</b><small>Net surplus</small></div>
-            <a class="btn-secondary" href="pages/income.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+            <div class="panel-total"><b id="incomePanelTotal" style="color:var(--green)">₹0</b><small id="incomePanelSub">Net surplus</small></div>
+            <a class="btn-secondary" href="incomeStatement/statement.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
 
         <div class="ie-compare">
           <div class="ie-box">
             <div class="lbl"><i class="bi bi-arrow-down-circle" style="color:var(--green)"></i> Total Income</div>
-            <div class="val">₹1,85,000</div>
+            <div class="val" id="incomeTotalVal">₹0</div>
           </div>
           <div class="ie-box">
             <div class="lbl"><i class="bi bi-arrow-up-circle" style="color:var(--red)"></i> Total Expenses</div>
-            <div class="val">₹1,23,000</div>
+            <div class="val" id="expenseTotalVal">₹0</div>
           </div>
         </div>
 
-        <div class="bars" data-bars>
-          <div class="bar-row"><span class="label">Housing &amp; Utilities</span><div class="bar-track"><div class="bar-fill" data-w="70" style="background:var(--blue)"></div></div><span class="amt">₹42,000</span></div>
-          <div class="bar-row"><span class="label">Food &amp; Groceries</span><div class="bar-track"><div class="bar-fill" data-w="45" style="background:var(--green)"></div></div><span class="amt">₹27,500</span></div>
-          <div class="bar-row"><span class="label">Transport</span><div class="bar-track"><div class="bar-fill" data-w="28" style="background:var(--gold)"></div></div><span class="amt">₹17,200</span></div>
-          <div class="bar-row"><span class="label">SIP &amp; Investing</span><div class="bar-track"><div class="bar-fill" data-w="55" style="background:var(--violet)"></div></div><span class="amt">₹33,000</span></div>
-          <div class="bar-row"><span class="label">Lifestyle &amp; Other</span><div class="bar-track"><div class="bar-fill" data-w="17" style="background:var(--red)"></div></div><span class="amt">₹10,300</span></div>
+        <div class="bars" data-bars id="incomeCategoryBars">
+          <div class="chart-empty">Loading from the Income Statement ledger…</div>
         </div>
       </section>
 
@@ -1347,7 +1343,7 @@ footer{
 <script>
 /* ============ DATA ============ */
 const categories = [
-  { id:'income',       name:'Income & Expenses',   icon:'bi-cash-coin',        value:'+₹62,000/mo', trend:'Net surplus', trendUp:true,  color:'green', page:'pages/income.html' },
+  { id:'income',       name:'Income & Expenses',   icon:'bi-cash-coin',        value:'₹0', trend:'Loading…', trendUp:true,  color:'green', page:'incomeStatement/statement.html' },
   { id:'mutualfunds',  name:'Mutual Funds',         icon:'bi-pie-chart-fill',   value:'₹42,18,900',  trend:'+18.4% XIRR', trendUp:true,  color:'gold',  page:'https://microintel.github.io/stepup/' },
   { id:'stocks',       name:'Stocks',                icon:'bi-graph-up-arrow',   value:'₹28,64,300',  trend:'+12.1%',      trendUp:true,  color:'green', page:'pages/stocks.html' },
   { id:'gold',         name:'Gold',                  icon:'bi-gem',              value:'₹8,92,400',   trend:'+9.6% YoY',   trendUp:true,  color:'paleGold', page:'pages/gold.html' },
@@ -2040,6 +2036,156 @@ refreshMutualFundsSummary();
 // doesn't broadcast a change event, so focus/visibility keeps this in sync)
 window.addEventListener('focus', refreshMutualFundsSummary);
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshMutualFundsSummary(); });
+
+/* ============================================================
+   INCOME & EXPENSES — live summary pulled from IndexedDB (shared
+   with the Income Statement ledger app in /incomeStatement/).
+   Reads the SAME 'BlackRoad2' database that app writes to
+   (see incomeStatement/shared.js: DB_NAME = 'BlackRoad2', store
+   'entries'), so the Dashboard tile + panel always reflect its
+   latest data. This dashboard only ever reads that store — all
+   adding/editing of entries still happens in incomeStatement/.
+   ============================================================ */
+(function(){
+  "use strict";
+  const INC_DB_NAME = "BlackRoad2";
+  const INC_DB_VERSION = 1;
+  const INC_STORE = "entries";
+  let incDbPromise = null;
+
+  function incOpenDB(){
+    if(incDbPromise) return incDbPromise;
+    incDbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(INC_DB_NAME, INC_DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if(!db.objectStoreNames.contains(INC_STORE)) db.createObjectStore(INC_STORE, { keyPath:"id", autoIncrement:true });
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+    return incDbPromise;
+  }
+
+  async function incGetAllEntries(){
+    const db = await incOpenDB();
+    return new Promise((resolve, reject) => {
+      if(!db.objectStoreNames.contains(INC_STORE)){ resolve([]); return; }
+      const req = db.transaction(INC_STORE, "readonly").objectStore(INC_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function incFormatINR(n){
+    const sign = n < 0 ? "-" : "";
+    const abs = Math.abs(Math.round(n));
+    return sign + "₹" + abs.toLocaleString("en-IN");
+  }
+
+  function incEscapeHTML(s){
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  /**
+   * Roll every ledger entry + its linked expense transactions up
+   * into totals: overall income / expense / net surplus, plus a
+   * per-category breakdown of expenses (category = each
+   * transaction's `category` field — the same one shown on the
+   * Statement ledger page).
+   */
+  async function incGetSummary(){
+    const entries = await incGetAllEntries();
+    let totalIncome = 0, totalExpense = 0;
+    const catTotals = new Map();
+
+    entries.forEach((e) => {
+      totalIncome += Number(e.income) || 0;
+      (e.transactions || []).forEach((t) => {
+        const amt = Number(t.amount) || 0;
+        totalExpense += amt;
+        const cat = (t.category || "").trim() || "Uncategorized";
+        catTotals.set(cat, (catTotals.get(cat) || 0) + amt);
+      });
+    });
+
+    const categories = [...catTotals.entries()]
+      .map(([label, amount]) => ({ label, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
+    return {
+      hasData: entries.length > 0,
+      totalIncome,
+      totalExpense,
+      net: totalIncome - totalExpense,
+      categories,
+    };
+  }
+
+  window.IncomeStore = { getSummary: incGetSummary, formatINR: incFormatINR, escapeHTML: incEscapeHTML };
+})();
+
+async function refreshIncomeSummary(){
+  if(typeof IncomeStore === 'undefined') return;
+  try{
+    const summary = await IncomeStore.getSummary();
+    const up = summary.net >= 0;
+
+    // 1) "Your Wealth Lanes" tile
+    const tile = tileGrid.querySelector('[data-target="income"]');
+    if(tile){
+      tile.querySelector('.tile-value').textContent = `${up ? '+' : '-'}${IncomeStore.formatINR(Math.abs(summary.net))}`;
+      const trendEl = tile.querySelector('.tile-trend');
+      trendEl.style.color = up ? 'var(--green)' : 'var(--red)';
+      trendEl.innerHTML = `<i class="bi ${up ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i> ${up ? 'Net surplus' : 'Net deficit'}`;
+    }
+
+    // 2) Income & Expenses panel header total
+    const panelTotal = document.getElementById('incomePanelTotal');
+    if(panelTotal){
+      panelTotal.textContent = `${up ? '+' : '-'}${IncomeStore.formatINR(Math.abs(summary.net))}`;
+      panelTotal.style.color = up ? 'var(--green)' : 'var(--red)';
+    }
+    const panelSub = document.getElementById('incomePanelSub');
+    if(panelSub) panelSub.textContent = up ? 'Net surplus' : 'Net deficit';
+
+    // 3) Total Income / Total Expenses boxes
+    const incVal = document.getElementById('incomeTotalVal');
+    const expVal = document.getElementById('expenseTotalVal');
+    if(incVal) incVal.textContent = IncomeStore.formatINR(summary.totalIncome);
+    if(expVal) expVal.textContent = IncomeStore.formatINR(summary.totalExpense);
+
+    // 4) Expense-by-category bars (top 6 categories, scaled to the largest)
+    const barsWrap = document.getElementById('incomeCategoryBars');
+    if(barsWrap){
+      if(!summary.hasData){
+        barsWrap.innerHTML = `<div class="chart-empty">No entries yet — <a href="incomeStatement/statement.html" target="_blank" rel="noopener" style="color:var(--accent);">add your first income entry</a>.</div>`;
+      } else if(summary.categories.length === 0){
+        barsWrap.innerHTML = `<div class="chart-empty">Income logged, but no expenses categorized yet.</div>`;
+      } else {
+        const top = summary.categories.slice(0, 6);
+        const max = top[0].amount || 1;
+        const palette = ['var(--blue)','var(--green)','var(--gold)','var(--violet)','var(--red)','var(--paleGold)'];
+        barsWrap.innerHTML = top.map((c, i) => {
+          const w = Math.max(4, Math.round((c.amount / max) * 100));
+          return `<div class="bar-row"><span class="label">${IncomeStore.escapeHTML(c.label)}</span><div class="bar-track"><div class="bar-fill" data-w="${w}" style="background:${palette[i % palette.length]};width:${w}%"></div></div><span class="amt">${IncomeStore.formatINR(c.amount)}</span></div>`;
+        }).join('');
+      }
+    }
+  }catch(e){
+    console.error('Could not refresh income summary from IndexedDB', e);
+  }
+}
+
+// Initial load
+refreshIncomeSummary();
+// Re-sync whenever the user comes back to this tab (the Statement
+// ledger lives in incomeStatement/ and doesn't broadcast a change
+// event across tabs, so focus/visibility keeps this in sync)
+window.addEventListener('focus', refreshIncomeSummary);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshIncomeSummary(); });
 
 /* initial active state */
 setActiveNav('overview');
