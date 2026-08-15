@@ -10,13 +10,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root{
-  /* surfaces — one tonal ladder, low contrast steps */
-  --base:        #0a0b0d;   /* app background */
-  --base-raised: #101114;   /* sidebar / nav background */
-  --card:        #15171b;   /* entry cards, panels, dialogs */
-  --card-2:      #1c1f24;   /* inputs, chips, hovered rows */
-  --line:        rgba(255,255,255,0.07);
-  --line-soft:   rgba(255,255,255,0.045);
+  /* surfaces — one tonal ladder, low contrast steps.
+     Kept off true black/white on purpose: a mid-tone graphite (dark)
+     and a warm parchment (light) both read calmer than the extremes. */
+  --base:        #22252c;   /* app background */
+  --base-raised: #282c34;   /* sidebar / nav background */
+  --card:        #2f333c;   /* entry cards, panels, dialogs */
+  --card-2:      #383d47;   /* inputs, chips, hovered rows */
+  --line:        rgba(255,255,255,0.09);
+  --line-soft:   rgba(255,255,255,0.06);
 
   --text:        #f2f3f5;
   --text-dim:    #9297a1;
@@ -53,30 +55,30 @@
    background tint and accent — surfaces, type, and layout stay fixed
    so the app never feels like a different product between themes. */
 html[data-theme="dusk"]{
-  --base:#0a0c12;
-  --base-raised:#10131b;
-  --card:#151924;
-  --card-2:#1c2130;
+  --base:#20242e;
+  --base-raised:#262b37;
+  --card:#2d3340;
+  --card-2:#363d4c;
   --accent:#7c93ff;
   --accent-bg: rgba(124,147,255,0.14);
 }
 html[data-theme="brass"]{
-  --base:#0d0b08;
-  --base-raised:#14110b;
-  --card:#191510;
-  --card-2:#201a12;
+  --base:#26221a;
+  --base-raised:#2d2820;
+  --card:#352f25;
+  --card-2:#3f382b;
   --accent2:#d9a75a;
   --accent:#d9a75a;
   --accent-bg: rgba(217,167,90,0.14);
   --accent2-bg: rgba(217,167,90,0.14);
 }
 html[data-theme="paper"]{
-  --base:        #f7f7f5;
-  --base-raised: #ffffff;
-  --card:        #ffffff;
-  --card-2:      #f1f1ee;
-  --line:        rgba(20,20,20,0.09);
-  --line-soft:   rgba(20,20,20,0.06);
+  --base:        #e9e7e0;
+  --base-raised: #f0eee7;
+  --card:        #f0eee7;
+  --card-2:      #e2dfd6;
+  --line:        rgba(20,20,20,0.11);
+  --line-soft:   rgba(20,20,20,0.07);
 
   --text:        #17181a;
   --text-dim:    #62666e;
