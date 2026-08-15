@@ -1834,15 +1834,16 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
 
 /* ============================================================
    MUTUAL FUNDS — live summary pulled from IndexedDB (shared with
-   pages/mutual-funds.html, the Step-Up SIP tracker). Reads the
-   same BlackRoadDB 'entries' store that page writes to, so the
-   Dashboard tile + panel always reflect its latest data.
+   https://microintel.github.io/stepup/, the Step-Up SIP tracker).
+   Reads the SAME 'sip-compounder' database that app writes to
+   (see db.js: DB_NAME = 'sip-compounder'), so the Dashboard tile
+   + panel always reflect its latest data.
    Entries already carry pre-computed portfolioValue/investedAmount,
    so no recalculation is needed here — just read the latest one.
    ============================================================ */
 (function(){
   "use strict";
-  const MF_DB_NAME = "BlackRoadDB";
+  const MF_DB_NAME = "sip-compounder";
   const MF_DB_VERSION = 2;
   let mfDbPromise = null;
 
@@ -1852,10 +1853,6 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       const req = indexedDB.open(MF_DB_NAME, MF_DB_VERSION);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
-        if(!db.objectStoreNames.contains("stocks")){
-          const s = db.createObjectStore("stocks", { keyPath:"id", autoIncrement:true });
-          s.createIndex("symbol","symbol",{unique:false});
-        }
         if(!db.objectStoreNames.contains("settings")) db.createObjectStore("settings", { keyPath:"id" });
         if(!db.objectStoreNames.contains("entries"))  db.createObjectStore("entries",  { keyPath:"id", autoIncrement:true });
         if(!db.objectStoreNames.contains("profiles")) db.createObjectStore("profiles", { keyPath:"id", autoIncrement:true });
