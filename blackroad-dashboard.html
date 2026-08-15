@@ -863,13 +863,13 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b id="mutualFundsPanelTotal">₹0</b><small class="pos" id="mutualFundsPanelPct">0.0% overall</small></div>
-            <a class="btn-secondary" href="pages/mutual-funds.html">Manage <i class="bi bi-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="https://microintel.github.io/stepup/" target="_blank" rel="noopener">Manage <i class="bi bi-arrow-up-right"></i></a>
           </div>
         </div>
         <table>
           <thead><tr><th>Date</th><th>SIP Added</th><th>Invested</th><th>Portfolio Value</th><th>Return</th></tr></thead>
           <tbody id="mutualFundsTableBody">
-            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="pages/mutual-funds.html" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="https://microintel.github.io/stepup/" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>
           </tbody>
         </table>
       </section>
@@ -1308,7 +1308,7 @@ footer{
 /* ============ DATA ============ */
 const categories = [
   { id:'income',       name:'Income & Expenses',   icon:'bi-cash-coin',        value:'+₹62,000/mo', trend:'Net surplus', trendUp:true,  color:'green', page:'pages/income.html' },
-  { id:'mutualfunds',  name:'Mutual Funds',         icon:'bi-pie-chart-fill',   value:'₹42,18,900',  trend:'+18.4% XIRR', trendUp:true,  color:'gold',  page:'pages/mutual-funds.html' },
+  { id:'mutualfunds',  name:'Mutual Funds',         icon:'bi-pie-chart-fill',   value:'₹42,18,900',  trend:'+18.4% XIRR', trendUp:true,  color:'gold',  page:'https://microintel.github.io/stepup/' },
   { id:'stocks',       name:'Stocks',                icon:'bi-graph-up-arrow',   value:'₹28,64,300',  trend:'+12.1%',      trendUp:true,  color:'green', page:'pages/stocks.html' },
   { id:'gold',         name:'Gold',                  icon:'bi-gem',              value:'₹8,92,400',   trend:'+9.6% YoY',   trendUp:true,  color:'paleGold', page:'pages/gold.html' },
   { id:'realestate',   name:'Real Estate',           icon:'bi-building',         value:'₹65,00,000',  trend:'+6.4%',       trendUp:true,  color:'blue',  page:'pages/real-estate.html' },
@@ -1333,7 +1333,7 @@ categories.forEach(c=>{
   el.dataset.target = c.id;
   el.innerHTML = `
     <div class="tile-icon" style="background:color-mix(in srgb, var(--${c.color}) 16%, transparent); color:var(--${c.color});"><i class="bi ${c.icon}"></i></div>
-    <a class="tile-arrow" href="${c.page}" ${(c.id === 'stocks' || c.id === 'mutualfunds') ? '' : 'target="_blank" rel="noopener"'} title="Manage ${c.name}" onclick="event.stopPropagation()"><i class="bi bi-arrow-up-right"></i></a>
+    <a class="tile-arrow" href="${c.page}" ${(c.id === 'stocks') ? '' : 'target="_blank" rel="noopener"'} title="Manage ${c.name}" onclick="event.stopPropagation()"><i class="bi bi-arrow-up-right"></i></a>
     <div class="tile-body">
       <div class="tile-name">${c.name}</div>
       <div class="tile-value">${c.value}</div>
@@ -1927,7 +1927,7 @@ async function refreshMutualFundsSummary(){
     if(tbody){
       const rows = summary.rows.slice().sort((a,b)=> b.date.localeCompare(a.date)).slice(0, 8);
       if(rows.length === 0){
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="pages/mutual-funds.html" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="https://microintel.github.io/stepup/" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>`;
       } else {
         const frag = document.createDocumentFragment();
         rows.forEach((r)=>{
