@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BlackRoad Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta http-equiv="refresh" content="4; url=blackroad-dashboard.html">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #0d0d0d;
+      color: #eaeaea;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .wrap { max-width: 420px; padding: 24px; }
+    h1 { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; }
+    p { opacity: 0.7; font-size: 0.9rem; }
+    a { color: #4da6ff; }
+    .spinner {
+      margin: 0 auto 20px;
+      width: 32px; height: 32px;
+      border: 3px solid rgba(255,255,255,0.15);
+      border-top-color: #4da6ff;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="spinner"></div>
+    <h1>Loading BlackRoad Dashboard…</h1>
+    <p>Redirecting automatically in a few seconds. If nothing happens, <a href="blackroad-dashboard.html">click here</a>.</p>
+  </div>
+
+  <script>
+    setTimeout(function () {
+      window.location.replace("blackroad-dashboard.html");
+    }, 4000);
+  </script>
+</body>
+</html>
+
