@@ -867,7 +867,7 @@ footer{
           </div>
         </div>
         <table>
-          <thead><tr><th>Date</th><th>SIP Added</th><th>Invested</th><th>Portfolio Value</th><th>Return</th></tr></thead>
+          <thead><tr><th>SIP Name</th><th>Invested</th><th>Current Value</th><th>Profit</th><th>Return</th></tr></thead>
           <tbody id="mutualFundsTableBody">
             <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="https://microintel.github.io/stepup/" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>
           </tbody>
@@ -1863,12 +1863,32 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
     return mfDbPromise;
   }
 
-  async function mfGetAllEntries(){
+  async function mfGetAllProfiles(){
+    const db = await mfOpenDB();
+    return new Promise((resolve, reject) => {
+      if(!db.objectStoreNames.contains("profiles")){ resolve([]); return; }
+      const req = db.transaction("profiles","readonly").objectStore("profiles").getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function mfGetEntriesForProfile(profileId){
     const db = await mfOpenDB();
     return new Promise((resolve, reject) => {
       if(!db.objectStoreNames.contains("entries")){ resolve([]); return; }
       const req = db.transaction("entries","readonly").objectStore("entries").getAll();
-      req.onsuccess = () => resolve(req.result || []);
+      req.onsuccess = () => resolve((req.result || []).filter(e => e.profileId === profileId));
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function mfGetSettingsForProfile(profileId){
+    const db = await mfOpenDB();
+    return new Promise((resolve, reject) => {
+      if(!db.objectStoreNames.contains("settings")){ resolve(null); return; }
+      const req = db.transaction("settings","readonly").objectStore("settings").get(profileId);
+      req.onsuccess = () => resolve(req.result || null);
       req.onerror = () => reject(req.error);
     });
   }
@@ -1879,15 +1899,42 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
     return sign + "₹" + abs.toLocaleString("en-IN");
   }
 
+  /**
+   * Build a per-SIP summary: one row per profile (each profile = one SIP
+   * in the Step-Up tracker), using each SIP's latest entry for its
+   * invested/current-value snapshot. Also rolls up a grand total across
+   * all SIPs for the tile + panel header.
+   */
   async function mfGetSummary(){
-    const rows = (await mfGetAllEntries()).slice().sort((a,b)=> a.date.localeCompare(b.date));
-    if(!rows.length) return { hasData:false, invested:0, currentValue:0, pnl:0, pnlPct:0, rows:[] };
-    const last = rows[rows.length-1];
-    const invested = last.investedAmount || 0;
-    const currentValue = last.portfolioValue || 0;
+    const profiles = await mfGetAllProfiles();
+    const sips = [];
+    for(const p of profiles){
+      const [entries, settings] = await Promise.all([
+        mfGetEntriesForProfile(p.id),
+        mfGetSettingsForProfile(p.id),
+      ]);
+      if(!entries.length) continue;
+      const sorted = entries.slice().sort((a,b)=> a.date.localeCompare(b.date));
+      const latest = sorted[sorted.length-1];
+      const invested = latest.investedAmount || 0;
+      const currentValue = latest.portfolioValue || 0;
+      const pnl = currentValue - invested;
+      const pnlPct = invested ? (pnl/invested)*100 : 0;
+      sips.push({
+        id: p.id,
+        name: settings?.linkedFund?.schemeName || p.name || 'SIP',
+        invested, currentValue, pnl, pnlPct,
+        lastDate: latest.date,
+      });
+    }
+
+    if(!sips.length) return { hasData:false, invested:0, currentValue:0, pnl:0, pnlPct:0, sips:[] };
+
+    const invested = sips.reduce((s,x)=> s+x.invested, 0);
+    const currentValue = sips.reduce((s,x)=> s+x.currentValue, 0);
     const pnl = currentValue - invested;
     const pnlPct = invested ? (pnl/invested)*100 : 0;
-    return { hasData:true, invested, currentValue, pnl, pnlPct, rows };
+    return { hasData:true, invested, currentValue, pnl, pnlPct, sips };
   }
 
   window.MutualFundStore = { getSummary: mfGetSummary, formatINR: mfFormatINR };
@@ -1917,26 +1964,24 @@ async function refreshMutualFundsSummary(){
       panelPct.textContent = `${summary.pnl>=0?'+':''}${summary.pnlPct.toFixed(1)}% overall`;
       panelPct.className = summary.pnl >= 0 ? 'pos' : 'neg';
     }
-    if(holdingsCount) holdingsCount.textContent = `Step-up SIP tracker · ${summary.rows.length} entr${summary.rows.length===1?'y':'ies'}`;
+    if(holdingsCount) holdingsCount.textContent = `Step-up SIP tracker · ${summary.sips.length} SIP${summary.sips.length===1?'':'s'}`;
 
-    // 3) Rebuild the recent-entries table (latest 8, matching the panel layout)
+    // 3) Rebuild the table — one row per SIP (name, invested, current value, profit, return)
     const tbody = document.getElementById('mutualFundsTableBody');
     if(tbody){
-      const rows = summary.rows.slice().sort((a,b)=> b.date.localeCompare(a.date)).slice(0, 8);
-      if(rows.length === 0){
+      const sips = summary.sips.slice().sort((a,b)=> b.currentValue - a.currentValue);
+      if(sips.length === 0){
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="https://microintel.github.io/stepup/" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>`;
       } else {
         const frag = document.createDocumentFragment();
-        rows.forEach((r)=>{
-          const pnl = (r.portfolioValue||0) - (r.investedAmount||0);
-          const pnlPct = r.investedAmount ? (pnl/r.investedAmount)*100 : 0;
+        sips.forEach((s)=>{
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${r.date}</td>
-            <td>${r.sipTotal ? '<span class="tag">+'+MutualFundStore.formatINR(r.sipTotal)+'</span>' : '—'}</td>
-            <td class="mono-cell">${MutualFundStore.formatINR(r.investedAmount||0)}</td>
-            <td class="mono-cell">${MutualFundStore.formatINR(r.portfolioValue||0)}</td>
-            <td class="mono-cell ${pnlPct>=0?'pos':'neg'}">${pnlPct>=0?'+':''}${pnlPct.toFixed(1)}%</td>`;
+            <td>${s.name}</td>
+            <td class="mono-cell">${MutualFundStore.formatINR(s.invested)}</td>
+            <td class="mono-cell">${MutualFundStore.formatINR(s.currentValue)}</td>
+            <td class="mono-cell ${s.pnl>=0?'pos':'neg'}">${s.pnl>=0?'+':''}${MutualFundStore.formatINR(s.pnl)}</td>
+            <td class="mono-cell ${s.pnlPct>=0?'pos':'neg'}">${s.pnlPct>=0?'+':''}${s.pnlPct.toFixed(1)}%</td>`;
           frag.appendChild(tr);
         });
         tbody.innerHTML = '';
