@@ -437,7 +437,6 @@ footer{
   .greet-eyebrow{ font-size:11px; }
   .greet-title{ font-size:19px; }
   .topbar-actions{ gap:8px; }
-  #searchIconBtn{ display:none; } /* hide search icon, declutter */
   #installAppBtn span{ display:none; } /* icon-only install button on small screens */
   #installAppBtn{ padding:9px; }
   .icon-btn,.avatar{ width:34px; height:34px; border-radius:9px; }
@@ -785,7 +784,6 @@ footer{
       </div>
       <div class="topbar-actions">
         <button class="btn-secondary" id="installAppBtn" style="display:none;"><i class="bi bi-download"></i><span> Install App</span></button>
-        <button class="icon-btn" id="searchIconBtn"><i class="bi bi-search"></i></button>
         <button class="icon-btn"><i class="bi bi-bell"></i></button>
         <div class="avatar-wrap">
           <button class="avatar" id="avatarBtn">AS</button>
@@ -1427,6 +1425,7 @@ const categories = [
   { id:'deposits',     name:'Fixed Deposits',        icon:'bi-bank2',            value:'₹0',  trend:'No instruments yet',   trendUp:true,  color:'violet', page:'pages/fixed-deposits.html' },
   { id:'insurance',    name:'Insurance',             icon:'bi-shield-check',     value:'₹0',    trend:'No policies yet',trendUp:true,  color:'green', page:'pages/insurance.html' },
   { id:'loans',        name:'Loans & Liabilities',   icon:'bi-file-earmark-minus', value:'₹0', trend:'No liabilities yet', trendUp:true, color:'red', page:'lending/loans.html' },
+  { id:'calculators',  name:'Financial Calculators', icon:'bi-calculator-fill',   value:'Tools', trend:'SIP, EMI, retirement & more', trendUp:true, color:'blue', page:'https://microintel.github.io/vision/', external:true },
 ];
 
 const allocation = [
@@ -1442,10 +1441,10 @@ const tileGrid = document.getElementById('tileGrid');
 categories.forEach(c=>{
   const el = document.createElement('div');
   el.className = 'tile card';
-  el.dataset.target = c.id;
+  if(!c.external) el.dataset.target = c.id;
   el.innerHTML = `
     <div class="tile-icon" style="background:color-mix(in srgb, var(--${c.color}) 16%, transparent); color:var(--${c.color});"><i class="bi ${c.icon}"></i></div>
-    <a class="tile-arrow" href="${c.page}" ${(c.id === 'stocks') ? '' : 'target="_blank" rel="noopener"'} title="Manage ${c.name}" onclick="event.stopPropagation()"><i class="bi bi-arrow-up-right"></i></a>
+    <a class="tile-arrow" href="${c.page}" ${(c.id === 'stocks') ? '' : 'target="_blank" rel="noopener"'} title="${c.external ? 'Open' : 'Manage'} ${c.name}" onclick="event.stopPropagation()"><i class="bi bi-arrow-up-right"></i></a>
     <div class="tile-body">
       <div class="tile-name">${c.name}</div>
       <div class="tile-value">${c.value}</div>
@@ -1453,6 +1452,10 @@ categories.forEach(c=>{
         <i class="bi ${c.trendUp ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i> ${c.trend}
       </div>
     </div>`;
+  if(c.external){
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', ()=> window.open(c.page, '_blank', 'noopener'));
+  }
   tileGrid.appendChild(el);
 });
 // ghost "add" tile
@@ -1858,10 +1861,28 @@ document.getElementById('logoutBtnSettings').addEventListener('click', doLogout)
 /* ============ AVATAR DROPDOWN ============ */
 const avatarBtn = document.getElementById('avatarBtn');
 const avatarMenu = document.getElementById('avatarMenu');
+const avatarWrap = avatarBtn.closest('.avatar-wrap');
+// .topbar uses backdrop-filter, which silently turns it into the
+// containing block for any position:fixed descendant. On mobile the
+// menu switches to position:fixed to act as a bottom sheet, so left
+// inside .topbar it renders relative to the topbar (off-screen)
+// instead of the viewport. Portal it to <body> on mobile so "fixed"
+// means fixed-to-viewport; put it back in the avatar-wrap on desktop
+// where it's a normal absolutely-positioned dropdown.
+function isMobileAvatarMenu(){ return window.matchMedia('(max-width:940px)').matches; }
+function placeAvatarMenu(){
+  if(isMobileAvatarMenu()){
+    if(avatarMenu.parentElement !== document.body) document.body.appendChild(avatarMenu);
+  } else if(avatarMenu.parentElement !== avatarWrap){
+    avatarWrap.appendChild(avatarMenu);
+  }
+}
 avatarBtn.addEventListener('click', (e)=>{
   e.stopPropagation();
+  placeAvatarMenu();
   avatarMenu.classList.toggle('open');
 });
+window.addEventListener('resize', placeAvatarMenu);
 document.querySelectorAll('.am-item[data-target]').forEach(el=>{
   el.addEventListener('click', ()=>{
     avatarMenu.classList.remove('open');
