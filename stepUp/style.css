@@ -9,10 +9,10 @@
   --gold-dim:    #b8862a;
   --paleGold:    #f0d48a;
 
-  --bg:          #22252c;
-  --bg2:         #22252c;
-  --surface:     #22252c;
-  --surface2:    #282c34;
+  --bg:          #010409;
+  --bg2:         #010409;
+  --surface:     #0d1017;
+  --surface2:    #0d1017;
   --surface3:    #383d47;
   --border:      rgba(255,255,255,.09);
   --border2:     rgba(255,255,255,.14);
@@ -53,10 +53,10 @@ h1, h2, h3, h4, .display { font-family: var(--display); }
 ══════════════════════════════════════════════════════ */
 html[data-theme="light"] {
   /* Lending "Paper" palette — warm parchment light theme */
-  --bg:          #e9e7e0;
-  --bg2:         #e2dfd6;
-  --surface:     #e9e7e0;
-  --surface2:    #f0eee7;
+  --bg:          #EDE6D6;
+  --bg2:         #EDE6D6;
+  --surface:     #F7FCFE;
+  --surface2:    #F7FCFE;
   --surface3:    #e2dfd6;
 
   /* Borders */
@@ -138,7 +138,7 @@ html[data-theme="light"] #particle-canvas { opacity: .35; }
   padding: 0 16px;
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 100;
-  background: rgba(34,37,44,.88);
+  background: rgba(13,16,23,.88);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -146,7 +146,7 @@ html[data-theme="light"] #particle-canvas { opacity: .35; }
 }
 
 html[data-theme="light"] .app-header {
-  background: rgba(255,255,255,.88);
+  background: rgba(247,252,254,.88);
 }
 
 .app-header-brand {
@@ -205,7 +205,7 @@ html[data-theme="light"] .app-header {
   position: fixed; bottom: 0; left: 0; right: 0;
   height: calc(var(--nav-h) + var(--safe-b));
   padding-bottom: var(--safe-b);
-  background: rgba(34,37,44,.92);
+  background: rgba(13,16,23,.92);
   border-top: 1px solid var(--border);
   display: flex; z-index: 200;
   backdrop-filter: blur(24px) saturate(180%);
@@ -213,7 +213,7 @@ html[data-theme="light"] .app-header {
 }
 
 html[data-theme="light"] .bottom-nav {
-  background: rgba(255,255,255,.92);
+  background: rgba(247,252,254,.92);
 }
 
 .nav-item {
@@ -391,7 +391,7 @@ html[data-theme="light"] .bottom-nav {
   animation: cardIn .4s var(--ease) both;
 }
 html[data-theme="light"] .statement-hero {
-  background: #fff;
+  background: #F7FCFE;
   box-shadow: 0 8px 18px rgba(0,0,0,.06);
 }
 
@@ -554,13 +554,13 @@ html[data-theme="light"] .statement-hero {
    Section
 ══════════════════════════════════════════════════════ */
 .section {
-  background: rgba(15,20,36,.75);
+  background: rgba(13,16,23,.75);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 14px; overflow: hidden;
 }
 
-html[data-theme="light"] .section { background: rgba(255,255,255,.8); }
+html[data-theme="light"] .section { background: rgba(247,252,254,.8); }
 
 .section-head {
   padding: 14px 18px;
@@ -844,7 +844,7 @@ tbody td { padding: 11px 14px; white-space: nowrap; }
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
-html[data-theme="light"] .user-section { background: rgba(255,255,255,.9); }
+html[data-theme="light"] .user-section { background: rgba(247,252,254,.9); }
 
 .user-section-title {
   padding: 12px 16px;
@@ -991,7 +991,7 @@ html[data-theme="light"] #theme-btn-light.active {
   box-shadow: 0 8px 24px rgba(0,0,0,.2), 0 0 0 1px var(--border);
 }
 
-html[data-theme="light"] .modal { background: #fff; }
+html[data-theme="light"] .modal { background: #F7FCFE; }
 
 @keyframes modalIn {
   from { transform: translateY(20px) scale(.96); opacity: 0; }
@@ -1067,7 +1067,7 @@ html[data-theme="light"] .modal { background: #fff; }
   -webkit-backdrop-filter: none !important;
   transition: border-color .2s;
 }
-html[data-theme="light"] .add-entry-card { background: #fff !important; }
+html[data-theme="light"] .add-entry-card { background: #F7FCFE !important; }
 .add-entry-card:focus-within { border-color: var(--border2); }
 
 .add-entry-card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 3px; letter-spacing: -.01em; }
@@ -1084,7 +1084,7 @@ html[data-theme="light"] .add-entry-card { background: #fff !important; }
   margin-bottom: 14px; position: relative; overflow: hidden;
 }
 
-html[data-theme="light"] .donut-section { background: rgba(255,255,255,.8); }
+html[data-theme="light"] .donut-section { background: rgba(247,252,254,.8); }
 
 .donut-section::before {
   content: '';
