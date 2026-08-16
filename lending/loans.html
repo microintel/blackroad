@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LendLedger — Loans</title>
+<script>
+  (function(){ try{
+    var t = localStorage.getItem('ll-theme');
+    if (t && t !== 'soft') document.documentElement.setAttribute('data-theme', t);
+  }catch(e){} })();
+</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="loans">
+
+<!-- ============ LEFT NAVIGATION (persistent, same on every page) ============ -->
+<nav class="side-nav" aria-label="Main menu">
+  <div class="side-nav-brand">
+    <span class="mark"></span>
+    <h1>LendLedger</h1>
+  </div>
+
+  <div class="side-nav-links">
+    <a href="../blackroad-dashboard.html" class="side-nav-item side-nav-back">
+      <span class="side-nav-ico"><i class="bi bi-arrow-left-circle"></i></span><span class="side-nav-label">Back to BlackRoad</span>
+    </a>
+    <a href="index.html" class="side-nav-item" data-page="dashboard">
+      <span class="side-nav-ico"><i class="bi bi-grid-1x2-fill"></i></span><span class="side-nav-label">Dashboard</span>
+    </a>
+    <a href="people.html" class="side-nav-item" data-page="people">
+      <span class="side-nav-ico"><i class="bi bi-people-fill"></i></span><span class="side-nav-label">People</span>
+    </a>
+    <a href="loans.html" class="side-nav-item" data-page="loans">
+      <span class="side-nav-ico"><i class="bi bi-bank2"></i></span><span class="side-nav-label">Loans</span>
+    </a>
+    <button type="button" class="side-nav-item mobile-tab-btn" id="mobileAddPersonBtn">
+      <span class="side-nav-ico"><i class="bi bi-plus-circle-fill"></i></span><span class="side-nav-label">Add person</span>
+    </button>
+    <button type="button" class="side-nav-item mobile-tab-btn" id="mobileAccountToggle">
+      <span class="side-nav-ico"><i class="bi bi-person-circle"></i></span><span class="side-nav-label">Account</span>
+    </button>
+  </div>
+
+  <div class="side-nav-section" id="accountSheet">
+    <div class="side-nav-label-hdr">Account</div>
+    <div class="side-nav-themes">
+      <button class="swatch" data-theme="paper" title="White">
+        <span class="swatch-ico ico-paper"><i class="bi bi-sun-fill"></i></span>
+        <span class="side-nav-label">White</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+      <button class="swatch" data-theme="soft" title="Noir">
+        <span class="swatch-ico ico-soft"><i class="bi bi-moon-stars-fill"></i></span>
+        <span class="side-nav-label">Noir</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+      <button class="swatch" data-theme="dusk" title="Dusk">
+        <span class="swatch-ico ico-dusk"><i class="bi bi-cloud-moon-fill"></i></span>
+        <span class="side-nav-label">Dusk</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+      <button class="swatch" data-theme="brass" title="Brass Ledger">
+        <span class="swatch-ico ico-brass"><i class="bi bi-gem"></i></span>
+        <span class="side-nav-label">Brass Ledger</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ LOANS (bank loans & EMI) ============ -->
+<main id="ledger">
+  <div class="ledger-toolbar">
+    <div class="ledger-head">
+      <h2>Loans</h2>
+      <button class="add-income-btn top-add-income-btn" id="addLoanBtn" type="button"><i class="bi bi-plus-lg"></i> Add loan</button>
+    </div>
+
+    <div class="quick-stats">
+      <div class="qs-item qs-out">
+        <span class="qs-ico"><i class="bi bi-bank2"></i></span>
+        <span class="qs-label">Loan balance</span>
+        <span class="qs-val" id="qsLoanBalance">₹0</span>
+      </div>
+      <div class="qs-item qs-out">
+        <span class="qs-ico"><i class="bi bi-arrow-repeat"></i></span>
+        <span class="qs-label">Monthly EMI</span>
+        <span class="qs-val" id="qsMonthlyEmi">₹0</span>
+      </div>
+      <div class="qs-item qs-count">
+        <span class="qs-ico"><i class="bi bi-collection"></i></span>
+        <span class="qs-label">Active loans</span>
+        <span class="qs-val" id="qsCount">0</span>
+      </div>
+      <div class="qs-item qs-net">
+        <span class="qs-ico"><i class="bi bi-calendar-event"></i></span>
+        <span class="qs-label">Next due</span>
+        <span class="qs-val" id="qsNextDue">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="loansBody"><!-- rendered by loans.js --></div>
+</main>
+
+<!-- ============ ADD/EDIT LOAN DIALOG (bank loan / EMI schedule) ============ -->
+<dialog id="loanDialog">
+  <form class="dialog-inner" id="loanForm">
+    <h3 id="loanDialogTitle"><i class="bi bi-bank2"></i> Add loan</h3>
+    <div class="field">
+      <label for="loanLender">Lender</label>
+      <input type="text" id="loanLender" placeholder="e.g. HDFC Bank — Car loan" required>
+    </div>
+    <div class="field">
+      <label for="loanPrincipal">Principal amount</label>
+      <input type="number" id="loanPrincipal" step="0.01" min="0" required>
+    </div>
+    <div class="field">
+      <label for="loanEmi">EMI amount</label>
+      <input type="number" id="loanEmi" step="0.01" min="0" required>
+    </div>
+    <div class="field">
+      <label for="loanTenure">Tenure (months)</label>
+      <input type="number" id="loanTenure" step="1" min="1" required>
+    </div>
+    <div class="field">
+      <label for="loanRate">Interest rate % p.a. (optional)</label>
+      <input type="number" id="loanRate" step="0.01" min="0">
+    </div>
+    <div class="field">
+      <label for="loanStart">Start date (first EMI)</label>
+      <input type="date" id="loanStart" required>
+    </div>
+    <div class="field">
+      <label for="loanNotes">Notes (optional)</label>
+      <input type="text" id="loanNotes" placeholder="e.g. Account ending 4821">
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close="loanDialog">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ RECORD PAYMENT DIALOG ============ -->
+<dialog id="paymentDialog">
+  <form class="dialog-inner" id="paymentForm">
+    <h3 id="paymentDialogTitle"><i class="bi bi-cash-coin"></i> Pay EMI</h3>
+    <div class="field">
+      <label for="payAmount">Amount</label>
+      <input type="number" id="payAmount" step="0.01" min="0" required>
+    </div>
+    <div class="field">
+      <label for="payDate">Date</label>
+      <input type="date" id="payDate" required>
+    </div>
+    <div class="field">
+      <label for="payNote">Note (optional)</label>
+      <input type="text" id="payNote" placeholder="e.g. Partial repayment">
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close="paymentDialog">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ CONFIRM DELETE DIALOG ============ -->
+<dialog id="confirmDialog">
+  <div class="dialog-inner">
+    <h3 id="confirmTitle"><i class="bi bi-exclamation-triangle"></i> Delete this?</h3>
+    <p id="confirmBody" style="color:var(--text-dim); font-size:0.86rem; margin-top:-8px;"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close="confirmDialog">Cancel</button>
+      <button type="button" class="btn danger-solid" id="confirmYesBtn"><i class="bi bi-trash3"></i> Delete</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast"></div>
+
+<script src="shared.js"></script>
+<script src="loans.js"></script>
+</body>
+</html>

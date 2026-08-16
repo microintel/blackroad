@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LendLedger — Dashboard</title>
+<script>
+  (function(){ try{
+    var t = localStorage.getItem('ll-theme');
+    if (t && t !== 'soft') document.documentElement.setAttribute('data-theme', t);
+  }catch(e){} })();
+</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body data-page="dashboard">
+
+<!-- ============ LEFT NAVIGATION (persistent, same on every page) ============ -->
+<nav class="side-nav" aria-label="Main menu">
+  <div class="side-nav-brand">
+    <span class="mark"></span>
+    <h1>LendLedger</h1>
+  </div>
+
+  <div class="side-nav-links">
+    <a href="../blackroad-dashboard.html" class="side-nav-item side-nav-back">
+      <span class="side-nav-ico"><i class="bi bi-arrow-left-circle"></i></span><span class="side-nav-label">Back to BlackRoad</span>
+    </a>
+    <a href="index.html" class="side-nav-item" data-page="dashboard">
+      <span class="side-nav-ico"><i class="bi bi-grid-1x2-fill"></i></span><span class="side-nav-label">Dashboard</span>
+    </a>
+    <a href="people.html" class="side-nav-item" data-page="people">
+      <span class="side-nav-ico"><i class="bi bi-people-fill"></i></span><span class="side-nav-label">People</span>
+    </a>
+    <a href="loans.html" class="side-nav-item" data-page="loans">
+      <span class="side-nav-ico"><i class="bi bi-bank2"></i></span><span class="side-nav-label">Loans</span>
+    </a>
+    <button type="button" class="side-nav-item mobile-tab-btn" id="mobileAddPersonBtn">
+      <span class="side-nav-ico"><i class="bi bi-plus-circle-fill"></i></span><span class="side-nav-label">Add person</span>
+    </button>
+    <button type="button" class="side-nav-item mobile-tab-btn" id="mobileAccountToggle">
+      <span class="side-nav-ico"><i class="bi bi-person-circle"></i></span><span class="side-nav-label">Account</span>
+    </button>
+  </div>
+
+  <div class="side-nav-section" id="accountSheet">
+    <div class="side-nav-label-hdr">Account</div>
+    <div class="side-nav-themes">
+      <button class="swatch" data-theme="paper" title="White">
+        <span class="swatch-ico ico-paper"><i class="bi bi-sun-fill"></i></span>
+        <span class="side-nav-label">White</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+      <button class="swatch" data-theme="soft" title="Noir">
+        <span class="swatch-ico ico-soft"><i class="bi bi-moon-stars-fill"></i></span>
+        <span class="side-nav-label">Noir</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+      <button class="swatch" data-theme="dusk" title="Dusk">
+        <span class="swatch-ico ico-dusk"><i class="bi bi-cloud-moon-fill"></i></span>
+        <span class="side-nav-label">Dusk</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+      <button class="swatch" data-theme="brass" title="Brass Ledger">
+        <span class="swatch-ico ico-brass"><i class="bi bi-gem"></i></span>
+        <span class="side-nav-label">Brass Ledger</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ DASHBOARD (summary across all people) ============ -->
+<div class="dashboard-shell">
+
+  <div class="dashboard-head">
+    <h2>LendLedger</h2>
+    <a href="people.html" class="ghost-btn"><i class="bi bi-people-fill"></i> View people</a>
+  </div>
+
+  <div class="quick-stats" id="quickStats">
+    <div class="qs-item qs-in">
+      <span class="qs-ico"><i class="bi bi-arrow-down-left"></i></span>
+      <span class="qs-label">You'll get</span>
+      <span class="qs-val" id="qsReceivable">₹0</span>
+    </div>
+    <div class="qs-item qs-out">
+      <span class="qs-ico"><i class="bi bi-arrow-up-right"></i></span>
+      <span class="qs-label">You'll give</span>
+      <span class="qs-val" id="qsPayable">₹0</span>
+    </div>
+    <div class="qs-item qs-net">
+      <span class="qs-ico"><i class="bi bi-wallet2"></i></span>
+      <span class="qs-label">Net position</span>
+      <span class="qs-val" id="qsNet">₹0</span>
+    </div>
+    <div class="qs-item qs-count">
+      <span class="qs-ico"><i class="bi bi-people"></i></span>
+      <span class="qs-label">People</span>
+      <span class="qs-val" id="qsCount">0</span>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+
+    <section class="hero-card">
+      <div class="hero-top">
+        <span class="hero-label">Net position</span>
+        <span class="hero-badge"><i class="bi bi-wallet2"></i></span>
+      </div>
+      <div class="hero-figure" id="statNet">₹0</div>
+      <div class="hero-split">
+        <div class="hero-split-item in">
+          <span class="hero-split-ico"><i class="bi bi-arrow-down-left"></i></span>
+          <div class="hero-split-text">
+            <span class="hero-split-label">You'll get</span>
+            <span class="hero-split-val" id="statReceivable">₹0</span>
+          </div>
+        </div>
+        <div class="hero-split-item out">
+          <span class="hero-split-ico"><i class="bi bi-arrow-up-right"></i></span>
+          <div class="hero-split-text">
+            <span class="hero-split-label">You'll give</span>
+            <span class="hero-split-val" id="statPayable">₹0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Balance by person</h2>
+      <div class="chart-wrap">
+        <div class="chart-canvas-inner" id="partyChartInner">
+          <canvas id="partyChart"></canvas>
+        </div>
+        <div class="chart-empty" id="partyChartEmpty">No people added yet</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>People</h2>
+      <div id="sourceList">
+        <div class="chart-empty">No people added yet</div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="shared.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
