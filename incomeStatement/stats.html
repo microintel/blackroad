@@ -14,6 +14,42 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  /* ---- Linear expense-category bars (replaces half-circle gauges) ---- */
+  .cat-gauge-grid{ display:flex; flex-direction:column; gap:14px; }
+  .cat-bar-card{
+    background: var(--panel-2, rgba(255,255,255,0.03));
+    border: 1px solid var(--line-soft, rgba(255,255,255,0.08));
+    border-radius: 16px;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .cat-bar-card:hover{ border-color: var(--accent, #5b9dff); }
+  .cat-bar-card.open{ border-color: var(--accent, #5b9dff); }
+  .cat-bar-top{
+    display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    margin-bottom:10px; font-size:15px; font-weight:600; color: var(--text, #f2f2f5);
+  }
+  .cat-bar-name{ text-transform:capitalize; }
+  .cat-bar-amt{ font-size:14px; font-weight:600; white-space:nowrap; color: var(--text, #f2f2f5); }
+  .cat-bar-track{
+    width:100%; height:14px; border-radius:999px; overflow:hidden;
+    background: var(--line-soft, rgba(255,255,255,0.08));
+  }
+  .cat-bar-fill{ height:100%; border-radius:999px; transition: width .4s ease; }
+  .cat-txn-list{ margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .cat-txn-row{
+    background: var(--line-soft, rgba(255,255,255,0.05));
+    border-radius: 10px; padding: 9px 12px; font-size: 13.5px;
+    color: var(--text-dim, #8891a3);
+    display:flex; flex-wrap:wrap; gap:4px 6px;
+  }
+  .cat-txn-idx, .cat-txn-note, .cat-txn-amt{ color: var(--text, #f2f2f5); font-weight: 600; }
+  .cat-txn-note{ font-weight:500; }
+  .cat-txn-pct{ color: var(--text-dim, #8891a3); }
+</style>
 </head>
 <body data-page="stats">
 
@@ -136,9 +172,19 @@
       <div class="ratio-grid" id="ratioGrid"></div>
     </section>
 
+    <!-- ---- Financial summary (Income / Expense / Balance totals) ---- -->
+    <section class="panel">
+      <h2>Financial Summary</h2>
+      <div class="chart-canvas-inner" id="summaryChartInner" style="height:280px;">
+        <canvas id="summaryChart"></canvas>
+      </div>
+      <div class="chart-empty" id="summaryChartEmpty" style="display:none;">Not enough data yet</div>
+    </section>
+
     <!-- ---- Expense category gauges ---- -->
     <section class="panel">
       <h2>Expense category gauges</h2>
+      <p class="score-desc" style="margin:-6px 0 12px;">Tap a category to see its transactions, highest to lowest.</p>
       <div class="cat-gauge-grid" id="catGaugeGrid"></div>
       <div class="chart-empty" id="catGaugeEmpty" style="display:none;">No expenses logged yet</div>
     </section>

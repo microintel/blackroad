@@ -10,8 +10,19 @@
 
 let ENTRIES = [];
 let monthlyChart = null;
+let summaryChart = null;
 
-const CAT_PALETTE = ["#b5583f", "#6f7bb3", "#4f8f6b", "#c99a4f", "#8a6bb0", "#5c9bc9", "#c96c8c", "#7fa06a"];
+/* Cycle of 7, matching the reference design (education=pink, home=blue, ...) */
+const CAT_PALETTE = ["#ff6b81", "#4dabf7", "#ffcb47", "#2dd4bf", "#a78bfa", "#ffa94d", "#b0b0b0"];
+
+/* Which category cards are expanded to show their transaction breakdown. Kept
+   at module scope so it survives re-renders (theme switch, refresh, etc). */
+const expandedCats = new Set();
+/* Cached from the most recent renderStats() pass so a click can redraw just
+   the category gauges without recomputing every aggregate. */
+let lastSortedCats = [];
+let lastTotalExpense = 0;
+let lastCatTxns = new Map();
 
 function clamp01(n) { return Math.max(0, Math.min(1, n)); }
 
@@ -41,6 +52,7 @@ function renderStats() {
   /* ---- Aggregate totals ---- */
   let totalIncome = 0, totalExpense = 0, txnCount = 0;
   const catTotals = new Map();
+  const catTxns = new Map(); // category -> [{ note, amount, date }]
   const monthly = new Map(); // key -> { income, expense }
   const txnDates = [];
 
@@ -59,7 +71,14 @@ function renderStats() {
     (e.transactions || []).forEach((t) => {
       txnCount++;
       const cat = t.category || "Uncategorized";
-      catTotals.set(cat, (catTotals.get(cat) || 0) + (Number(t.amount) || 0));
+      const amt = Number(t.amount) || 0;
+      catTotals.set(cat, (catTotals.get(cat) || 0) + amt);
+      if (!catTxns.has(cat)) catTxns.set(cat, []);
+      catTxns.get(cat).push({
+        note: t.note || t.desc || t.description || t.title || t.label || cat,
+        amount: amt,
+        date: t.date || e.date
+      });
       if (t.date) txnDates.push(t.date);
     });
   });
@@ -94,7 +113,8 @@ function renderStats() {
     savingsRate, expenseRatio, avgTxn, avgMonthlyIncome, avgMonthlyExpense,
     avgMonthlySavings, avgDailySpend, topCat, txnCount, monthsCount
   });
-  renderCategoryGauges(sortedCats, totalExpense);
+  renderSummaryChart(totalIncome, totalExpense, totalBalance);
+  renderCategoryGauges(sortedCats, totalExpense, catTxns);
   renderMonthlyChart(monthly);
 }
 
@@ -193,30 +213,119 @@ function renderRatios(s) {
 
 /* ---------------- Expense category gauges ---------------- */
 
-function renderCategoryGauges(sortedCats, totalExpense) {
+function renderCategoryGauges(sortedCats, totalExpense, catTxns) {
   const grid = document.getElementById("catGaugeGrid");
   const empty = document.getElementById("catGaugeEmpty");
+
+  // cache so toggling a card doesn't require recomputing every aggregate
+  lastSortedCats = sortedCats;
+  lastTotalExpense = totalExpense;
+  lastCatTxns = catTxns;
+
   if (sortedCats.length === 0 || totalExpense <= 0) {
     grid.style.display = "none";
     empty.style.display = "block";
     return;
   }
-  grid.style.display = "grid";
+  grid.style.display = "flex";
   empty.style.display = "none";
 
   grid.innerHTML = sortedCats.map(([name, amt], i) => {
-    const pct = (amt / totalExpense) * 100;
+    const pct = totalExpense > 0 ? (amt / totalExpense) * 100 : 0;
     const color = CAT_PALETTE[i % CAT_PALETTE.length];
+    const isOpen = expandedCats.has(name);
+
+    let txnRows = "";
+    if (isOpen) {
+      const txns = (catTxns.get(name) || []).slice().sort((a, b) => b.amount - a.amount);
+      txnRows = txns.map((t, idx) => {
+        const tPct = amt > 0 ? (t.amount / amt) * 100 : 0;
+        return `
+          <div class="cat-txn-row">
+            <span class="cat-txn-idx">${idx + 1}.</span>
+            <span class="cat-txn-note">${escapeHTML(t.note)}</span>
+            <span>:</span>
+            <span class="cat-txn-amt">${fmtMoney(t.amount)}</span>
+            <span class="cat-txn-pct">(${tPct.toFixed(1)}%)</span>
+          </div>`;
+      }).join("");
+      if (!txnRows) txnRows = `<div class="cat-txn-row">No transaction detail logged for this category.</div>`;
+    }
+
     return `
-      <div class="cat-gauge">
-        <div class="gauge-half" style="--pct:${pct}; --gauge-color:${color}">
-          <div class="gauge-half-inner"></div>
+      <div class="cat-bar-card${isOpen ? " open" : ""}" data-cat="${escapeHTML(name)}">
+        <div class="cat-bar-top">
+          <span class="cat-bar-name">${escapeHTML(name)}</span>
+          <span class="cat-bar-amt">${fmtMoney(amt)} =&gt; ${pct.toFixed(1)}%</span>
         </div>
-        <div class="gauge-readout"><span class="gauge-pct">${pct.toFixed(0)}%</span></div>
-        <div class="cat-gauge-name" title="${escapeHTML(name)}">${escapeHTML(name)}</div>
-        <div class="cat-gauge-amt">${fmtMoney(amt)}</div>
+        <div class="cat-bar-track">
+          <div class="cat-bar-fill" style="width:${pct}%; background:${color}"></div>
+        </div>
+        ${isOpen ? `<div class="cat-txn-list">${txnRows}</div>` : ""}
       </div>`;
   }).join("");
+}
+
+/* Click any category card to expand/collapse its transaction breakdown
+   (highest amount first). Delegated once on the grid so re-rendering the
+   inner HTML doesn't lose the listener. */
+document.getElementById("catGaugeGrid").addEventListener("click", (e) => {
+  const card = e.target.closest(".cat-bar-card");
+  if (!card) return;
+  const cat = card.dataset.cat;
+  if (expandedCats.has(cat)) expandedCats.delete(cat);
+  else expandedCats.add(cat);
+  renderCategoryGauges(lastSortedCats, lastTotalExpense, lastCatTxns);
+});
+
+/* ---------------- Financial summary (Income / Expense / Balance totals) ---------------- */
+
+function renderSummaryChart(totalIncome, totalExpense, totalBalance) {
+  const canvas = document.getElementById("summaryChart");
+  const inner = document.getElementById("summaryChartInner");
+  const empty = document.getElementById("summaryChartEmpty");
+
+  if (totalIncome <= 0 && totalExpense <= 0) {
+    inner.style.display = "none";
+    empty.style.display = "block";
+    if (summaryChart) { summaryChart.destroy(); summaryChart = null; }
+    return;
+  }
+  inner.style.display = "block";
+  empty.style.display = "none";
+
+  const cs = getComputedStyle(document.documentElement);
+  const dimColor = cs.getPropertyValue("--text-dim").trim() || "#8891a3";
+  const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(255,255,255,0.08)";
+  const inColor = cs.getPropertyValue("--ink-in").trim() || "#2196f3";
+  const outColor = cs.getPropertyValue("--ink-out").trim() || "#f44336";
+  const balColor = "#3ecf8e";
+
+  if (summaryChart) summaryChart.destroy();
+  summaryChart = new Chart(canvas.getContext("2d"), {
+    type: "bar",
+    data: {
+      labels: ["Income", "Expense", "Balance"],
+      datasets: [{
+        data: [totalIncome, totalExpense, totalBalance],
+        backgroundColor: [inColor, outColor, balColor],
+        borderRadius: 6,
+        maxBarThickness: 90
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => fmtMoney(ctx.parsed.y) } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: dimColor, font: { size: 11.5, family: "Inter" } } },
+        y: { beginAtZero: true, grid: { color: lineColor }, ticks: { color: dimColor, font: { size: 9.5, family: "Inter" }, callback: (v) => fmtMoney(v) } }
+      }
+    }
+  });
 }
 
 /* ---------------- Monthly income / expense / balance chart ---------------- */
