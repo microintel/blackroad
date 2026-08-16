@@ -2,10 +2,10 @@
    BLACKROAD — stats.js (Statistics page)
    Depends on shared.js being loaded first (DB helpers, format
    utilities, theme system and left-nav wiring live there).
-   Read-only page: financial health score, ratios/averages,
-   per-category gauges, and a monthly income/expense/balance
-   trend chart, all derived from the same "entries" store used
-   by the dashboard and statement pages.
+   Read-only page: financial summary, ratios/averages,
+   per-category gauges, and a zoomable monthly income/expense/
+   balance trend chart, all derived from the same "entries"
+   store used by the dashboard and statement pages.
 ========================================================= */
 
 let ENTRIES = [];
@@ -23,6 +23,12 @@ const expandedCats = new Set();
 let lastSortedCats = [];
 let lastTotalExpense = 0;
 let lastCatTxns = new Map();
+
+/* chartjs-plugin-zoom self-registers via UMD in most builds, but register
+   explicitly too so the zoomable monthly chart works regardless of build. */
+if (window.Chart && window.ChartZoom && !Chart.registry.plugins.get("zoom")) {
+  Chart.register(window.ChartZoom);
+}
 
 function clamp01(n) { return Math.max(0, Math.min(1, n)); }
 
@@ -108,56 +114,13 @@ function renderStats() {
   const topCat = sortedCats[0];
   const topCatShare = topCat && totalExpense > 0 ? topCat[1] / totalExpense : 0;
 
-  renderHealthScore({ savingsRate, expenseRatio, topCatShare, hasIncome: totalIncome > 0, hasExpense: totalExpense > 0 });
+  renderSummaryChart(totalIncome, totalExpense, totalBalance);
   renderRatios({
     savingsRate, expenseRatio, avgTxn, avgMonthlyIncome, avgMonthlyExpense,
     avgMonthlySavings, avgDailySpend, topCat, txnCount, monthsCount
   });
-  renderSummaryChart(totalIncome, totalExpense, totalBalance);
   renderCategoryGauges(sortedCats, totalExpense, catTxns);
   renderMonthlyChart(monthly);
-}
-
-/* ---------------- Financial health score ---------------- */
-
-function renderHealthScore({ savingsRate, expenseRatio, topCatShare, hasIncome, hasExpense }) {
-  // Savings rate: 45 pts, full marks at a 25%+ savings rate
-  const savingsPts = hasIncome ? clamp01(savingsRate / 25) * 45 : 0;
-  // Expense control: 35 pts, full marks at 0% of income spent, 0 pts at 100%+
-  const expensePts = clamp01(1 - expenseRatio / 100) * 35;
-  // Category spread: 20 pts, penalized only once one category dominates spend
-  const diversityPts = hasExpense ? clamp01(1 - topCatShare) * 20 : 20;
-
-  const total = Math.round(savingsPts + expensePts + diversityPts);
-
-  let bucket, tagText, desc, color;
-  if (total >= 80) { bucket = "excellent"; tagText = "Excellent"; color = "var(--ink-in)"; desc = "You're saving well and spending is under control. Keep it up."; }
-  else if (total >= 60) { bucket = "good"; tagText = "Good"; color = "var(--accent)"; desc = "Solid footing overall, with some room to tighten savings or spending."; }
-  else if (total >= 40) { bucket = "fair"; tagText = "Fair"; color = "var(--accent2)"; desc = "Finances are workable but stretched — a higher savings rate would help most."; }
-  else { bucket = "needs-attention"; tagText = "Needs attention"; color = "var(--ink-out)"; desc = "Expenses are close to or above income. Consider trimming your largest category first."; }
-
-  const gauge = document.getElementById("healthGauge");
-  gauge.style.setProperty("--pct", total);
-  gauge.style.setProperty("--gauge-color", color);
-  document.getElementById("healthScoreNum").textContent = String(total);
-
-  const tag = document.getElementById("healthScoreTag");
-  tag.textContent = tagText;
-  tag.className = "score-tag " + bucket;
-  document.getElementById("healthScoreDesc").textContent = desc;
-
-  const rows = [
-    { label: "Savings rate", pts: savingsPts, max: 45, color: "var(--ink-in)" },
-    { label: "Expense control", pts: expensePts, max: 35, color: "var(--accent)" },
-    { label: "Category spread", pts: diversityPts, max: 20, color: "var(--accent2)" },
-  ];
-  document.getElementById("healthBreakdown").innerHTML = rows.map((r) => `
-    <div class="score-bd-row">
-      <span class="score-bd-label">${r.label}</span>
-      <span class="score-bd-track"><span class="score-bd-fill" style="width:${Math.round((r.pts / r.max) * 100)}%; --gauge-color:${r.color}"></span></span>
-      <span class="score-bd-pts">${Math.round(r.pts)}/${r.max}</span>
-    </div>
-  `).join("");
 }
 
 /* ---------------- Ratio / average cards ---------------- */
@@ -359,21 +322,32 @@ function renderMonthlyChart(monthly) {
 
   if (monthlyChart) monthlyChart.destroy();
   monthlyChart = new Chart(canvas.getContext("2d"), {
-    type: "bar",
+    type: "line",
     data: {
       labels,
       datasets: [
-        { label: "Income", data: incomeData, backgroundColor: inColor, borderRadius: 4, maxBarThickness: 22 },
-        { label: "Expense", data: expenseData, backgroundColor: outColor, borderRadius: 4, maxBarThickness: 22 },
-        { label: "Balance", data: balanceData, backgroundColor: accentColor, borderRadius: 4, maxBarThickness: 22 },
+        { label: "Income", data: incomeData, borderColor: inColor, backgroundColor: inColor, pointBackgroundColor: inColor, tension: 0.3, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 },
+        { label: "Expense", data: expenseData, borderColor: outColor, backgroundColor: outColor, pointBackgroundColor: outColor, tension: 0.3, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 },
+        { label: "Balance", data: balanceData, borderColor: accentColor, backgroundColor: accentColor, pointBackgroundColor: accentColor, tension: 0.3, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 },
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
       plugins: {
         legend: { position: "top", labels: { color: dimColor, font: { size: 10.5, family: "Inter" }, boxWidth: 10, usePointStyle: true, pointStyle: "circle" } },
-        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` } }
+        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` } },
+        zoom: {
+          pan: { enabled: true, mode: "x", modifierKey: null },
+          zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            drag: { enabled: false },
+            mode: "x"
+          },
+          limits: { x: { min: "original", max: "original" } }
+        }
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: dimColor, font: { size: 10, family: "Inter" } } },
@@ -382,6 +356,11 @@ function renderMonthlyChart(monthly) {
     }
   });
 }
+
+/* Reset the monthly chart's zoom/pan back to the full range. */
+document.getElementById("monthlyChartReset").addEventListener("click", () => {
+  if (monthlyChart) monthlyChart.resetZoom();
+});
 
 /* Redraw with theme-correct colors whenever the theme changes. */
 document.addEventListener("br-theme-changed", () => renderStats());
