@@ -1707,20 +1707,25 @@ async function recalcNetWorth(){
   // - liabilities. incomeNet is still shown separately as a cash-flow
   // stat (Wealth Lanes tile, panel header, foot row) — just not summed
   // into net worth.
-  const netWorth = stocksVal + mfVal + GOLD_VALUE + REALESTATE_VALUE + DEPOSITS_VALUE + lending.peopleReceivable - LOANS_VALUE;
+  //
+  // Every figure below (hero total, donut, foot row) is now built from
+  // this SAME `items` list, so Total Assets − Total Liabilities always
+  // equals the hero Net Worth exactly — no more drift between them.
+  const items = [
+    { label:'Real Estate',           amount:REALESTATE_VALUE,        color:'var(--blue)'    },
+    { label:'Mutual Funds',          amount:mfVal,                    color:'var(--gold)'   },
+    { label:'Stocks',                amount:stocksVal,                color:'var(--green)'  },
+    { label:'Fixed Deposits',        amount:DEPOSITS_VALUE,           color:'var(--violet)' },
+    { label:'Gold',                  amount:GOLD_VALUE,               color:'var(--paleGold)'},
+    { label:'Lending Receivables',   amount:lending.peopleReceivable, color:'var(--red)'    },
+  ];
+  const rawTotalAssets = items.reduce((s,i)=> s + i.amount, 0);
+  const netWorth = rawTotalAssets - LOANS_VALUE;
   setNetWorth(netWorth);
   renderLoansPanel(lending);
 
-  // Live asset-allocation donut (assets only — Loans and the Income
-  // surplus/deficit aren't "holdings", so they stay out of this pie).
-  const items = [
-    { label:'Real Estate',    amount:REALESTATE_VALUE, color:'var(--blue)'    },
-    { label:'Mutual Funds',   amount:mfVal,             color:'var(--gold)'   },
-    { label:'Stocks',         amount:stocksVal,         color:'var(--green)'  },
-    { label:'Fixed Deposits', amount:DEPOSITS_VALUE,    color:'var(--violet)' },
-    { label:'Gold',           amount:GOLD_VALUE,        color:'var(--paleGold)'},
-  ];
-  const rawTotalAssets = items.reduce((s,i)=> s + i.amount, 0);
+  // Live asset-allocation donut — every rupee counted in rawTotalAssets
+  // above also gets a slice here, so the pie always sums to 100%.
   const totalAssets = rawTotalAssets || 1; // avoid /0 in percentages
   renderAllocation(items.map(i => ({ ...i, pct: +(i.amount / totalAssets * 100).toFixed(1) })));
 
