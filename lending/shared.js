@@ -251,7 +251,7 @@ function initSideNav() {
   });
 }
 
-/* ---------- Mobile bottom-tab-bar sheet (Account) ---------- */
+/* ---------- Mobile bottom-tab-bar sheet (More: themes + data tools) ---------- */
 function initMobileSheets() {
   const groups = [
     { toggle: document.getElementById("mobileAccountToggle"), sheet: document.getElementById("accountSheet") },
@@ -280,12 +280,110 @@ function initMobileSheets() {
     });
   });
   backdrop.addEventListener("click", closeAll);
-  document.querySelectorAll(".swatch").forEach((btn) => {
+  document.querySelectorAll(".swatch, .tool-item").forEach((btn) => {
     btn.addEventListener("click", closeAll);
   });
   window.addEventListener("resize", () => {
     if (window.innerWidth >= 900) closeAll();
   });
+}
+
+/* ---------- Import / Export (full backup of parties, entries, loans) ----------
+   Export bundles every store into one JSON file the user can save anywhere.
+   Import wipes current data and restores it from a chosen backup file, so
+   people can move the ledger between devices or keep an off-app copy. */
+function collectExportPayload() {
+  return Promise.all([getAllParties(), getAllEntries(), getAllLoans()]).then(
+    ([parties, entries, loans]) => ({
+      app: "LendLedger",
+      version: DB_VERSION,
+      exportedAt: new Date().toISOString(),
+      parties,
+      entries,
+      loans,
+    })
+  );
+}
+
+function exportData() {
+  collectExportPayload()
+    .then((payload) => {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lendledger-backup-${todayISO()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast("Data exported");
+    })
+    .catch(() => showToast("Export failed"));
+}
+
+function importDataFromFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try {
+      data = JSON.parse(reader.result);
+    } catch (e) {
+      showToast("That file isn't a valid backup");
+      return;
+    }
+    const hasAnyStore =
+      data && (Array.isArray(data.parties) || Array.isArray(data.entries) || Array.isArray(data.loans));
+    if (!hasAnyStore) {
+      showToast("That file isn't a valid backup");
+      return;
+    }
+    const confirmed = window.confirm(
+      "Importing will replace all current people, entries and loans with the contents of this backup. This can't be undone. Continue?"
+    );
+    if (!confirmed) return;
+
+    Promise.all([getAllParties(), getAllEntries(), getAllLoans()])
+      .then(([parties, entries, loans]) =>
+        Promise.all([
+          ...parties.map((p) => deletePartyDB(p.id)),
+          ...entries.map((en) => deleteEntryDB(en.id)),
+          ...loans.map((l) => deleteLoanDB(l.id)),
+        ])
+      )
+      .then(() =>
+        Promise.all([
+          ...(data.parties || []).map((p) => putParty(p)),
+          ...(data.entries || []).map((en) => putEntry(en)),
+          ...(data.loans || []).map((l) => putLoan(l)),
+        ])
+      )
+      .then(() => {
+        showToast("Data imported — reloading…");
+        setTimeout(() => window.location.reload(), 700);
+      })
+      .catch(() => showToast("Import failed"));
+  };
+  reader.readAsText(file);
+}
+
+function initImportExport() {
+  document.querySelectorAll(".js-export-data").forEach((btn) => {
+    btn.addEventListener("click", exportData);
+  });
+
+  const fileInput = document.getElementById("importFileInput");
+  document.querySelectorAll(".js-import-data").forEach((btn) => {
+    btn.addEventListener("click", () => fileInput && fileInput.click());
+  });
+  if (fileInput) {
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files && fileInput.files[0];
+      importDataFromFile(file);
+      fileInput.value = "";
+    });
+  }
 }
 
 /* ---------- Mobile "Add person" tab ----------
@@ -308,4 +406,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initSideNav();
   initMobileSheets();
   initMobileAddPersonTab();
+  initImportExport();
 });

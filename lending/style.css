@@ -310,13 +310,14 @@ body{ padding-left: var(--rail-w); }
 .swatch.active .swatch-check{ opacity:1; }
 
 /* ---------- Mobile: bottom tab bar navigation ----------
-   Below 900px the left rail becomes a fixed bottom tab bar with 4
-   tabs: Dashboard, Add income, Tools and Account. Tools and Account
-   open as floating sheets above the bar; Search / Jump to / Import
-   & Export move inside the Tools sheet on mobile (they stay as
-   regular rail links on desktop, where .nav-desktop-only is ignored). */
+   Below 900px the left rail becomes a fixed bottom tab bar with 5
+   compact tabs: Dashboard, People, Loans, Add person and More.
+   More opens a floating sheet above the bar with theme switching
+   plus a Data section (Back to BlackRoad, Export data, Import
+   data) — those three stay as regular rail links on desktop,
+   where .nav-desktop-only is ignored. */
 @media (max-width: 899px){
-  body{ padding-left:0; padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+  body{ padding-left:0; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 
   .side-nav{
     top:auto;
@@ -327,7 +328,7 @@ body{ padding-left: var(--rail-w); }
     height:auto;
     flex-direction:row;
     align-items:stretch;
-    padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom));
     border-right:none;
     border-top:1px solid var(--line-soft);
     box-shadow:0 -8px 24px rgba(0,0,0,0.25);
@@ -337,17 +338,20 @@ body{ padding-left: var(--rail-w); }
     flex-direction:row;
     flex:1;
     justify-content:space-around;
-    gap:2px;
+    align-items:stretch;
+    gap:6px;
   }
   .side-nav-item{
+    flex:0 1 auto;
     flex-direction:column;
-    gap:3px;
-    padding:8px 4px;
-    font-size:0.62rem;
+    gap:2px;
+    padding:6px 10px;
+    font-size:0.56rem;
     border-radius:12px;
+    min-width:0;
   }
-  .side-nav-ico{ width:auto; height:auto; font-size:1.18rem; }
-  .side-nav-label{ display:block; font-size:0.6rem; white-space:nowrap; }
+  .side-nav-ico{ width:auto; height:auto; font-size:0.98rem; }
+  .side-nav-label{ display:block; font-size:0.56rem; white-space:nowrap; }
 
   /* Search / Jump to / Import & Export live inside the Tools sheet
      on mobile instead of as standalone tabs */
@@ -426,8 +430,13 @@ body{ padding-left: var(--rail-w); }
   text-decoration:none;
   font-size:0.82rem;
   transition:0.12s;
+  background:none;
+  border:none;
+  width:100%;
+  text-align:left;
+  font-family:inherit;
 }
-.tool-item:hover{ background:var(--card-2); color:var(--text); }
+.tool-item:hover, .tool-item:active{ background:var(--card-2); color:var(--text); }
 .tool-item .side-nav-ico{ width:19px; height:19px; font-size:1rem; }
 
 /* backdrop behind the mobile Tools / Account sheets */
@@ -442,7 +451,7 @@ body{ padding-left: var(--rail-w); }
 
 /* keep the toast clear of the bottom tab bar on mobile */
 @media (max-width: 899px){
-  #toast{ bottom: calc(82px + env(safe-area-inset-bottom)); }
+  #toast{ bottom: calc(76px + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- App shell ---------- */

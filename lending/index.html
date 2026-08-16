@@ -24,7 +24,7 @@
   </div>
 
   <div class="side-nav-links">
-    <a href="../blackroad-dashboard.html" class="side-nav-item side-nav-back">
+    <a href="../blackroad-dashboard.html" class="side-nav-item side-nav-back nav-desktop-only">
       <span class="side-nav-ico"><i class="bi bi-arrow-left-circle"></i></span><span class="side-nav-label">Back to BlackRoad</span>
     </a>
     <a href="index.html" class="side-nav-item" data-page="dashboard">
@@ -36,16 +36,24 @@
     <a href="loans.html" class="side-nav-item" data-page="loans">
       <span class="side-nav-ico"><i class="bi bi-bank2"></i></span><span class="side-nav-label">Loans</span>
     </a>
+    <button type="button" class="side-nav-item nav-desktop-only js-export-data">
+      <span class="side-nav-ico"><i class="bi bi-download"></i></span><span class="side-nav-label">Export data</span>
+    </button>
+    <button type="button" class="side-nav-item nav-desktop-only js-import-data">
+      <span class="side-nav-ico"><i class="bi bi-upload"></i></span><span class="side-nav-label">Import data</span>
+    </button>
     <button type="button" class="side-nav-item mobile-tab-btn" id="mobileAddPersonBtn">
       <span class="side-nav-ico"><i class="bi bi-plus-circle-fill"></i></span><span class="side-nav-label">Add person</span>
     </button>
     <button type="button" class="side-nav-item mobile-tab-btn" id="mobileAccountToggle">
-      <span class="side-nav-ico"><i class="bi bi-person-circle"></i></span><span class="side-nav-label">Account</span>
+      <span class="side-nav-ico"><i class="bi bi-three-dots"></i></span><span class="side-nav-label">More</span>
     </button>
   </div>
 
+  <input type="file" id="importFileInput" accept="application/json" hidden>
+
   <div class="side-nav-section" id="accountSheet">
-    <div class="side-nav-label-hdr">Account</div>
+    <div class="side-nav-label-hdr">Appearance</div>
     <div class="side-nav-themes">
       <button class="swatch" data-theme="paper" title="White">
         <span class="swatch-ico ico-paper"><i class="bi bi-sun-fill"></i></span>
@@ -67,6 +75,21 @@
         <span class="side-nav-label">Brass Ledger</span>
         <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
       </button>
+    </div>
+
+    <div class="mobile-only-section">
+      <div class="side-nav-label-hdr">Data</div>
+      <div class="side-nav-tools-list">
+        <a href="../blackroad-dashboard.html" class="tool-item">
+          <span class="side-nav-ico"><i class="bi bi-arrow-left-circle"></i></span><span>Back to BlackRoad</span>
+        </a>
+        <button type="button" class="tool-item js-export-data">
+          <span class="side-nav-ico"><i class="bi bi-download"></i></span><span>Export data</span>
+        </button>
+        <button type="button" class="tool-item js-import-data">
+          <span class="side-nav-ico"><i class="bi bi-upload"></i></span><span>Import data</span>
+        </button>
+      </div>
     </div>
   </div>
 </nav>
