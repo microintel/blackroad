@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BlackRoad — Dashboard</title>
+<title>BlackRoad — Statistics</title>
 <script>
   /* apply saved theme immediately, before first paint, on every page */
   (function(){ try{
@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body data-page="dashboard">
+<body data-page="stats">
 
 <!-- ============ LEFT NAVIGATION (persistent, same on every page) ============ -->
 <nav class="side-nav" aria-label="Main menu">
@@ -94,80 +94,62 @@
   </div>
 </nav>
 
-<!-- ============ DASHBOARD (summary only — full ledger lives on the Statement tab) ============ -->
-<div class="dashboard-shell">
-
-  <div class="dashboard-head">
-    <h2>BlackRoad</h2>
-    <a href="statement.html" class="ghost-btn"><i class="bi bi-journal-text"></i> View statement</a>
-  </div>
-
-  <!-- ---- 4 quick-stat cards: income, expenses, balance, transactions ---- -->
-  <div class="quick-stats" id="quickStats">
-    <div class="qs-item qs-in">
-      <span class="qs-ico"><i class="bi bi-arrow-down-left"></i></span>
-      <span class="qs-label">Income</span>
-      <span class="qs-val" id="qsIncome">₹0</span>
-    </div>
-    <div class="qs-item qs-out">
-      <span class="qs-ico"><i class="bi bi-arrow-up-right"></i></span>
-      <span class="qs-label">Expense</span>
-      <span class="qs-val" id="qsExpense">₹0</span>
-    </div>
-    <div class="qs-item qs-net">
-      <span class="qs-ico"><i class="bi bi-wallet2"></i></span>
-      <span class="qs-label">Balance</span>
-      <span class="qs-val" id="qsBalance">₹0</span>
-    </div>
-    <div class="qs-item qs-count">
-      <span class="qs-ico"><i class="bi bi-receipt"></i></span>
-      <span class="qs-label">Transactions</span>
-      <span class="qs-val" id="qsCount">0</span>
+<!-- ============ STATISTICS PAGE ============ -->
+<div class="page-shell stats-shell">
+  <div class="page-header">
+    <span class="page-header-ico"><i class="bi bi-pie-chart-fill"></i></span>
+    <div>
+      <h2>Statistics</h2>
+      <p>A deeper look at your money — health score, ratios, and trends.</p>
     </div>
   </div>
 
-  <div class="dashboard-grid">
+  <div id="statsEmpty" class="chart-empty" style="display:none; padding:60px 10px;">
+    Nothing logged yet — add an income entry on the Statement tab to see your statistics.
+  </div>
 
-    <!-- Hero net-balance card -->
-    <section class="hero-card">
-      <div class="hero-top">
-        <span class="hero-label">Net balance</span>
-        <span class="hero-badge"><i class="bi bi-wallet2"></i></span>
-      </div>
-      <div class="hero-figure" id="statNet">₹0</div>
-      <div class="hero-split">
-        <div class="hero-split-item in">
-          <span class="hero-split-ico"><i class="bi bi-arrow-down-left"></i></span>
-          <div class="hero-split-text">
-            <span class="hero-split-label">Income</span>
-            <span class="hero-split-val" id="statIncome">₹0</span>
+  <div id="statsBody">
+
+    <!-- ---- Financial health score ---- -->
+    <section class="panel score-panel">
+      <h2>Financial health score</h2>
+      <div class="score-layout">
+        <div class="gauge-block">
+          <div class="gauge-half" id="healthGauge" style="--pct:0">
+            <div class="gauge-half-inner"></div>
+          </div>
+          <div class="gauge-readout">
+            <span class="gauge-num" id="healthScoreNum">0</span><span class="gauge-den">/100</span>
           </div>
         </div>
-        <div class="hero-split-item out">
-          <span class="hero-split-ico"><i class="bi bi-arrow-up-right"></i></span>
-          <div class="hero-split-text">
-            <span class="hero-split-label">Expense</span>
-            <span class="hero-split-val" id="statExpense">₹0</span>
-          </div>
+        <div class="score-side">
+          <span class="score-tag" id="healthScoreTag">—</span>
+          <p class="score-desc" id="healthScoreDesc"></p>
+          <div class="score-breakdown" id="healthBreakdown"></div>
         </div>
       </div>
     </section>
 
+    <!-- ---- Key ratios ---- -->
     <section class="panel">
-      <h2>Expense by category</h2>
-      <div class="chart-wrap">
-        <div class="chart-canvas-inner" id="catChartInner">
-          <canvas id="catChart"></canvas>
-        </div>
-        <div class="chart-empty" id="catChartEmpty">No expenses logged yet</div>
-      </div>
+      <h2>Financial ratios &amp; averages</h2>
+      <div class="ratio-grid" id="ratioGrid"></div>
     </section>
 
+    <!-- ---- Expense category gauges ---- -->
     <section class="panel">
-      <h2>Income by source</h2>
-      <div id="sourceList">
-        <div class="chart-empty">No income logged yet</div>
+      <h2>Expense category gauges</h2>
+      <div class="cat-gauge-grid" id="catGaugeGrid"></div>
+      <div class="chart-empty" id="catGaugeEmpty" style="display:none;">No expenses logged yet</div>
+    </section>
+
+    <!-- ---- Monthly income / expense / balance ---- -->
+    <section class="panel">
+      <h2>Income, expense &amp; balance by month</h2>
+      <div class="chart-canvas-inner" id="monthlyChartInner" style="height:280px;">
+        <canvas id="monthlyChart"></canvas>
       </div>
+      <div class="chart-empty" id="monthlyChartEmpty" style="display:none;">Not enough data yet</div>
     </section>
 
   </div>
@@ -176,6 +158,6 @@
 <div id="toast"></div>
 
 <script src="shared.js"></script>
-<script src="app.js"></script>
+<script src="stats.js"></script>
 </body>
 </html>

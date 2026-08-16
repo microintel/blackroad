@@ -1434,3 +1434,206 @@ button:focus-visible, .entry-head:focus-visible, input:focus-visible, select:foc
   .filter-row{ display:none !important; }
   .top-add-income-btn{ display:none !important; }
 }
+
+/* =========================================================
+   ---------- Statistics page ----------
+   Health score + ratio cards + half-ring gauges are drawn with
+   a conic-gradient technique (no chart library) so they inherit
+   the live theme colors for free; only the monthly trend uses
+   Chart.js, matching the bar chart already on the dashboard.
+========================================================= */
+.stats-shell{ max-width:900px; }
+
+/* ---- Financial health score ---- */
+.score-panel{ overflow:hidden; }
+.score-layout{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:22px;
+  padding-top:4px;
+}
+@media (min-width:620px){
+  .score-layout{ flex-direction:row; align-items:center; gap:34px; }
+}
+
+.gauge-block{
+  position:relative;
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.gauge-half{
+  --pct: 0;
+  --gauge-color: var(--accent);
+  width:190px;
+  height:95px;
+  border-radius:190px 190px 0 0;
+  background:conic-gradient(from 270deg at 50% 100%,
+    var(--gauge-color) calc(var(--pct) * 1.8deg),
+    var(--line-soft) calc(var(--pct) * 1.8deg) 180deg);
+  position:relative;
+  transition:background 0.5s ease;
+}
+.gauge-half-inner{
+  position:absolute;
+  left:50%; top:100%;
+  transform:translate(-50%, -100%);
+  width:136px;
+  height:68px;
+  border-radius:136px 136px 0 0;
+  background:var(--card);
+}
+.gauge-readout{
+  margin-top:-38px;
+  display:flex;
+  align-items:baseline;
+  gap:2px;
+  font-family:var(--font-mono);
+}
+.gauge-num{ font-size:1.7rem; font-weight:700; color:var(--text); }
+.gauge-den{ font-size:0.78rem; color:var(--text-faint); }
+
+.score-side{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  width:100%;
+}
+@media (min-width:620px){
+  .score-side{ align-items:flex-start; }
+}
+.score-tag{
+  display:inline-flex;
+  align-items:center;
+  padding:5px 13px;
+  border-radius:var(--radius-pill);
+  font-size:0.72rem;
+  font-weight:700;
+  letter-spacing:0.02em;
+  text-transform:uppercase;
+  background:var(--accent-bg);
+  color:var(--accent);
+}
+.score-tag.excellent{ background:var(--ink-in-bg); color:var(--ink-in); }
+.score-tag.good{ background:var(--accent-bg); color:var(--accent); }
+.score-tag.fair{ background:var(--accent2-bg); color:var(--accent2); }
+.score-tag.needs-attention{ background:var(--ink-out-bg); color:var(--ink-out); }
+.score-desc{
+  margin:0;
+  font-size:0.82rem;
+  color:var(--text-dim);
+  text-align:center;
+  line-height:1.5;
+}
+@media (min-width:620px){
+  .score-desc{ text-align:left; }
+}
+.score-breakdown{
+  width:100%;
+  margin-top:6px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.score-bd-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:0.76rem;
+}
+.score-bd-label{ color:var(--text-dim); width:132px; flex-shrink:0; }
+.score-bd-track{
+  flex:1;
+  height:6px;
+  border-radius:99px;
+  background:var(--line-soft);
+  overflow:hidden;
+}
+.score-bd-fill{
+  height:100%;
+  border-radius:99px;
+  background:var(--gauge-color, var(--accent));
+}
+.score-bd-pts{
+  font-family:var(--font-mono);
+  color:var(--text-faint);
+  width:44px;
+  text-align:right;
+  flex-shrink:0;
+}
+
+/* ---- Ratio / average cards ---- */
+.ratio-grid{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:10px;
+}
+@media (min-width:560px){
+  .ratio-grid{ grid-template-columns:repeat(3, 1fr); }
+}
+.ratio-card{
+  padding:13px 12px;
+  background:var(--card-2);
+  border:1px solid var(--line-soft);
+  border-radius:var(--radius-md);
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.ratio-card-label{
+  font-size:0.63rem;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  color:var(--text-faint);
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.ratio-card-label i{ font-size:0.72rem; }
+.ratio-card-val{
+  font-family:var(--font-mono);
+  font-weight:700;
+  font-size:1.05rem;
+  color:var(--text);
+}
+.ratio-card-sub{ font-size:0.7rem; color:var(--text-faint); }
+.ratio-card.pos .ratio-card-val{ color:var(--ink-in); }
+.ratio-card.neg .ratio-card-val{ color:var(--ink-out); }
+
+/* ---- Expense category gauges ---- */
+.cat-gauge-grid{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:18px 10px;
+}
+@media (min-width:560px){
+  .cat-gauge-grid{ grid-template-columns:repeat(3, 1fr); }
+}
+@media (min-width:820px){
+  .cat-gauge-grid{ grid-template-columns:repeat(4, 1fr); }
+}
+.cat-gauge{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+.cat-gauge .gauge-half{ width:104px; height:52px; border-radius:104px 104px 0 0; }
+.cat-gauge .gauge-half-inner{ width:74px; height:37px; border-radius:74px 74px 0 0; }
+.cat-gauge .gauge-readout{ margin-top:-24px; }
+.cat-gauge .gauge-readout .gauge-pct{ font-family:var(--font-mono); font-weight:700; font-size:0.95rem; color:var(--text); }
+.cat-gauge-name{
+  margin-top:6px;
+  font-size:0.76rem;
+  font-weight:600;
+  color:var(--text);
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cat-gauge-amt{ font-size:0.68rem; color:var(--text-faint); font-family:var(--font-mono); }
