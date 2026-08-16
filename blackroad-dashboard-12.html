@@ -1,0 +1,2648 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlackRoad — Wealth Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon512_rounded.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="auth.js"></script>
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --gold:#E8B84B;
+  --gold-dim:#B8912F;
+  --green:#4ADE80;
+  --blue:#60A5FA;
+  --violet:#A78BFA;
+  --paleGold:#F0D48A;
+  --red:#F2545B;
+
+  --radius-sm:12px;
+  --radius-md:18px;
+  --radius-lg:26px;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --topbar-h:96px;
+}
+
+#overview, .panel{ scroll-margin-top:var(--topbar-h); }
+
+/* ============ NEUMORPHIC (SOFT-UI) SHADOW SYSTEM ============
+   Every surface sits at the SAME tone as the page (--surface == --bg),
+   so cards, tiles, buttons and inputs are sculpted purely from a
+   light/dark shadow pair instead of borders or fill contrast.
+   --shadow      = raised / extruded (default resting state)
+   --shadow-lg   = raised further (hover / lift)
+   --shadow-sm   = small raised element (icon buttons, chips, badges)
+   --shadow-in   = pressed / recessed (active state, tracks, inputs)
+   --shadow-in-sm= small pressed element (pills, switch tracks) */
+html[data-theme="dark"]{
+  --bg:#1B1E24;
+  --bg-elevated:#1B1E24;
+  --surface:#1B1E24;
+  --surface-2:#20242C;
+  --border:rgba(255,255,255,.06);
+  --text:#F2F0EA;
+  --text-dim:#9BA1AC;
+  --text-faint:#5C6270;
+  --accent:var(--gold);
+  --nl:rgba(255,255,255,.05);
+  --nd:rgba(0,0,0,.62);
+  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
+  --shadow-lg: 14px 14px 28px var(--nd), -10px -10px 24px var(--nl);
+  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
+  --shadow-in: inset 5px 5px 11px var(--nd), inset -5px -5px 11px var(--nl);
+  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+  --dash-color: rgba(232,184,75,.55);
+}
+
+html[data-theme="light"]{
+  --bg:#EAE7DE;
+  --bg-elevated:#EAE7DE;
+  --surface:#EAE7DE;
+  --surface-2:#E2DED2;
+  --border:rgba(30,25,10,.08);
+  --text:#171A1F;
+  --text-dim:#5B6270;
+  --text-faint:#84808f;
+  --accent:#B8862A;
+  --nl:rgba(255,255,255,.9);
+  --nd:rgba(163,150,115,.4);
+  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
+  --shadow-lg: 14px 14px 28px var(--nd), -10px -10px 24px var(--nl);
+  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
+  --shadow-in: inset 5px 5px 11px var(--nd), inset -5px -5px 11px var(--nl);
+  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+  --dash-color: rgba(184,134,42,.5);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overflow-x:hidden;
+  transition:background .35s var(--ease), color .35s var(--ease);
+}
+h1,h2,h3,h4,.display{font-family:'Outfit',sans-serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
+a{color:inherit;text-decoration:none;}
+::selection{background:var(--accent);color:#0B0D10;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface-2);border-radius:10px;}
+
+/* ============ LANE DIVIDER (signature motif) ============ */
+.lane{
+  height:3px;
+  width:100%;
+  background-image:repeating-linear-gradient(90deg, var(--dash-color) 0 26px, transparent 26px 46px);
+  opacity:.9;
+}
+
+/* ============ LAYOUT ============ */
+.app{ display:flex; min-height:100vh; }
+
+/* ---- Sidebar ---- */
+.sidebar{
+  width:250px;
+  flex-shrink:0;
+  background:var(--bg-elevated);
+  border-right:1px solid var(--border);
+  box-shadow:6px 0 24px -8px var(--nd);
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  top:0; left:0; bottom:0;
+  z-index:100;
+  transition:transform .35s var(--ease), background .35s var(--ease), border-color .35s var(--ease);
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:26px 22px 18px;
+}
+.brand-mark{
+  width:34px;height:34px;border-radius:11px;
+  background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  color:#0B0D10;font-weight:800;font-size:16px;
+  box-shadow:var(--shadow-sm);
+}
+.brand-name{font-weight:700;font-size:18.5px;letter-spacing:.2px;}
+.brand-name span{color:var(--accent);}
+
+.nav-scroll{flex:1;overflow-y:auto;padding:10px 14px;}
+.nav-label{
+  font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase;
+  color:var(--text-faint); padding:16px 10px 8px;
+}
+.nav-link{
+  display:flex; align-items:center; gap:12px;
+  padding:10.5px 12px;
+  border-radius:var(--radius-sm);
+  color:var(--text-dim);
+  font-size:14.3px; font-weight:500;
+  margin-bottom:3px;
+  position:relative;
+  transition:background .22s var(--ease), color .22s var(--ease), padding-left .22s var(--ease);
+}
+.nav-link i{font-size:16.5px; width:20px; text-align:center; color:var(--text-faint); transition:color .22s var(--ease);}
+.nav-link:hover{ box-shadow:var(--shadow-in-sm); color:var(--text); }
+.nav-link:hover i{ color:var(--accent); }
+.nav-link.active{ box-shadow:var(--shadow-in-sm); color:var(--text); }
+.nav-link.active i{ color:var(--accent); }
+.nav-link.active::before{
+  content:"";
+  position:absolute; left:-14px; top:50%; transform:translateY(-50%);
+  width:3px; height:60%;
+  background:var(--accent);
+  border-radius:0 4px 4px 0;
+}
+.nav-link .badge-dot{
+  margin-left:auto; width:6px;height:6px;border-radius:50%;
+  background:var(--green);
+}
+
+.sidebar-footer{
+  padding:16px; border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.theme-toggle{
+  display:flex; align-items:center; gap:8px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:6px 12px;
+  font-size:13px; color:var(--text-dim);
+  box-shadow:var(--shadow-in-sm);
+  transition:background .2s var(--ease), color .2s var(--ease);
+}
+.theme-toggle:hover{ color:var(--text); }
+.theme-toggle i{ font-size:15px; color:var(--accent); }
+
+/* ---- Main ---- */
+.main{
+  flex:1;
+  margin-left:250px;
+  min-height:100vh;
+  transition:margin .35s var(--ease);
+}
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  padding:20px 34px 16px;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+}
+.greet-eyebrow{ font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--text-faint); }
+.greet-title{ font-size:24px; font-weight:700; margin-top:2px; }
+.topbar-actions{ display:flex; align-items:center; gap:12px; }
+.icon-btn{
+  width:38px;height:38px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface); border:1px solid var(--border);
+  color:var(--text-dim); font-size:16px;
+  box-shadow:var(--shadow-sm);
+  transition:all .2s var(--ease);
+}
+.icon-btn:hover{ color:var(--accent); transform:translateY(-1px); box-shadow:var(--shadow); }
+.icon-btn:active{ box-shadow:var(--shadow-in-sm); transform:translateY(0); }
+.avatar{
+  width:38px;height:38px;border-radius:12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:600; font-size:13px; color:var(--accent);
+}
+
+.content{ padding:6px 34px 70px; }
+
+/* ---- Hero / net worth ---- */
+.hero-grid{
+  display:grid; grid-template-columns:1.5fr 1fr; gap:20px;
+  margin:18px 0 30px;
+}
+@media (max-width:980px){ .hero-grid{ grid-template-columns:1fr; } }
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);
+  transition:background .35s var(--ease), border-color .35s var(--ease), transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+
+.hero-card{ padding:30px 32px; position:relative; overflow:hidden; }
+.hero-eyebrow{ display:flex; align-items:center; gap:8px; color:var(--text-faint); font-size:12.5px; letter-spacing:1px; text-transform:uppercase; }
+.hero-eyebrow i{ color:var(--green); }
+.hero-value{ font-size:46px; font-weight:800; margin:10px 0 4px; letter-spacing:-1px; }
+.hero-sub{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:6px; }
+.chip{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:13px; font-weight:600; padding:5px 11px;
+  border-radius:999px;
+}
+.chip.up{ background:color-mix(in srgb, var(--green) 15%, transparent); color:var(--green); box-shadow:var(--shadow-in-sm); }
+.chip.down{ background:color-mix(in srgb, var(--red) 15%, transparent); color:var(--red); box-shadow:var(--shadow-in-sm); }
+.stat-mini{ font-size:13px; color:var(--text-dim); }
+.stat-mini b{ color:var(--text); font-weight:600; }
+
+.hero-lane{ margin:22px 0 20px; }
+.hero-footrow{ display:flex; gap:28px; flex-wrap:wrap; }
+.footrow-item{ font-size:12.5px; color:var(--text-faint); }
+.footrow-item b{ display:block; font-size:16px; color:var(--text); font-family:'JetBrains Mono',monospace; margin-top:2px; font-weight:600; }
+
+/* ---- Donut (Chart.js) ---- */
+.donut-card{ padding:26px 28px; display:flex; flex-direction:column; }
+.donut-card h4{ font-size:15px; font-weight:600; margin-bottom:18px; display:flex; align-items:center; gap:8px;}
+.donut-card h4 i{ color:var(--accent); }
+.donut-wrap{ display:flex; align-items:center; gap:20px; }
+.donut{
+  width:132px;height:132px;
+  position:relative;
+  flex-shrink:0;
+}
+.donut-center{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+.donut-center small{ font-size:9.5px; color:var(--text-faint); letter-spacing:.5px; }
+.donut-center b{ font-size:15px; font-family:'JetBrains Mono',monospace; }
+.legend{ display:flex; flex-direction:column; gap:9px; }
+.legend-item{ display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--text-dim); }
+.legend-dot{ width:9px;height:9px;border-radius:3px; flex-shrink:0; }
+.legend-item b{ color:var(--text); font-weight:600; margin-left:auto; padding-left:10px; font-family:'JetBrains Mono',monospace; font-size:12px;}
+
+/* ---- Section headers ---- */
+.section-head{ display:flex; align-items:baseline; justify-content:space-between; margin:8px 0 16px; }
+.section-head h3{ font-size:19px; font-weight:700; display:flex; align-items:center; gap:9px; }
+.section-head h3 .num{ font-size:12px; color:var(--text-faint); font-weight:500; }
+.section-head p{ font-size:13px; color:var(--text-faint); margin-top:2px; }
+
+/* ---- Category grid (tiles) ---- */
+.tile-grid{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:44px;
+}
+@media (max-width:1180px){ .tile-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:560px){ .tile-grid{ grid-template-columns:1fr; } }
+
+.tile{
+  padding:22px; cursor:pointer;
+  display:flex; flex-direction:column; gap:14px;
+  position:relative;
+}
+.tile:hover{ transform:translateY(-4px); box-shadow:var(--shadow-lg); }
+.tile-icon{
+  width:42px;height:42px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;
+  box-shadow:var(--shadow-sm);
+}
+.tile-arrow{
+  position:absolute; top:22px; right:22px;
+  color:var(--text-faint); font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .25s var(--ease), color .25s var(--ease);
+}
+.tile:hover .tile-arrow{ transform:translate(3px,-3px); color:var(--accent); }
+.tile-body{ display:flex; flex-direction:column; gap:6px; }
+.tile-name{ font-size:13.5px; color:var(--text-dim); font-weight:500; }
+.tile-value{ font-size:21px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:-.5px; }
+.tile-trend{ font-size:12px; display:flex; align-items:center; gap:5px; }
+.tile.add-tile{
+  align-items:center; justify-content:center; text-align:center;
+  border:2px dashed color-mix(in srgb, var(--text-faint) 40%, transparent);
+  box-shadow:var(--shadow-in);
+  color:var(--text-faint);
+  gap:8px;
+}
+.tile.add-tile i{ font-size:22px; }
+.tile.add-tile:hover{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 55%, transparent); box-shadow:var(--shadow-in-sm); }
+
+/* ---- Detail panels ---- */
+.panel{
+  padding:28px 30px; margin-bottom:22px;
+  opacity:0; transform:translateY(14px);
+  transition:opacity .6s var(--ease), transform .6s var(--ease);
+}
+.panel.in-view{ opacity:1; transform:translateY(0); }
+.panel-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:22px; }
+.panel-title{ display:flex; align-items:center; gap:12px; }
+.panel-title .pi{
+  width:38px;height:38px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:var(--shadow-sm);
+}
+.panel-title h3{ font-size:18px; font-weight:700; }
+.panel-title span{ font-size:12.5px; color:var(--text-faint); }
+.panel-total{ text-align:right; }
+.panel-total b{ display:block; font-size:22px; font-family:'JetBrains Mono',monospace; }
+.panel-total small{ font-size:12px; color:var(--text-faint); }
+.panel-head-right{ display:flex; align-items:center; gap:14px; }
+
+.bars{ display:flex; flex-direction:column; gap:14px; margin-bottom:8px; }
+.bar-row{ display:grid; grid-template-columns:130px 1fr 90px; align-items:center; gap:14px; font-size:13px; }
+.bar-row .label{ color:var(--text-dim); }
+.bar-track{ height:9px; border-radius:6px; background:var(--surface-2); box-shadow:var(--shadow-in-sm); overflow:hidden; }
+.bar-fill{ height:100%; border-radius:6px; width:0%; transition:width 1.1s var(--ease); }
+.bar-row .amt{ text-align:right; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text); }
+
+table{ width:100%; border-collapse:collapse; margin-top:6px; }
+th{ text-align:left; font-size:11px; letter-spacing:.6px; text-transform:uppercase; color:var(--text-faint); padding:0 10px 10px; font-weight:600; }
+td{ padding:12px 10px; font-size:13.5px; border-top:1px solid var(--border); }
+tr td:first-child, th:first-child{ padding-left:14px; }
+.row-name{ display:flex; align-items:center; gap:10px; font-weight:500; }
+.row-icon{ width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center; font-size:13px; flex-shrink:0; box-shadow:var(--shadow-sm); }
+.mono-cell{ font-family:'JetBrains Mono',monospace; }
+.pos{ color:var(--green); }
+.neg{ color:var(--red); }
+.tag{ font-size:11px; padding:3px 9px; border-radius:999px; background:var(--surface-2); color:var(--text-dim); box-shadow:var(--shadow-in-sm); }
+
+/* Income vs expense compare */
+.ie-compare{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:26px; }
+@media (max-width:640px){ .ie-compare{ grid-template-columns:1fr; } }
+.ie-box{ padding:18px 20px; border-radius:var(--radius-md); background:var(--surface); box-shadow:var(--shadow-sm); }
+.ie-box .lbl{ font-size:12px; color:var(--text-faint); display:flex; align-items:center; gap:6px; }
+.ie-box .val{ font-size:24px; font-weight:700; font-family:'JetBrains Mono',monospace; margin-top:6px; }
+
+/* ---- Footer ---- */
+footer{
+  padding:28px 34px 40px;
+}
+.footer-inner{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;
+  color:var(--text-faint); font-size:12.5px;
+}
+.footer-inner .dev b{ color:var(--accent); font-weight:700; }
+.footer-links{ display:flex; gap:18px; }
+.footer-links a{ color:var(--text-faint); transition:color .2s; }
+.footer-links a:hover{ color:var(--accent); }
+
+/* Fade-up on scroll for tiles */
+.tile{ opacity:0; transform:translateY(16px); transition:opacity .5s var(--ease), transform .5s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease); }
+.tile.in-view{ opacity:1; transform:translateY(0); }
+
+/* ============================================================
+   NATIVE APP MOBILE EXPERIENCE
+   ============================================================ */
+:root{ --bottom-nav-h:64px; }
+
+/* remove tap flash / enable momentum scroll everywhere on touch */
+@media (max-width:940px){
+  html,body{ -webkit-tap-highlight-color:transparent; overscroll-behavior-y:none; }
+  * { -webkit-tap-highlight-color:transparent; }
+  body{ -webkit-overflow-scrolling:touch; }
+  :root{ --topbar-h:74px; }
+
+  /* desktop sidebar is repurposed as a bottom sheet on mobile */
+  .sidebar{
+    top:auto; left:0; right:0; bottom:0;
+    width:100%; height:auto; max-height:78vh;
+    border-right:none;
+    border-top:1px solid var(--border);
+    border-radius:22px 22px 0 0;
+    transform:translateY(110%);
+    box-shadow:0 -14px 40px -10px rgba(0,0,0,.45);
+    transition:transform .38s var(--ease);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .sidebar.open{ transform:translateY(0); }
+  .sidebar::before{
+    content:""; position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    width:38px; height:4px; border-radius:4px; background:var(--surface-2);
+    box-shadow:var(--shadow-sm);
+  }
+  .sidebar .brand{ padding-top:24px; }
+  .sidebar .lane{ display:none; }
+  .nav-scroll{ max-height:50vh; }
+
+  .main{ margin-left:0; }
+
+  /* ---- Top bar: compact app-header feel ---- */
+  .topbar{
+    padding:calc(env(safe-area-inset-top) + 14px) 18px 12px;
+    position:sticky; top:0;
+  }
+  .greet-eyebrow{ font-size:11px; }
+  .greet-title{ font-size:19px; }
+  .topbar-actions{ gap:8px; }
+  #installAppBtn span{ display:none; } /* icon-only install button on small screens */
+  #installAppBtn{ padding:9px; }
+  .icon-btn,.avatar{ width:34px; height:34px; border-radius:9px; }
+
+  .content{ padding:4px 16px calc(var(--bottom-nav-h) + 28px); }
+
+  /* ---- Hero card ---- */
+  .hero-grid{ gap:14px; margin:12px 0 22px; }
+  .hero-card{ padding:22px 20px; border-radius:18px; }
+  .hero-value{ font-size:34px; }
+  .hero-footrow{ display:grid; grid-template-columns:1fr 1fr; gap:16px 14px; }
+  .footrow-item{ font-size:11.5px; }
+  .footrow-item b{ font-size:14.5px; }
+  .hero-sub{ flex-direction:column; align-items:flex-start; gap:8px; }
+  .donut-card{ padding:20px; border-radius:18px; }
+  .donut-wrap{ flex-direction:column; align-items:flex-start; gap:18px; }
+  .legend{ width:100%; }
+
+  /* ---- Section tiles: native list-card feel ---- */
+  .section-head{ margin:4px 0 12px; }
+  .section-head h3{ font-size:17px; }
+  .tile-grid{ grid-template-columns:1fr; gap:10px; margin-bottom:28px; }
+  .tile{
+    flex-direction:row; align-items:center; padding:14px 16px; border-radius:16px; gap:14px;
+  }
+  .tile-icon{ width:44px; height:44px; border-radius:12px; font-size:19px; flex-shrink:0; order:1; }
+  .tile-arrow{ position:static; width:30px; height:30px; border-radius:8px; background:var(--surface-2); flex-shrink:0; font-size:14px; order:3; }
+  .tile-body{ flex:1; min-width:0; gap:3px; order:2; }
+  .tile-name{ font-size:12px; }
+  .tile-value{ font-size:16.5px; }
+  .tile-trend{ font-size:11px; }
+  .tile:active{ transform:scale(.97); background:var(--surface-2); }
+  .tile.add-tile{ flex-direction:row; padding:16px; }
+
+  /* ---- Panels ---- */
+  .panel{ padding:20px 16px; border-radius:18px; margin-bottom:14px; }
+  .panel-head{ flex-direction:column; align-items:flex-start; gap:14px; }
+  .panel-head-right{ width:100%; justify-content:space-between; padding-top:12px; border-top:1px dashed var(--border); }
+  .panel-total{ text-align:left; width:auto; padding-top:0; border-top:none; }
+  .panel-total b{ font-size:19px; }
+  .panel-title h3{ font-size:16px; }
+
+  .bar-row{ grid-template-columns:1fr; gap:6px; }
+  .bar-row .label{ font-size:12.5px; }
+  .bar-row .amt{ text-align:left; font-size:12px; color:var(--text-dim); }
+
+  .ie-compare{ gap:10px; }
+  .ie-box{ padding:14px 16px; }
+  .ie-box .val{ font-size:20px; }
+
+  .settings-row{ flex-direction:column; align-items:flex-start; gap:10px; padding:16px 0; }
+  .backup-actions{ width:100%; }
+  .backup-actions .btn-secondary{ flex:1; justify-content:center; }
+  .swatches{ gap:12px; }
+  .form-actions{ flex-wrap:wrap; }
+
+  /* ---- Tables become stacked cards (native transaction-list feel) ---- */
+  table, thead, tbody, th, tr, td{ display:block; }
+  thead{ display:none; }
+  table{ margin-top:0; }
+  tbody tr{
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:12px 14px;
+    margin-bottom:10px;
+    background:var(--surface);
+    box-shadow:var(--shadow-sm);
+  }
+  tbody tr td{ border-top:none; padding:5px 0; display:flex; align-items:center; justify-content:space-between; font-size:13px; }
+  tbody tr td.row-name{ justify-content:flex-start; font-size:14px; padding-bottom:8px; margin-bottom:4px; border-bottom:1px dashed var(--border); }
+  tbody tr td:not(.row-name)::before{ content:attr(data-label); color:var(--text-faint); font-size:11.5px; font-weight:500; }
+  tbody tr td .tag{ margin-left:auto; }
+
+  footer{ padding:20px 16px calc(var(--bottom-nav-h) + 30px); }
+  .footer-inner{ flex-direction:column; align-items:flex-start; gap:10px; }
+
+  .login-card{ padding:30px 22px 24px; border-radius:20px; }
+  .avatar-wrap .avatar-menu{ width:min(250px, calc(100vw - 28px)); }
+}
+
+/* ---- Bottom tab bar (native app navigation) ---- */
+.bottom-nav{
+  display:none;
+}
+@media (max-width:940px){
+  .bottom-nav{
+    display:flex;
+    position:fixed; left:0; right:0; bottom:0; z-index:110;
+    background:color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    border-top:1px solid var(--border);
+    padding:8px 6px calc(env(safe-area-inset-bottom) + 6px);
+    justify-content:space-around;
+    align-items:center;
+    box-shadow:0 -6px 24px -10px rgba(0,0,0,.35);
+  }
+  .bn-item{
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    flex:1; padding:6px 2px;
+    color:var(--text-faint);
+    font-size:10.5px; font-weight:600;
+    border-radius:12px;
+    transition:color .2s var(--ease), transform .15s var(--ease);
+  }
+  .bn-item i{ font-size:19px; transition:transform .2s var(--ease); }
+  .bn-item.active{ color:var(--accent); }
+  .bn-item.active i{ transform:translateY(-2px); }
+  .bn-item:active{ transform:scale(.9); }
+  .bn-item .bn-dot{
+    width:4px;height:4px;border-radius:50%;background:var(--accent);
+    margin-top:-1px; opacity:0; transition:opacity .2s;
+  }
+  .bn-item.active .bn-dot{ opacity:1; }
+}
+
+.overlay{
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:90;
+}
+.overlay.show{ display:block; }
+
+/* ============================================================
+   LOGIN SCREEN
+   ============================================================ */
+.login-screen{
+  position:fixed; inset:0; z-index:300;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg);
+  padding:24px;
+  transition:opacity .4s var(--ease), visibility .4s var(--ease);
+}
+.login-screen.hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+.login-card{
+  width:100%; max-width:400px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);
+  padding:36px 34px 28px;
+  animation:loginIn .5s var(--ease);
+}
+@keyframes loginIn{ from{ opacity:0; transform:translateY(16px) scale(.98); } to{ opacity:1; transform:none; } }
+.login-title{ font-size:22px; font-weight:700; }
+.login-sub{ font-size:13.5px; color:var(--text-faint); margin:4px 0 24px; }
+.login-row{ display:flex; align-items:center; justify-content:space-between; margin:2px 0 16px; font-size:12.5px; }
+.remember{ display:flex; align-items:center; gap:7px; color:var(--text-dim); }
+.remember input{ accent-color:var(--accent); }
+.forgot{ color:var(--accent); font-weight:600; }
+.login-error{ display:none; color:var(--red); font-size:12.5px; margin-bottom:12px; }
+.login-error.show{ display:block; }
+.login-submit{ width:100%; justify-content:center; margin-bottom:10px; }
+.login-guest{ width:100%; justify-content:center; }
+.login-foot{ text-align:center; font-size:11.5px; color:var(--text-faint); margin-top:22px; }
+.login-foot b{ color:var(--accent); }
+
+/* ============================================================
+   FORM FIELDS / BUTTONS / SWITCHES (Account + Settings)
+   ============================================================ */
+.field{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.field span{ font-size:12px; color:var(--text-faint); font-weight:500; }
+.field input{
+  font-family:inherit; font-size:14px; color:var(--text);
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:10px 13px;
+  box-shadow:var(--shadow-in-sm);
+  transition:box-shadow .2s var(--ease), background .2s var(--ease);
+}
+.field input:focus{ outline:none; box-shadow:var(--shadow-in-sm), 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+.field input:disabled{ color:var(--text-faint); cursor:not-allowed; opacity:.7; }
+.form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+@media (max-width:640px){ .form-grid{ grid-template-columns:1fr; } }
+.form-actions{ display:flex; align-items:center; gap:14px; margin-top:6px; }
+.save-hint{ font-size:12.5px; color:var(--green); opacity:0; transition:opacity .3s; }
+.save-hint.show{ opacity:1; }
+.sub-head{ font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:8px; margin-bottom:16px; color:var(--text); }
+.sub-head i{ color:var(--accent); }
+
+.btn-primary, .btn-secondary, .btn-danger{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:13.5px; font-weight:600; padding:10px 18px;
+  border-radius:999px; transition:all .18s var(--ease);
+  border:1px solid transparent;
+  box-shadow:var(--shadow-sm);
+}
+.btn-primary{ background:var(--accent); color:#0B0D10; }
+.btn-primary:hover{ filter:brightness(1.08); transform:translateY(-1px); box-shadow:var(--shadow); }
+.btn-primary:active{ transform:translateY(0); box-shadow:var(--shadow-in-sm); filter:brightness(1); }
+.btn-secondary{ background:var(--surface); border-color:var(--border); color:var(--text); }
+.btn-secondary:hover{ color:var(--accent); transform:translateY(-1px); box-shadow:var(--shadow); }
+.btn-secondary:active{ transform:translateY(0); box-shadow:var(--shadow-in-sm); }
+.btn-danger{ background:var(--surface); color:var(--red); }
+.btn-danger:hover{ background:color-mix(in srgb, var(--red) 14%, var(--surface)); transform:translateY(-1px); box-shadow:var(--shadow); }
+.btn-danger:active{ transform:translateY(0); box-shadow:var(--shadow-in-sm); }
+
+.settings-row{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:14px 0; flex-wrap:wrap;
+}
+.settings-row b{ font-size:13.5px; font-weight:600; }
+.settings-row p{ font-size:12.5px; color:var(--text-faint); margin-top:2px; }
+
+.switch{
+  width:44px; height:25px; border-radius:999px; background:var(--surface-2);
+  border:1px solid var(--border); box-shadow:var(--shadow-in-sm);
+  position:relative; flex-shrink:0; transition:background .25s var(--ease);
+}
+.switch .knob{
+  position:absolute; top:2px; left:2px; width:19px; height:19px; border-radius:50%;
+  background:var(--surface); box-shadow:var(--shadow-sm);
+  transition:transform .25s var(--ease), background .25s var(--ease);
+}
+.switch.on{ background:color-mix(in srgb, var(--accent) 22%, var(--surface-2)); }
+.switch.on .knob{ transform:translateX(19px); background:var(--accent); }
+
+.swatches{ display:flex; gap:10px; }
+.swatch{
+  width:28px; height:28px; border-radius:50%; border:2px solid transparent;
+  cursor:pointer; transition:transform .2s var(--ease), border-color .2s var(--ease);
+  box-shadow:inset 0 0 0 2px var(--surface), var(--shadow-sm);
+}
+.swatch:hover{ transform:scale(1.12); }
+.swatch.active{ border-color:var(--text); transform:scale(1.12); }
+
+.backup-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+/* ============================================================
+   AVATAR DROPDOWN
+   ============================================================ */
+.avatar-wrap{ position:relative; }
+.avatar{ border:1px solid var(--border); cursor:pointer; transition:border-color .2s; }
+.avatar:hover{ border-color:var(--accent); }
+.avatar-menu{
+  position:absolute; top:calc(100% + 12px); right:0; z-index:120;
+  width:250px;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md);
+  box-shadow:var(--shadow);
+  padding:16px;
+  opacity:0; visibility:hidden; transform:translateY(-8px);
+  transition:opacity .22s var(--ease), transform .22s var(--ease), visibility .22s;
+}
+.avatar-menu.open{ opacity:1; visibility:visible; transform:translateY(0); }
+.am-head{ display:flex; align-items:center; gap:10px; }
+.am-head div:last-child{ display:flex; flex-direction:column; min-width:0; }
+.am-head b{ font-size:13.5px; }
+.am-head span{ font-size:11.5px; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.am-lane{ height:2px; margin:14px 0 6px; background-image:repeating-linear-gradient(90deg, var(--dash-color) 0 10px, transparent 10px 18px); }
+.am-item{
+  display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:8px;
+  font-size:13px; color:var(--text-dim); transition:background .2s, color .2s;
+}
+.am-item i{ font-size:15px; color:var(--text-faint); }
+.am-item:hover{ box-shadow:var(--shadow-in-sm); color:var(--text); }
+.am-item.danger{ color:var(--red); margin-top:4px; }
+.am-item.danger i{ color:var(--red); }
+.am-item.danger:hover{ box-shadow:var(--shadow-in-sm); }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  padding:12px 20px; border-radius:999px; font-size:13.5px; font-weight:500;
+  display:flex; align-items:center; gap:9px; box-shadow:var(--shadow);
+  z-index:400; opacity:0; pointer-events:none; transition:opacity .3s var(--ease), transform .3s var(--ease);
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+.toast i{ color:var(--green); }
+.toast .toast-progress-track{
+  width:64px; height:5px; border-radius:999px; overflow:hidden;
+  background:var(--surface-2); box-shadow:var(--shadow-in-sm); flex-shrink:0; display:none;
+}
+.toast.has-progress .toast-progress-track{ display:block; }
+.toast .toast-progress-fill{
+  height:100%; width:0%; border-radius:999px; background:var(--accent);
+  transition:width .2s var(--ease);
+}
+@media (max-width:940px){ .toast{ bottom:calc(var(--bottom-nav-h) + 16px); } }
+</style>
+</head>
+<body>
+
+<!-- AUTH GATE — real sign-in now lives on login.html; this just guards
+     the dashboard while we confirm your session, so signed-out visitors
+     never see your data flash on screen before the redirect fires. -->
+<div class="login-screen" id="authGate">
+  <div class="login-card" style="text-align:center;">
+    <div class="brand" style="padding:0 0 20px; justify-content:center;">
+      <div class="brand-mark" style="width:44px;height:44px;font-size:19px;">BR</div>
+      <div class="brand-name" style="font-size:22px;">Black<span>Road</span></div>
+    </div>
+    <div class="lane" style="margin-bottom:22px;"></div>
+    <p style="color:var(--text-faint);font-size:13.5px;">Checking your session…</p>
+  </div>
+</div>
+
+
+<div class="overlay" id="overlay"></div>
+
+<nav class="bottom-nav" id="bottomNav">
+  <a class="bn-item" data-target="overview"><i class="bi bi-house-door-fill"></i>Home<span class="bn-dot"></span></a>
+  <a class="bn-item" data-target="income"><i class="bi bi-cash-coin"></i>Income<span class="bn-dot"></span></a>
+  <a class="bn-item" data-target="mutualfunds"><i class="bi bi-pie-chart-fill"></i>Invest<span class="bn-dot"></span></a>
+  <a class="bn-item" data-target="realestate"><i class="bi bi-building"></i>Assets<span class="bn-dot"></span></a>
+  <a class="bn-item" id="bnMore"><i class="bi bi-grid-3x3-gap-fill"></i>More<span class="bn-dot"></span></a>
+</nav>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">BR</div>
+      <div class="brand-name">Black<span>Road</span></div>
+    </div>
+    <div class="lane"></div>
+
+    <nav class="nav-scroll">
+      <div class="nav-label">Overview</div>
+      <a class="nav-link" data-target="overview"><i class="bi bi-speedometer2"></i>Dashboard</a>
+
+      <div class="nav-label">Wealth Categories</div>
+      <a class="nav-link" data-target="income"><i class="bi bi-cash-coin"></i>Income &amp; Expenses</a>
+      <a class="nav-link" data-target="mutualfunds"><i class="bi bi-pie-chart-fill"></i>Mutual Funds</a>
+      <a class="nav-link" data-target="stocks"><i class="bi bi-graph-up-arrow"></i>Stocks</a>
+      <a class="nav-link" data-target="gold"><i class="bi bi-gem"></i>Gold</a>
+      <a class="nav-link" data-target="realestate"><i class="bi bi-building"></i>Real Estate</a>
+      <a class="nav-link" data-target="deposits"><i class="bi bi-bank2"></i>Fixed Deposits</a>
+      <a class="nav-link" data-target="insurance"><i class="bi bi-shield-check"></i>Insurance</a>
+      <a class="nav-link" data-target="loans"><i class="bi bi-file-earmark-minus"></i>Loans &amp; Liabilities</a>
+
+      <div class="nav-label">General</div>
+      <a class="nav-link" data-target="account"><i class="bi bi-person-circle"></i>Account</a>
+      <a class="nav-link" data-target="settings"><i class="bi bi-gear"></i>Settings</a>
+      <a class="nav-link" href="#"><i class="bi bi-question-circle"></i>Help &amp; Support</a>
+      <a class="nav-link" id="installAppLink" style="display:none;"><i class="bi bi-download"></i>Install App</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="theme-toggle" id="themeToggle">
+        <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+        <span id="themeLabel">Dark mode</span>
+      </button>
+      <button class="icon-btn" id="logoutBtnSidebar" title="Log out"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div>
+          <div class="greet-eyebrow">Welcome back</div>
+          <div class="greet-title" id="greetTitle">Good evening, Aditya</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-secondary" id="installAppBtn" style="display:none;"><i class="bi bi-download"></i><span> Install App</span></button>
+        <button class="icon-btn"><i class="bi bi-bell"></i></button>
+        <div class="avatar-wrap">
+          <button class="avatar" id="avatarBtn">AS</button>
+          <div class="avatar-menu" id="avatarMenu">
+            <div class="am-head">
+              <div class="avatar" id="avatarMenuInitials">AS</div>
+              <div><b id="avatarMenuName">Aditya Sharma</b><span id="avatarMenuEmail">aditya@blackroad.app</span></div>
+            </div>
+            <div class="am-lane"></div>
+            <a class="am-item" data-target="account"><i class="bi bi-person-circle"></i>Account</a>
+            <a class="am-item" data-target="settings"><i class="bi bi-palette"></i>Theming</a>
+            <a class="am-item" data-target="settings"><i class="bi bi-cloud-arrow-up"></i>Backup &amp; Restore</a>
+            <a class="am-item danger" id="logoutBtnMenu"><i class="bi bi-box-arrow-right"></i>Log out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <section id="overview">
+        <div class="hero-grid">
+          <div class="card hero-card">
+            <div class="hero-eyebrow"><i class="bi bi-graph-up"></i> Total Net Worth</div>
+            <div class="hero-value mono" id="netWorthValue">₹0</div>
+            <div class="hero-sub">
+              <span class="chip up" id="heroMonthChip"><i class="bi bi-arrow-up-right"></i> 0.0% this month</span>
+              <span class="stat-mini">Updated <b>Today, 9:41 AM</b></span>
+            </div>
+            <div class="hero-lane lane"></div>
+            <div class="hero-footrow">
+              <div class="footrow-item">Total Assets<b class="mono" id="footTotalAssets">₹0</b></div>
+              <div class="footrow-item">Total Liabilities<b class="mono" style="color:var(--red)" id="footTotalLiabilities">₹0</b></div>
+              <div class="footrow-item">Insurance Cover<b class="mono" id="footInsuranceCover">₹0</b></div>
+              <div class="footrow-item">Monthly Surplus<b class="mono" style="color:var(--green)" id="footMonthlySurplus">₹0</b></div>
+            </div>
+          </div>
+
+          <div class="card donut-card">
+            <h4><i class="bi bi-pie-chart"></i> Asset Allocation</h4>
+            <div class="donut-wrap">
+              <div class="donut" id="donut">
+                <canvas id="assetChart" width="132" height="132"></canvas>
+                <div class="donut-center"><small>ASSETS</small><b id="donutCenterTotal">₹0</b></div>
+              </div>
+              <div class="legend" id="legend"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <div>
+            <h3><i class="bi bi-grid-fill" style="color:var(--accent);font-size:16px;"></i> Your Wealth Lanes <span class="num">8 categories</span></h3>
+            <p>Tap a lane to jump straight to it.</p>
+          </div>
+        </div>
+
+        <div class="tile-grid" id="tileGrid">
+          <!-- tiles injected by JS -->
+        </div>
+      </section>
+
+      <!-- INCOME & EXPENSES -->
+      <section id="income" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green);"><i class="bi bi-cash-coin"></i></div>
+            <div><h3>Income &amp; Expenses</h3><span>Cash flow · This month</span></div>
+          </div>
+          <div class="panel-head-right">
+            <div class="panel-total"><b id="incomePanelTotal" style="color:var(--green)">₹0</b><small id="incomePanelSub">Net surplus</small></div>
+            <a class="btn-secondary" href="incomeStatement/statement.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+          </div>
+        </div>
+
+        <div class="ie-compare">
+          <div class="ie-box">
+            <div class="lbl"><i class="bi bi-arrow-down-circle" style="color:var(--green)"></i> Total Income</div>
+            <div class="val" id="incomeTotalVal">₹0</div>
+          </div>
+          <div class="ie-box">
+            <div class="lbl"><i class="bi bi-arrow-up-circle" style="color:var(--red)"></i> Total Expenses</div>
+            <div class="val" id="expenseTotalVal">₹0</div>
+          </div>
+        </div>
+
+        <div class="bars" data-bars id="incomeCategoryBars">
+          <div class="chart-empty">Loading from the Income Statement ledger…</div>
+        </div>
+      </section>
+
+      <!-- MUTUAL FUNDS -->
+      <section id="mutualfunds" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold);"><i class="bi bi-pie-chart-fill"></i></div>
+            <div><h3>Mutual Funds</h3><span id="mutualFundsHoldingsCount">Step-up SIP tracker</span></div>
+          </div>
+          <div class="panel-head-right">
+            <div class="panel-total"><b id="mutualFundsPanelTotal">₹0</b><small class="pos" id="mutualFundsPanelPct">0.0% overall</small></div>
+            <a class="btn-secondary" href="stepUp/index.html" target="_blank" rel="noopener">Manage <i class="bi bi-arrow-up-right"></i></a>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>SIP Name</th><th>Invested</th><th>Current Value</th><th>Profit</th><th>Return</th></tr></thead>
+          <tbody id="mutualFundsTableBody">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="stepUp/index.html" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- STOCKS -->
+      <section id="stocks" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green);"><i class="bi bi-graph-up-arrow"></i></div>
+            <div><h3>Stocks</h3><span id="stocksHoldingsCount">Direct equity · 0 holdings</span></div>
+          </div>
+          <div class="panel-head-right">
+            <div class="panel-total"><b id="stocksPanelTotal">₹0</b><small class="pos" id="stocksPanelPct">0.0% overall</small></div>
+            <a class="btn-secondary" href="pages/stocks.html">Manage <i class="bi bi-arrow-up-right"></i></a>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Stock</th><th>Qty</th><th>Avg. Price</th><th>LTP</th><th>P&amp;L</th></tr></thead>
+          <tbody id="stocksTableBody">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No holdings yet — <a href="pages/stocks.html" style="color:var(--accent);">add your first stock</a>.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- GOLD -->
+      <section id="gold" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--paleGold) 22%,transparent);color:var(--gold-dim);"><i class="bi bi-gem"></i></div>
+            <div><h3>Gold</h3><span>Physical, digital &amp; sovereign bonds</span></div>
+          </div>
+          <div class="panel-head-right">
+            <div class="panel-total"><b>₹0</b><small>No holdings yet</small></div>
+            <a class="btn-secondary" href="pages/gold.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+          </div>
+        </div>
+        <div class="bars" data-bars>
+          <div class="bar-row"><span class="label">Physical Jewellery</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--gold)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">Sovereign Gold Bonds</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--blue)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">Digital Gold</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--green)"></div></div><span class="amt">₹0</span></div>
+        </div>
+      </section>
+
+      <!-- REAL ESTATE -->
+      <section id="realestate" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--blue) 16%,transparent);color:var(--blue);"><i class="bi bi-building"></i></div>
+            <div><h3>Real Estate</h3><span>2 properties</span></div>
+          </div>
+          <div class="panel-head-right">
+            <div class="panel-total"><b>₹0</b><small>No properties yet</small></div>
+            <a class="btn-secondary" href="pages/real-estate.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Property</th><th>Type</th><th>Purchase Value</th><th>Est. Value</th><th>Gain</th></tr></thead>
+          <tbody>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)"><i class="bi bi-house-door"></i></span>2BHK, Whitefield, Bengaluru</td><td><span class="tag">Residential</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0</td><td class="mono-cell">0.0%</td></tr>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)"><i class="bi bi-tree"></i></span>Farm Plot, Mysuru</td><td><span class="tag">Land</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0</td><td class="mono-cell">0.0%</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- FIXED DEPOSITS -->
+      <section id="deposits" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--violet) 16%,transparent);color:var(--violet);"><i class="bi bi-bank2"></i></div>
+            <div><h3>Fixed Deposits &amp; Bonds</h3><span>4 instruments</span></div>
+          </div>
+          <div class="panel-head-right">
+            <div class="panel-total"><b>₹0</b><small>No instruments yet</small></div>
+            <a class="btn-secondary" href="pages/fixed-deposits.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+          </div>
+        </div>
+        <div class="bars" data-bars>
+          <div class="bar-row"><span class="label">HDFC Bank FD</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--violet)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">SBI Tax Saver FD</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--blue)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">Corporate Bonds</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--gold)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">PPF</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--green)"></div></div><span class="amt">₹0</span></div>
+        </div>
+      </section>
+
+      <!-- INSURANCE -->
+      <section id="insurance" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green);"><i class="bi bi-shield-check"></i></div>
+            <div><h3>Insurance</h3><span>Protection cover across 3 policies</span></div>
+          </div>
+          <div class="panel-head-right">
+            <div class="panel-total"><b>₹0</b><small>No policies yet</small></div>
+            <a class="btn-secondary" href="pages/insurance.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Policy</th><th>Type</th><th>Cover</th><th>Premium</th><th>Renewal</th></tr></thead>
+          <tbody>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)"><i class="bi bi-heart-pulse"></i></span>LIC Term Plan</td><td><span class="tag">Term Life</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0/yr</td><td class="mono-cell">—</td></tr>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)"><i class="bi bi-hospital"></i></span>Star Health Family Floater</td><td><span class="tag">Health</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0/yr</td><td class="mono-cell">—</td></tr>
+            <tr><td class="row-name"><span class="row-icon" style="background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--gold)"><i class="bi bi-car-front"></i></span>ICICI Lombard Motor</td><td><span class="tag">Vehicle</span></td><td class="mono-cell">₹0</td><td class="mono-cell">₹0/yr</td><td class="mono-cell">—</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- LOANS -->
+      <section id="loans" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red);"><i class="bi bi-file-earmark-minus"></i></div>
+            <div><h3>Loans &amp; Liabilities</h3><span>Outstanding balances</span></div>
+          </div>
+          <div class="panel-head-right">
+            <div class="panel-total"><b style="color:var(--red)">₹0</b><small>No liabilities yet</small></div>
+            <a class="btn-secondary" href="lending/loans.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+          </div>
+        </div>
+        <div class="bars" data-bars>
+          <div class="bar-row"><span class="label">Home Loan</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--red)"></div></div><span class="amt">₹0</span></div>
+          <div class="bar-row"><span class="label">Car Loan</span><div class="bar-track"><div class="bar-fill" data-w="0" style="background:var(--gold)"></div></div><span class="amt">₹0</span></div>
+        </div>
+      </section>
+
+      <!-- ACCOUNT -->
+      <section id="account" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);"><i class="bi bi-person-circle"></i></div>
+            <div><h3>Account</h3><span>Your profile &amp; sign-in details</span></div>
+          </div>
+          <span class="tag" id="planTag">Free</span>
+        </div>
+
+        <div class="form-grid">
+          <label class="field">
+            <span>Full name</span>
+            <input type="text" id="acctNameView" disabled>
+          </label>
+          <label class="field">
+            <span>Email address</span>
+            <input type="email" id="acctEmailView" disabled>
+          </label>
+          <label class="field">
+            <span>Member since</span>
+            <input type="text" id="acctSinceView" disabled>
+          </label>
+        </div>
+        <div class="form-actions">
+          <a class="btn-primary" href="account.html"><i class="bi bi-pencil-square"></i> Edit account</a>
+          <span class="save-hint" style="color:var(--text-faint);opacity:1;">Profile edits, password changes and Premium live on the Account page.</span>
+        </div>
+      </section>
+
+      <!-- SETTINGS: THEMING + BACKUP + SESSION -->
+      <section id="settings" class="panel card">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div class="pi" style="background:color-mix(in srgb,var(--violet) 16%,transparent);color:var(--violet);"><i class="bi bi-gear-fill"></i></div>
+            <div><h3>Settings</h3><span>Appearance, backup &amp; session</span></div>
+          </div>
+        </div>
+
+        <h4 class="sub-head"><i class="bi bi-palette"></i> Theming</h4>
+        <div class="settings-row">
+          <div>
+            <b>Appearance</b>
+            <p>Switch between dark and light mode.</p>
+          </div>
+          <button class="theme-toggle" id="themeToggle2">
+            <i class="bi bi-moon-stars-fill" id="themeIcon2"></i>
+            <span id="themeLabel2">Dark mode</span>
+          </button>
+        </div>
+        <div class="settings-row" style="align-items:flex-start;">
+          <div>
+            <b>Accent color</b>
+            <p>Personalize highlights across the app.</p>
+          </div>
+          <div class="swatches" id="swatches">
+            <button class="swatch" data-color="#E8B84B" style="background:#E8B84B" title="Gold"></button>
+            <button class="swatch" data-color="#4ADE80" style="background:#4ADE80" title="Green"></button>
+            <button class="swatch" data-color="#60A5FA" style="background:#60A5FA" title="Blue"></button>
+            <button class="swatch" data-color="#A78BFA" style="background:#A78BFA" title="Violet"></button>
+            <button class="swatch" data-color="#F2545B" style="background:#F2545B" title="Rose"></button>
+          </div>
+        </div>
+
+        <div class="lane" style="margin:26px 0;"></div>
+
+        <h4 class="sub-head"><i class="bi bi-cloud-arrow-up"></i> Backup &amp; Restore</h4>
+        <div class="settings-row">
+          <div>
+            <b>Last backup</b>
+            <p id="lastBackupText">No backup yet</p>
+          </div>
+          <div class="backup-actions">
+            <button class="btn-secondary" id="exportBtn"><i class="bi bi-download"></i> Export data</button>
+            <button class="btn-secondary" id="importBtn"><i class="bi bi-upload"></i> Import data</button>
+            <input type="file" id="importFile" accept="application/json" hidden>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div>
+            <b>Auto backup</b>
+            <p>Automatically snapshot your data weekly.</p>
+          </div>
+          <button class="switch" id="autoBackupSwitch"><span class="knob"></span></button>
+        </div>
+
+        <div class="lane" style="margin:26px 0;"></div>
+
+        <h4 class="sub-head"><i class="bi bi-box-arrow-right"></i> Session</h4>
+        <div class="settings-row">
+          <div>
+            <b>Signed in as</b>
+            <p id="sessionEmail">aditya@blackroad.app</p>
+          </div>
+          <button class="btn-danger" id="logoutBtnSettings"><i class="bi bi-box-arrow-right"></i> Log out</button>
+        </div>
+      </section>
+
+    </div>
+
+    <footer>
+      <div class="lane" style="margin-bottom:22px;"></div>
+      <div class="footer-inner">
+        <div class="dev"><i class="bi bi-code-slash"></i> Developed by <b>Microintel</b></div>
+        <div class="footer-links">
+          <a href="#"><i class="bi bi-shield-lock"></i> Privacy</a>
+          <a href="#"><i class="bi bi-file-text"></i> Terms</a>
+          <a href="#"><i class="bi bi-envelope"></i> Contact</a>
+        </div>
+        <div>© 2026 BlackRoad. All rights reserved.</div>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<script>
+/* ===== Inlined StocksStore (IndexedDB) — no external file dependency ===== */
+/* ============================================================
+   BlackRoad — Stocks IndexedDB Store
+   Shared, dependency-free CRUD layer over IndexedDB.
+   Used by both /blackroad-dashboard.html and /pages/stocks.html
+   so both pages read/write the exact same data.
+   ============================================================ */
+(function (global) {
+  "use strict";
+
+  const DB_NAME = "BlackRoadDB";
+  const DB_VERSION = 2;
+  const STORE = "stocks";
+  const CHANNEL_NAME = "blackroad-stocks-sync";
+
+  let dbPromise = null;
+  let channel = null;
+  try {
+    channel = ("BroadcastChannel" in global) ? new BroadcastChannel(CHANNEL_NAME) : null;
+  } catch (e) { channel = null; }
+
+  function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          const store = db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+          store.createIndex("symbol", "symbol", { unique: false });
+        }
+        /* Mutual Fund (pages/mutual-funds.html) stores — created here too so
+           whichever page performs the version upgrade first sets up the
+           full shared schema. */
+        if (!db.objectStoreNames.contains("settings")) db.createObjectStore("settings", { keyPath: "id" });
+        if (!db.objectStoreNames.contains("entries"))  db.createObjectStore("entries",  { keyPath: "id", autoIncrement: true });
+        if (!db.objectStoreNames.contains("profiles")) db.createObjectStore("profiles", { keyPath: "id", autoIncrement: true });
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+    return dbPromise;
+  }
+
+  function store(mode) {
+    return openDB().then((db) => db.transaction(STORE, mode).objectStore(STORE));
+  }
+
+  function notify(type, payload) {
+    if (channel) { try { channel.postMessage({ type, payload, at: Date.now() }); } catch (e) {} }
+    try { global.dispatchEvent(new CustomEvent("stocks:changed", { detail: { type, payload } })); } catch (e) {}
+  }
+
+  function onChange(handler) {
+    if (channel) channel.onmessage = (e) => handler(e.data);
+    global.addEventListener("stocks:changed", (e) => handler(e.detail));
+  }
+
+  async function getAll() {
+    const s = await store("readonly");
+    return new Promise((resolve, reject) => {
+      const req = s.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function get(id) {
+    const s = await store("readonly");
+    return new Promise((resolve, reject) => {
+      const req = s.get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function add(stock) {
+    const s = await store("readwrite");
+    const now = new Date().toISOString();
+    const record = Object.assign({ createdAt: now, updatedAt: now }, stock);
+    const id = await new Promise((resolve, reject) => {
+      const req = s.add(record);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    notify("add", Object.assign({ id }, record));
+    return id;
+  }
+
+  async function update(id, changes) {
+    const s = await store("readwrite");
+    const updated = await new Promise((resolve, reject) => {
+      const getReq = s.get(id);
+      getReq.onsuccess = () => {
+        const existing = getReq.result;
+        if (!existing) return reject(new Error("Stock not found"));
+        const merged = Object.assign({}, existing, changes, { id, updatedAt: new Date().toISOString() });
+        const putReq = s.put(merged);
+        putReq.onsuccess = () => resolve(merged);
+        putReq.onerror = () => reject(putReq.error);
+      };
+      getReq.onerror = () => reject(getReq.error);
+    });
+    notify("update", updated);
+    return updated;
+  }
+
+  async function remove(id) {
+    const s = await store("readwrite");
+    await new Promise((resolve, reject) => {
+      const req = s.delete(id);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+    notify("remove", { id });
+    return true;
+  }
+
+  /** Seed the store with defaults, but only if it is completely empty. */
+  async function seedIfEmpty(defaults) {
+    const rows = await getAll();
+    if (rows.length > 0) return rows;
+    const s = await store("readwrite");
+    const now = new Date().toISOString();
+    await Promise.all(defaults.map((d) => new Promise((resolve, reject) => {
+      const req = s.add(Object.assign({ createdAt: now, updatedAt: now }, d));
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    })));
+    return getAll();
+  }
+
+  function computeMetrics(row) {
+    const qty = Number(row.qty) || 0;
+    const avgPrice = Number(row.avgPrice) || 0;
+    const ltp = Number(row.ltp) || 0;
+    const invested = qty * avgPrice;
+    const currentValue = qty * ltp;
+    const pnl = currentValue - invested;
+    const pnlPct = invested ? (pnl / invested) * 100 : 0;
+    return { invested, currentValue, pnl, pnlPct };
+  }
+
+  async function getSummary() {
+    const rows = await getAll();
+    let invested = 0, currentValue = 0;
+    rows.forEach((r) => {
+      const m = computeMetrics(r);
+      invested += m.invested;
+      currentValue += m.currentValue;
+    });
+    const pnl = currentValue - invested;
+    const pnlPct = invested ? (pnl / invested) * 100 : 0;
+    return { holdings: rows.length, invested, currentValue, pnl, pnlPct, rows };
+  }
+
+  function formatINR(n) {
+    const sign = n < 0 ? "-" : "";
+    const abs = Math.abs(Math.round(n));
+    return sign + "₹" + abs.toLocaleString("en-IN");
+  }
+
+  global.StocksStore = {
+    getAll, get, add, update, remove, seedIfEmpty,
+    computeMetrics, getSummary, formatINR, onChange
+  };
+})(window);
+
+</script>
+<script>
+/* ============ LendingStore ============
+   Reads the SAME database the /lending app writes to — IndexedDB
+   "LendLedger" — so the dashboard's Loans & Liabilities panel and
+   net-worth math reflect real numbers, live, with no server and no
+   copy of the data. Read-only here; all edits happen in /lending. */
+(function (global) {
+  const DB_NAME = "LendLedger";
+  const DB_VERSION = 3;
+  const STORE_PARTIES = "parties";
+  const STORE_ENTRIES = "entries";
+  const STORE_LOANS = "loans";
+
+  function openLendLedgerDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      // Mirror /lending/shared.js's schema so we never race its own
+      // upgrade — if this tab opens the DB first, the stores still
+      // get created the same way.
+      req.onupgradeneeded = (e) => {
+        const _db = e.target.result;
+        if (!_db.objectStoreNames.contains(STORE_PARTIES)) {
+          _db.createObjectStore(STORE_PARTIES, { keyPath: "id", autoIncrement: true });
+        }
+        if (!_db.objectStoreNames.contains(STORE_ENTRIES)) {
+          const es = _db.createObjectStore(STORE_ENTRIES, { keyPath: "id", autoIncrement: true });
+          es.createIndex("partyId", "partyId", { unique: false });
+        }
+        if (!_db.objectStoreNames.contains(STORE_LOANS)) {
+          _db.createObjectStore(STORE_LOANS, { keyPath: "id", autoIncrement: true });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  function getAll(db, storeName) {
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(storeName, "readonly").objectStore(storeName).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function paidSoFar(loan) {
+    return (loan.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }
+  function outstanding(loan) {
+    return Math.max(0, (Number(loan.principal) || 0) - paidSoFar(loan));
+  }
+
+  // { peopleReceivable, peoplePayable, peopleNet,
+  //   loansOutstanding, monthlyEmi, activeLoanCount,
+  //   liabilities, netLendingPosition }
+  async function getSummary() {
+    let db;
+    try {
+      db = await openLendLedgerDB();
+    } catch (e) {
+      console.error("LendingStore: couldn't open LendLedger DB", e);
+      return {
+        peopleReceivable: 0, peoplePayable: 0, peopleNet: 0,
+        loansOutstanding: 0, monthlyEmi: 0, activeLoanCount: 0,
+        liabilities: 0, netLendingPosition: 0,
+      };
+    }
+
+    const [entries, loans] = await Promise.all([
+      getAll(db, STORE_ENTRIES),
+      getAll(db, STORE_LOANS),
+    ]);
+
+    // People you lend to / borrow from (khata-book side)
+    let peopleReceivable = 0, peoplePayable = 0;
+    const byParty = {};
+    entries.forEach((e) => {
+      const amt = Number(e.amount) || 0;
+      byParty[e.partyId] = byParty[e.partyId] || { gave: 0, got: 0 };
+      if (e.type === "gave") byParty[e.partyId].gave += amt;
+      else byParty[e.partyId].got += amt;
+    });
+    Object.values(byParty).forEach(({ gave, got }) => {
+      const balance = gave - got;
+      if (balance > 0) peopleReceivable += balance; // they owe you
+      else peoplePayable += -balance;                // you owe them
+    });
+
+    // Bank loans / EMIs
+    let loansOutstanding = 0, monthlyEmi = 0, activeLoanCount = 0;
+    loans.forEach((r) => {
+      const out = outstanding(r);
+      loansOutstanding += out;
+      if (out > 0) {
+        monthlyEmi += Number(r.emiAmount) || 0;
+        activeLoanCount += 1;
+      }
+    });
+
+    // Liabilities = money you owe others + bank loan principal left.
+    // Money owed TO you (peopleReceivable) is a receivable, not a
+    // liability — it's netted separately below.
+    const liabilities = peoplePayable + loansOutstanding;
+    const netLendingPosition = peopleReceivable - peoplePayable;
+
+    return { peopleReceivable, peoplePayable, peopleNet: netLendingPosition,
+      loansOutstanding, monthlyEmi, activeLoanCount,
+      liabilities, netLendingPosition };
+  }
+
+  global.LendingStore = { getSummary };
+})(window);
+</script>
+<script>
+/* ============ DATA ============ */
+const categories = [
+  { id:'income',       name:'Income & Expenses',   icon:'bi-cash-coin',        value:'₹0', trend:'Loading…', trendUp:true,  color:'green', page:'incomeStatement/statement.html' },
+  { id:'mutualfunds',  name:'Mutual Funds',         icon:'bi-pie-chart-fill',   value:'₹42,18,900',  trend:'+18.4% XIRR', trendUp:true,  color:'gold',  page:'stepUp/index.html' },
+  { id:'stocks',       name:'Stocks',                icon:'bi-graph-up-arrow',   value:'₹0',  trend:'No holdings yet',      trendUp:true,  color:'green', page:'pages/stocks.html' },
+  { id:'gold',         name:'Gold',                  icon:'bi-gem',              value:'₹0',   trend:'No holdings yet',   trendUp:true,  color:'paleGold', page:'pages/gold.html' },
+  { id:'realestate',   name:'Real Estate',           icon:'bi-building',         value:'₹0',   trend:'No properties yet',       trendUp:true,  color:'blue',  page:'pages/real-estate.html' },
+  { id:'deposits',     name:'Fixed Deposits',        icon:'bi-bank2',            value:'₹0',  trend:'No instruments yet',   trendUp:true,  color:'violet', page:'pages/fixed-deposits.html' },
+  { id:'insurance',    name:'Insurance',             icon:'bi-shield-check',     value:'₹0',    trend:'No policies yet',trendUp:true,  color:'green', page:'pages/insurance.html' },
+  { id:'loans',        name:'Loans & Liabilities',   icon:'bi-file-earmark-minus', value:'₹0', trend:'No liabilities yet', trendUp:true, color:'red', page:'lending/loans.html' },
+  { id:'calculators',  name:'Financial Calculators', icon:'bi-calculator-fill',   value:'Tools', trend:'SIP, EMI, retirement & more', trendUp:true, color:'blue', page:'https://microintel.github.io/vision/', external:true },
+];
+
+const allocation = [
+  { label:'Real Estate',   pct:41.4, color:'var(--blue)'   },
+  { label:'Mutual Funds',  pct:26.8, color:'var(--gold)'   },
+  { label:'Stocks',        pct:18.2, color:'var(--green)'  },
+  { label:'Fixed Deposits',pct:7.9,  color:'var(--violet)' },
+  { label:'Gold',          pct:5.7,  color:'var(--paleGold)'},
+];
+
+/* ============ RENDER TILES ============ */
+const tileGrid = document.getElementById('tileGrid');
+categories.forEach(c=>{
+  const el = document.createElement('div');
+  el.className = 'tile card';
+  if(!c.external) el.dataset.target = c.id;
+  el.innerHTML = `
+    <div class="tile-icon" style="background:color-mix(in srgb, var(--${c.color}) 16%, transparent); color:var(--${c.color});"><i class="bi ${c.icon}"></i></div>
+    <a class="tile-arrow" href="${c.page}" ${(c.id === 'stocks') ? '' : 'target="_blank" rel="noopener"'} title="${c.external ? 'Open' : 'Manage'} ${c.name}" onclick="event.stopPropagation()"><i class="bi bi-arrow-up-right"></i></a>
+    <div class="tile-body">
+      <div class="tile-name">${c.name}</div>
+      <div class="tile-value">${c.value}</div>
+      <div class="tile-trend" style="color:${c.trendUp ? 'var(--green)' : 'var(--red)'}">
+        <i class="bi ${c.trendUp ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i> ${c.trend}
+      </div>
+    </div>`;
+  if(c.external){
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', ()=> window.open(c.page, '_blank', 'noopener'));
+  }
+  tileGrid.appendChild(el);
+});
+// ghost "add" tile
+const addTile = document.createElement('div');
+addTile.className = 'tile add-tile';
+addTile.innerHTML = `<i class="bi bi-plus-circle"></i><span>Add wealth category</span>`;
+tileGrid.appendChild(addTile);
+
+
+/* ============ DONUT (Chart.js) + LEGEND ============ */
+function resolveColor(v){
+  const m = v.match(/--[\w-]+/);
+  return m ? getComputedStyle(document.documentElement).getPropertyValue(m[0]).trim() : v;
+}
+const assetChart = new Chart(document.getElementById('assetChart'), {
+  type: 'doughnut',
+  data: {
+    labels: allocation.map(a => a.label),
+    datasets: [{
+      data: allocation.map(a => a.pct),
+      backgroundColor: allocation.map(a => resolveColor(a.color)),
+      borderWidth: 0,
+      hoverOffset: 4
+    }]
+  },
+  options: {
+    responsive: false,
+    maintainAspectRatio: false,
+    cutout: '76%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed}%` }
+      }
+    }
+  }
+});
+
+const legend = document.getElementById('legend');
+/* Re-render the donut + legend from a fresh set of {label, pct, color} items.
+   Called once on load with the static placeholder `allocation`, then again
+   every time recalcNetWorth() has real numbers from the live stores. */
+function renderAllocation(items){
+  assetChart.data.labels = items.map(a => a.label);
+  assetChart.data.datasets[0].data = items.map(a => a.pct);
+  assetChart.data.datasets[0].backgroundColor = items.map(a => resolveColor(a.color));
+  assetChart.update();
+
+  legend.innerHTML = '';
+  items.forEach(a=>{
+    const row = document.createElement('div');
+    row.className = 'legend-item';
+    row.innerHTML = `<span class="legend-dot" style="background:${a.color}"></span>${a.label}<b>${a.pct}%</b>`;
+    legend.appendChild(row);
+  });
+}
+renderAllocation(allocation);
+
+/* ============ NAV: click to scroll ============ */
+function scrollToSection(id){
+  const target = document.getElementById(id);
+  if(!target) return;
+  target.classList.add('in-view');
+  target.querySelectorAll('.tile, .bar-fill').forEach(el=>{
+    el.classList.add('in-view');
+    if(el.classList.contains('bar-fill') && el.dataset.w) el.style.width = el.dataset.w + '%';
+  });
+  target.scrollIntoView({behavior:'smooth', block:'start'});
+  setActiveNav(id);
+  closeSidebarMobile();
+}
+document.querySelectorAll('[data-target]').forEach(el=>{
+  el.addEventListener('click', ()=> scrollToSection(el.dataset.target));
+});
+
+const bottomNavMap = ['overview','income','mutualfunds','realestate'];
+function setActiveNav(id){
+  document.querySelectorAll('.nav-link').forEach(l=>{
+    l.classList.toggle('active', l.dataset.target === id);
+  });
+  const inBottomNav = bottomNavMap.includes(id);
+  document.querySelectorAll('.bn-item[data-target]').forEach(l=>{
+    l.classList.toggle('active', inBottomNav && l.dataset.target === id);
+  });
+  document.getElementById('bnMore').classList.toggle('active', !inBottomNav);
+}
+
+/* "More" opens the bottom sheet with the full nav */
+document.getElementById('bnMore').addEventListener('click', ()=>{
+  sidebar.classList.add('open');
+  overlay.classList.add('show');
+});
+
+/* Highlight active nav link on scroll */
+const sections = ['overview','income','mutualfunds','stocks','gold','realestate','deposits','insurance','loans','account','settings'];
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      setActiveNav(entry.target.id);
+      entry.target.classList.add('in-view');
+    }
+  });
+}, { rootMargin:'-40% 0px -50% 0px', threshold:0 });
+sections.forEach(id=>{
+  const s = document.getElementById(id);
+  if(s) observer.observe(s);
+});
+
+/* Fade-up for tiles */
+const tileObserver = new IntersectionObserver((entries)=>{
+  entries.forEach((entry,i)=>{
+    if(entry.isIntersecting){
+      setTimeout(()=> entry.target.classList.add('in-view'), i*40);
+      tileObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold:.15 });
+document.querySelectorAll('.tile').forEach(t=> tileObserver.observe(t));
+
+/* Animate bar fills when panel enters view */
+const barObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      entry.target.querySelectorAll('.bar-fill').forEach(b=>{
+        b.style.width = b.dataset.w + '%';
+      });
+      barObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold:.2 });
+document.querySelectorAll('[data-bars]').forEach(b=> barObserver.observe(b));
+
+/* ============ NET WORTH — live, summed from real data ============
+   Stocks + Mutual Funds + Income net all come from their live
+   IndexedDB stores (StocksStore / MutualFundStore / IncomeStore).
+   Gold, Real Estate, Fixed Deposits and Loans don't have their own
+   editable stores yet, so their current category figures are used
+   as-is until those get wired up too. */
+function formatINR(n){
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+const GOLD_VALUE       = 0;
+const REALESTATE_VALUE = 0;
+const DEPOSITS_VALUE   = 0;
+const INSURANCE_VALUE  = 0; // cover amount — shown in the footrow, not counted toward net worth
+// LOANS_VALUE used to be hardcoded; it's now read live from LendingStore
+// (the same "LendLedger" IndexedDB the /lending app writes to) inside
+// recalcNetWorth() below.
+
+const nwEl = document.getElementById('netWorthValue');
+let nwCurrent = 0;
+let nwAnimating = false;
+
+/* First paint animates the count-up from 0; every later recalc
+   (triggered after a stocks/mutual-fund/income refresh) just jumps
+   straight to the new total so it doesn't re-animate on every tab
+   focus. */
+function setNetWorth(target){
+  if(nwAnimating){ nwCurrent = target; return; }
+  if(nwCurrent === 0 && target !== 0){
+    nwAnimating = true;
+    let startTime = null;
+    function step(ts){
+      if(!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / 1200, 1);
+      const eased = 1 - Math.pow(1-progress, 3);
+      nwEl.textContent = formatINR(target * eased);
+      if(progress < 1){
+        requestAnimationFrame(step);
+      } else {
+        nwCurrent = target;
+        nwAnimating = false;
+        nwEl.textContent = formatINR(target);
+      }
+    }
+    requestAnimationFrame(step);
+  } else {
+    nwCurrent = target;
+    nwEl.textContent = formatINR(target);
+  }
+}
+
+/* Fills the Loans & Liabilities panel (and its tile) from LendingStore:
+   EMI/bank-loan outstanding, and the lending "khata" balance with people
+   (what you'll get vs. what you'll give). */
+function renderLoansPanel(lending){
+  const total = lending.liabilities;
+  const panelTotalEl = document.querySelector('#loans .panel-total b');
+  const panelSubEl = document.querySelector('#loans .panel-total small');
+  if(panelTotalEl) panelTotalEl.textContent = formatINR(total);
+  if(panelSubEl) panelSubEl.textContent = total > 0 ? 'Live from LendLedger' : 'No liabilities yet';
+
+  const barsWrap = document.querySelector('#loans .bars[data-bars]');
+  if(barsWrap){
+    const rows = [
+      { label:'Bank loans / EMI', amount: lending.loansOutstanding, color:'var(--red)' },
+      { label:"Lending — you'll give", amount: lending.peoplePayable, color:'var(--gold)' },
+      { label:"Lending — you'll get", amount: lending.peopleReceivable, color:'var(--green)' },
+    ];
+    const maxAmt = Math.max(1, ...rows.map(r => r.amount));
+    barsWrap.innerHTML = rows.map(r => `
+      <div class="bar-row">
+        <span class="label">${r.label}</span>
+        <div class="bar-track"><div class="bar-fill in-view" data-w="${Math.round(r.amount / maxAmt * 100)}" style="background:${r.color};width:${Math.round(r.amount / maxAmt * 100)}%"></div></div>
+        <span class="amt">${formatINR(r.amount)}</span>
+      </div>`).join('');
+  }
+
+  // Tile on the overview grid + nav card value
+  const loansCategory = categories.find(c => c.id === 'loans');
+  if(loansCategory){
+    loansCategory.value = formatINR(total);
+    loansCategory.trend = lending.activeLoanCount > 0
+      ? `${lending.activeLoanCount} active EMI · ${formatINR(lending.monthlyEmi)}/mo`
+      : (total > 0 ? "Lending balance outstanding" : "No liabilities yet");
+    loansCategory.trendUp = false;
+    const tile = document.querySelector('.tile[data-target="loans"]');
+    if(tile){
+      const valEl = tile.querySelector('.tile-value');
+      const trendEl = tile.querySelector('.tile-trend');
+      if(valEl) valEl.textContent = loansCategory.value;
+      if(trendEl) trendEl.innerHTML = `<i class="bi bi-graph-down-arrow"></i> ${loansCategory.trend}`;
+    }
+  }
+}
+
+async function recalcNetWorth(){
+  let stocksVal = 0, mfVal = 0, incomeNet = 0;
+  let lending = { peopleReceivable: 0, peoplePayable: 0, loansOutstanding: 0, monthlyEmi: 0, activeLoanCount: 0, liabilities: 0 };
+  try{ if(typeof StocksStore !== 'undefined') stocksVal = (await StocksStore.getSummary()).currentValue; }catch(e){ console.error(e); }
+  try{ if(typeof MutualFundStore !== 'undefined') mfVal = (await MutualFundStore.getSummary()).currentValue; }catch(e){ console.error(e); }
+  try{ if(typeof IncomeStore !== 'undefined') incomeNet = (await IncomeStore.getSummary()).net; }catch(e){ console.error(e); }
+  try{ if(typeof LendingStore !== 'undefined') lending = await LendingStore.getSummary(); }catch(e){ console.error(e); }
+
+  const LOANS_VALUE = lending.liabilities; // live: bank-loan outstanding + money you owe people
+  const netWorth = stocksVal + mfVal + GOLD_VALUE + REALESTATE_VALUE + DEPOSITS_VALUE + incomeNet + lending.peopleReceivable - LOANS_VALUE;
+  setNetWorth(netWorth);
+  renderLoansPanel(lending);
+
+  // Live asset-allocation donut (assets only — Loans and the Income
+  // surplus/deficit aren't "holdings", so they stay out of this pie).
+  const items = [
+    { label:'Real Estate',    amount:REALESTATE_VALUE, color:'var(--blue)'    },
+    { label:'Mutual Funds',   amount:mfVal,             color:'var(--gold)'   },
+    { label:'Stocks',         amount:stocksVal,         color:'var(--green)'  },
+    { label:'Fixed Deposits', amount:DEPOSITS_VALUE,    color:'var(--violet)' },
+    { label:'Gold',           amount:GOLD_VALUE,        color:'var(--paleGold)'},
+  ];
+  const rawTotalAssets = items.reduce((s,i)=> s + i.amount, 0);
+  const totalAssets = rawTotalAssets || 1; // avoid /0 in percentages
+  renderAllocation(items.map(i => ({ ...i, pct: +(i.amount / totalAssets * 100).toFixed(1) })));
+
+  // Hero footrow + donut center total
+  const footAssets = document.getElementById('footTotalAssets');
+  const footLiab = document.getElementById('footTotalLiabilities');
+  const footIns = document.getElementById('footInsuranceCover');
+  const footSurplus = document.getElementById('footMonthlySurplus');
+  const donutCenter = document.getElementById('donutCenterTotal');
+  if(footAssets) footAssets.textContent = formatINR(rawTotalAssets);
+  if(footLiab) footLiab.textContent = formatINR(LOANS_VALUE);
+  if(footIns) footIns.textContent = formatINR(INSURANCE_VALUE);
+  if(footSurplus){
+    footSurplus.textContent = formatINR(incomeNet);
+    footSurplus.style.color = incomeNet >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+  if(donutCenter) donutCenter.textContent = formatINR(rawTotalAssets);
+}
+recalcNetWorth();
+
+/* ============ THEME TOGGLE ============ */
+const html = document.documentElement;
+const themeToggle = document.getElementById('themeToggle');
+const themeToggle2 = document.getElementById('themeToggle2');
+
+function applyTheme(mode, persist=true){
+  html.setAttribute('data-theme', mode);
+  [['themeIcon','themeLabel'],['themeIcon2','themeLabel2']].forEach(([iconId,labelId])=>{
+    const icon = document.getElementById(iconId), label = document.getElementById(labelId);
+    if(icon) icon.className = mode === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
+    if(label) label.textContent = mode === 'dark' ? 'Dark mode' : 'Light mode';
+  });
+  if(persist) safeSet('theme', mode, false);
+}
+function toggleTheme(){
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+}
+themeToggle.addEventListener('click', toggleTheme);
+if(themeToggle2) themeToggle2.addEventListener('click', toggleTheme);
+
+/* ============ MOBILE SIDEBAR ============ */
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+function closeSidebarMobile(){
+  sidebar.classList.remove('open');
+  overlay.classList.remove('show');
+}
+overlay.addEventListener('click', closeSidebarMobile);
+
+/* Tag table cells with their column header so the mobile CSS
+   can render each row as a native-style stacked card */
+document.querySelectorAll('table').forEach(table=>{
+  const headers = [...table.querySelectorAll('thead th')].map(th=> th.textContent.trim());
+  table.querySelectorAll('tbody tr').forEach(tr=>{
+    [...tr.children].forEach((td,i)=>{
+      if(headers[i]) td.setAttribute('data-label', headers[i]);
+    });
+  });
+});
+
+/* ============================================================
+   STORAGE HELPERS (personal, per-user — window.storage)
+   ============================================================ */
+async function safeSet(key, value, shared=false){
+  try{ await window.storage.set(key, typeof value === 'string' ? value : JSON.stringify(value), shared); }
+  catch(e){ console.warn('storage set failed', key, e); }
+}
+async function safeGet(key, shared=false){
+  try{
+    const res = await window.storage.get(key, shared);
+    return res ? res.value : null;
+  }catch(e){ return null; }
+}
+async function safeDelete(key, shared=false){
+  try{ await window.storage.delete(key, shared); }catch(e){ /* no-op */ }
+}
+
+/* ============ TOAST ============ */
+const toastEl = document.createElement('div');
+toastEl.className = 'toast';
+toastEl.innerHTML = '<i class="bi bi-check-circle-fill"></i><span id="toastMsg"></span><span class="toast-progress-track"><span class="toast-progress-fill" id="toastProgressFill"></span></span>';
+document.body.appendChild(toastEl);
+let toastTimer = null;
+/**
+ * @param {string} msg
+ * @param {string} icon
+ * @param {number|null} percent - 0-100 to show/update a progress bar and
+ *   keep the toast pinned open; omit (or null) for a normal auto-hiding toast.
+ */
+function showToast(msg, icon='bi-check-circle-fill', percent=null){
+  toastEl.querySelector('i').className = 'bi ' + icon;
+  document.getElementById('toastMsg').textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  if(percent === null){
+    toastEl.classList.remove('has-progress');
+    toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 2600);
+  }else{
+    toastEl.classList.add('has-progress');
+    document.getElementById('toastProgressFill').style.width = Math.max(0, Math.min(100, percent)) + '%';
+    // No auto-hide while a multi-step operation is still reporting progress.
+  }
+}
+
+/* ============================================================
+   LOGIN / SESSION — real accounts live in BRAuth (auth.js).
+   This page only ever *reads* the signed-in session; sign-in,
+   registration and account edits happen on their own pages
+   (login.html, register.html, account.html) and log-out on
+   logout.html.
+   ============================================================ */
+const authGate = document.getElementById('authGate');
+const greetTitle = document.getElementById('greetTitle');
+
+function greetingWord(){
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+}
+function initialsOf(name){
+  return (name||'G').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+}
+function fmtMemberSince(iso){
+  if(!iso) return '—';
+  try{ return new Date(iso).toLocaleDateString(undefined,{month:'long',year:'numeric'}); }catch(e){ return '—'; }
+}
+
+function enterApp(user){
+  const guest = !!user.guest;
+  const name = guest ? 'Guest User' : (user.name || 'BlackRoad User');
+  const email = guest ? '' : (user.email || '');
+
+  greetTitle.textContent = `${greetingWord()}, ${guest ? 'Guest' : name.split(' ')[0]}`;
+  document.getElementById('sessionEmail').textContent = guest ? 'Guest session (not signed in)' : email;
+  document.getElementById('avatarMenuName').textContent = name;
+  document.getElementById('avatarMenuEmail').textContent = guest ? 'Continue without an account' : email;
+  const initials = initialsOf(guest ? 'Guest' : name);
+  document.getElementById('avatarBtn').textContent = initials;
+  document.getElementById('avatarMenuInitials').textContent = initials;
+
+  document.getElementById('acctNameView').value = name;
+  document.getElementById('acctEmailView').value = guest ? 'Guest session' : email;
+  document.getElementById('acctSinceView').value = guest ? '—' : fmtMemberSince(user.createdAt);
+  const planTag = document.getElementById('planTag');
+  planTag.textContent = guest ? 'Guest' : (user.plan || 'Free');
+
+  authGate.classList.add('hidden');
+}
+
+/* Guard the dashboard: redirect signed-out visitors to login.html,
+   otherwise populate the UI from their real account (or guest state). */
+(async ()=>{
+  const user = await BRAuth.requireAuth('login.html');
+  if(!user) return; // already redirecting
+  enterApp(user);
+})();
+
+function doLogout(){
+  avatarMenu.classList.remove('open');
+  closeSidebarMobile();
+  location.href = 'logout.html';
+}
+document.getElementById('logoutBtnMenu').addEventListener('click', doLogout);
+document.getElementById('logoutBtnSidebar').addEventListener('click', doLogout);
+document.getElementById('logoutBtnSettings').addEventListener('click', doLogout);
+
+/* ============ AVATAR DROPDOWN ============ */
+const avatarBtn = document.getElementById('avatarBtn');
+const avatarMenu = document.getElementById('avatarMenu');
+avatarBtn.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  avatarMenu.classList.toggle('open');
+});
+document.querySelectorAll('.am-item[data-target]').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    avatarMenu.classList.remove('open');
+    scrollToSection(el.dataset.target);
+  });
+});
+document.addEventListener('click', (e)=>{
+  if(!avatarMenu.contains(e.target) && e.target !== avatarBtn) avatarMenu.classList.remove('open');
+});
+
+/* ============================================================
+   THEMING — ACCENT COLOR
+   ============================================================ */
+const swatches = document.querySelectorAll('.swatch');
+function setAccent(hex, persist=true){
+  document.documentElement.style.setProperty('--accent', hex);
+  swatches.forEach(s=> s.classList.toggle('active', s.dataset.color.toLowerCase() === hex.toLowerCase()));
+  if(persist) safeSet('accent', hex, false);
+}
+swatches.forEach(s=>{
+  s.addEventListener('click', ()=>{
+    setAccent(s.dataset.color);
+    showToast('Accent color updated', 'bi-palette');
+  });
+});
+(async ()=>{
+  const savedAccent = await safeGet('accent', false);
+  if(savedAccent) setAccent(savedAccent, false); else swatches[0].classList.add('active');
+})();
+
+/* ============================================================
+   BACKUP & RESTORE — full cross-database IndexedDB export/import
+   Every store, in every IndexedDB database this dashboard reads
+   (main BlackRoadDB + the sub-apps' own LendLedger, sip-compounder,
+   BlackRoad2 databases), is dumped with its exact keys/values and
+   restored the same way — no reshaping, no re-deriving. Import
+   clears each store and put()s the records straight back, so ids
+   and structure survive round-trip exactly. This dashboard is
+   normally read-only for those sub-app databases; import is the
+   one path where it writes to them, on explicit user action only.
+   ============================================================ */
+// Same schema each sub-app itself creates on first open (name -> version +
+// store definitions). Import needs this because if the databases were wiped
+// (cleared site data, fresh browser, etc.) there is nothing to write into
+// until the stores exist again — indexedDB.open() alone won't recreate them.
+// Store *shapes* only (keyPath/autoIncrement/indexes) — no hardcoded absolute
+// version numbers. A hardcoded version throws VersionError (silently dropping
+// that whole database from export/import) the moment the DB's real on-disk
+// version has moved past what we guessed. Instead we open at whatever
+// version the DB is already at, and only bump +1 to add a store if it's
+// truly missing (e.g. after a full wipe).
+const BACKUP_DB_SCHEMAS = {
+  BlackRoadDB: {
+    stores: {
+      stocks:   { keyPath:'id', autoIncrement:true, indexes:[{ name:'symbol', keyPath:'symbol', unique:false }] },
+      settings: { keyPath:'id' },
+      entries:  { keyPath:'id', autoIncrement:true },
+      profiles: { keyPath:'id', autoIncrement:true },
+    }
+  },
+  LendLedger: {
+    stores: {
+      parties: { keyPath:'id', autoIncrement:true },
+      entries: { keyPath:'id', autoIncrement:true, indexes:[{ name:'partyId', keyPath:'partyId', unique:false }] },
+      loans:   { keyPath:'id', autoIncrement:true },
+    }
+  },
+  'sip-compounder': {
+    stores: {
+      settings: { keyPath:'id' },
+      entries:  { keyPath:'id', autoIncrement:true },
+      profiles: { keyPath:'id', autoIncrement:true },
+    }
+  },
+  BlackRoad2: {
+    stores: {
+      entries: { keyPath:'id', autoIncrement:true },
+    }
+  }
+};
+const BACKUP_DBS = Object.keys(BACKUP_DB_SCHEMAS);
+
+function createStoreFromDef(db, storeName, def){
+  const store = db.createObjectStore(storeName, { keyPath: def.keyPath, autoIncrement: !!def.autoIncrement });
+  (def.indexes || []).forEach((ix) => store.createIndex(ix.name, ix.keyPath, { unique: !!ix.unique }));
+}
+
+function openDbPlain(name){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(name);
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+    req.onblocked = () => reject(new Error(`"${name}" is open in another tab — close it and retry`));
+  });
+}
+
+/** Opens a backup DB at its real current version, auto-creating any of our
+ *  known stores it's missing (e.g. after a full wipe) by bumping the
+ *  version by exactly one from wherever it actually is right now. */
+async function openBackupDB(name){
+  const schema = BACKUP_DB_SCHEMAS[name];
+  const db = await openDbPlain(name);
+  const missing = Object.keys(schema.stores).filter((s) => !db.objectStoreNames.contains(s));
+  if(missing.length === 0) return db;
+  const nextVersion = db.version + 1;
+  db.close();
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(name, nextVersion);
+    req.onupgradeneeded = (e) => {
+      const udb = e.target.result;
+      missing.forEach((s) => createStoreFromDef(udb, s, schema.stores[s]));
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+    req.onblocked = () => reject(new Error(`"${name}" is open in another tab — close it and retry`));
+  });
+}
+
+/** onProgress(step, totalSteps, label) is called before each store is read. */
+async function exportAllIndexedDB(onProgress){
+  const databases = {};
+  const totalSteps = BACKUP_DBS.reduce((n, name) => n + Object.keys(BACKUP_DB_SCHEMAS[name].stores).length, 0);
+  let step = 0;
+  for(const name of BACKUP_DBS){
+    try{
+      const db = await openBackupDB(name);
+      const stores = {};
+      for(const storeName of Object.keys(BACKUP_DB_SCHEMAS[name].stores)){
+        step++;
+        if(onProgress) onProgress(step, totalSteps, `${name} / ${storeName}`);
+        stores[storeName] = db.objectStoreNames.contains(storeName)
+          ? await new Promise((resolve, reject) => {
+              const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+              req.onsuccess = () => resolve(req.result || []);
+              req.onerror = () => reject(req.error);
+            })
+          : [];
+      }
+      databases[name] = { version: db.version, stores };
+      db.close();
+    }catch(err){
+      console.warn(`Backup: skipped "${name}"`, err);
+    }
+  }
+  return databases;
+}
+
+/**
+ * Returns { restored: <records written>, skipped: [<"db.store"> not found] }.
+ * onProgress(step, totalSteps, label) is called before each store is written.
+ */
+async function importAllIndexedDB(databases, onProgress){
+  const result = { restored: 0, skipped: [] };
+  const dbEntries = Object.entries(databases || {});
+  const totalSteps = dbEntries.reduce((n, [, d]) => n + Object.keys(d.stores || {}).length, 0);
+  let step = 0;
+  for(const [dbName, dbData] of dbEntries){
+    if(!BACKUP_DB_SCHEMAS[dbName]){ result.skipped.push(dbName); continue; }
+    let db;
+    try{ db = await openBackupDB(dbName); }
+    catch(err){ console.warn(`Restore: couldn't open "${dbName}"`, err); result.skipped.push(dbName); continue; }
+    for(const [storeName, records] of Object.entries(dbData.stores || {})){
+      step++;
+      if(onProgress) onProgress(step, totalSteps, `${dbName} / ${storeName}`);
+      if(!db.objectStoreNames.contains(storeName)){
+        console.warn(`Restore: "${dbName}" has no store "${storeName}" — skipped`);
+        result.skipped.push(`${dbName}.${storeName}`);
+        continue;
+      }
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        const os = tx.objectStore(storeName);
+        os.clear();
+        (records || []).forEach((rec) => os.put(rec));
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+      result.restored += (records || []).length;
+    }
+    db.close();
+  }
+  return result;
+}
+
+function snapshotData(){
+  return {
+    exportedAt: new Date().toISOString(),
+    app: 'BlackRoad',
+    netWorth: nwCurrent,
+    categories: categories.map(c=>({ name:c.name, value:c.value, trend:c.trend })),
+    allocation
+  };
+}
+
+document.getElementById('exportBtn').addEventListener('click', async ()=>{
+  showToast('Preparing full backup…', 'bi-hourglass-split', 0);
+  try{
+    const databases = await exportAllIndexedDB((step, total, label) => {
+      showToast(`Exporting ${label}…`, 'bi-hourglass-split', Math.round((step / total) * 100));
+    });
+    const data = Object.assign(snapshotData(), { databases });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `blackroad-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    const now = new Date().toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    document.getElementById('lastBackupText').textContent = `Last backup: ${now}`;
+    await safeSet('lastBackup', now, false);
+    showToast('Full backup downloaded', 'bi-download');
+  }catch(err){
+    console.error('Export failed', err);
+    showToast('Export failed — see console', 'bi-exclamation-triangle-fill');
+  }
+});
+
+document.getElementById('importBtn').addEventListener('click', ()=>{
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(!data || typeof data !== 'object') throw new Error('Empty or malformed file');
+
+      let importResult = { restored: 0, skipped: [] };
+      if(data.databases){
+        showToast('Restoring data…', 'bi-hourglass-split', 0);
+        importResult = await importAllIndexedDB(data.databases, (step, total, label) => {
+          showToast(`Restoring ${label}…`, 'bi-hourglass-split', Math.round((step / total) * 100));
+        });
+      }
+      if(typeof data.netWorth === 'number') setNetWorth(data.netWorth);
+
+      // Re-pull every panel straight from the just-restored IndexedDB data
+      if(typeof refreshStocksSummary === 'function') await refreshStocksSummary();
+      if(typeof refreshMutualFundsSummary === 'function') await refreshMutualFundsSummary();
+      if(typeof refreshIncomeSummary === 'function') await refreshIncomeSummary();
+      if(typeof recalcNetWorth === 'function') await recalcNetWorth();
+
+      if(importResult.restored === 0 && data.databases){
+        console.warn('Restore: nothing was written', importResult.skipped);
+        showToast('Nothing to restore — backup had no records', 'bi-exclamation-triangle-fill');
+      }else{
+        showToast(`Restored ${importResult.restored} record${importResult.restored===1?'':'s'} from backup`, 'bi-check-circle-fill');
+      }
+    }catch(err){
+      console.error('Restore failed', err);
+      showToast('Invalid backup file', 'bi-exclamation-triangle-fill');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+const autoBackupSwitch = document.getElementById('autoBackupSwitch');
+autoBackupSwitch.addEventListener('click', async ()=>{
+  const on = autoBackupSwitch.classList.toggle('on');
+  await safeSet('autoBackup', on ? '1' : '0', false);
+  showToast(on ? 'Auto backup enabled' : 'Auto backup disabled', on ? 'bi-cloud-check-fill' : 'bi-cloud-slash');
+});
+
+(async ()=>{
+  const lastBackup = await safeGet('lastBackup', false);
+  if(lastBackup) document.getElementById('lastBackupText').textContent = `Last backup: ${lastBackup}`;
+  const auto = await safeGet('autoBackup', false);
+  if(auto === '1') autoBackupSwitch.classList.add('on');
+})();
+
+/* ============================================================
+   STOCKS — live summary pulled from IndexedDB (shared with
+   pages/stocks.html via pages/js/stocks-store.js). Keeps the
+   Dashboard tile, panel total, and holdings table in sync with
+   whatever CRUD changes were made on the Stocks page.
+   ============================================================ */
+const STOCKS_SEED = [];
+const STOCK_PALETTE = ['blue','gold','violet','red','green'];
+
+function stockRowIcon(name, idx){
+  const color = STOCK_PALETTE[idx % STOCK_PALETTE.length];
+  return `<span class="row-icon" style="background:color-mix(in srgb,var(--${color}) 18%,transparent);color:var(--${color})">${(name||'?').trim().charAt(0).toUpperCase()}</span>`;
+}
+function escapeHtmlDash(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* One-time cleanup: earlier versions of this dashboard seeded 5 demo
+   stocks into IndexedDB. If a browser already has that old data
+   sitting in storage, seedIfEmpty() won't touch it (it only seeds an
+   empty store). This clears it out exactly once so Stocks genuinely
+   starts at ₹0 for everyone, without wiping anything a user adds
+   themselves afterward. */
+async function resetStocksOnce(){
+  const FLAG = 'brStocksResetV1';
+  if(localStorage.getItem(FLAG)) return;
+  try{
+    const rows = await StocksStore.getAll();
+    await Promise.all(rows.map(r => StocksStore.remove(r.id)));
+  }catch(e){ console.error('Could not reset existing stocks data', e); }
+  localStorage.setItem(FLAG, '1');
+}
+
+async function refreshStocksSummary(){
+  if(typeof StocksStore === 'undefined') return; // storage unavailable (e.g. private browsing)
+  try{
+    await resetStocksOnce();
+    await StocksStore.seedIfEmpty(STOCKS_SEED);
+    const summary = await StocksStore.getSummary();
+
+    // 1) Update the "Wealth Lanes" tile
+    const tile = tileGrid.querySelector('[data-target="stocks"]');
+    if(tile){
+      tile.querySelector('.tile-value').textContent = StocksStore.formatINR(summary.currentValue);
+      const trendEl = tile.querySelector('.tile-trend');
+      const up = summary.pnl >= 0;
+      trendEl.style.color = up ? 'var(--green)' : 'var(--red)';
+      trendEl.innerHTML = `<i class="bi ${up ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i> ${up?'+':''}${summary.pnlPct.toFixed(1)}%`;
+    }
+
+    // 2) Update the Stocks panel header + total
+    const panelTotal = document.getElementById('stocksPanelTotal');
+    const panelPct = document.getElementById('stocksPanelPct');
+    const holdingsCount = document.getElementById('stocksHoldingsCount');
+    if(panelTotal) panelTotal.textContent = StocksStore.formatINR(summary.currentValue);
+    if(panelPct){
+      panelPct.textContent = `${summary.pnl>=0?'+':''}${summary.pnlPct.toFixed(1)}% overall`;
+      panelPct.className = summary.pnl >= 0 ? 'pos' : 'neg';
+    }
+    if(holdingsCount) holdingsCount.textContent = `Direct equity · ${summary.holdings} holding${summary.holdings===1?'':'s'}`;
+
+    // 3) Rebuild the holdings table (top 5 by value, matching original layout)
+    const tbody = document.getElementById('stocksTableBody');
+    if(tbody){
+      const rows = summary.rows
+        .slice()
+        .sort((a,b)=> StocksStore.computeMetrics(b).currentValue - StocksStore.computeMetrics(a).currentValue)
+        .slice(0, 8);
+      if(rows.length === 0){
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No holdings yet — <a href="pages/stocks.html" style="color:var(--accent);">add your first stock</a>.</td></tr>`;
+      } else {
+        const frag = document.createDocumentFragment();
+        rows.forEach((r, idx)=>{
+          const m = StocksStore.computeMetrics(r);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="row-name">${stockRowIcon(r.name, idx)}${escapeHtmlDash(r.name)}</td>
+            <td class="mono-cell">${r.qty}</td>
+            <td class="mono-cell">${StocksStore.formatINR(r.avgPrice)}</td>
+            <td class="mono-cell">${StocksStore.formatINR(r.ltp)}</td>
+            <td class="mono-cell ${m.pnl>=0?'pos':'neg'}">${m.pnl>=0?'+':''}${m.pnlPct.toFixed(1)}%</td>`;
+          frag.appendChild(tr);
+        });
+        tbody.innerHTML = '';
+        tbody.appendChild(frag);
+      }
+    }
+    recalcNetWorth();
+  }catch(e){
+    console.error('Could not refresh stocks summary from IndexedDB', e);
+  }
+}
+
+// Initial load
+refreshStocksSummary();
+// Re-sync instantly if pages/stocks.html (another tab) makes a change
+if(typeof StocksStore !== 'undefined') StocksStore.onChange(()=> refreshStocksSummary());
+// Also re-sync whenever the user comes back to this tab
+window.addEventListener('focus', refreshStocksSummary);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshStocksSummary(); });
+
+/* ============================================================
+   MUTUAL FUNDS — live summary pulled from IndexedDB (shared with
+   https://microintel.github.io/stepup/, the Step-Up SIP tracker).
+   Reads the SAME 'sip-compounder' database that app writes to
+   (see db.js: DB_NAME = 'sip-compounder'), so the Dashboard tile
+   + panel always reflect its latest data.
+   Entries already carry pre-computed portfolioValue/investedAmount,
+   so no recalculation is needed here — just read the latest one.
+   ============================================================ */
+(function(){
+  "use strict";
+  const MF_DB_NAME = "sip-compounder";
+  const MF_DB_VERSION = 2;
+  let mfDbPromise = null;
+
+  function mfOpenDB(){
+    if(mfDbPromise) return mfDbPromise;
+    mfDbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(MF_DB_NAME, MF_DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if(!db.objectStoreNames.contains("settings")) db.createObjectStore("settings", { keyPath:"id" });
+        if(!db.objectStoreNames.contains("entries"))  db.createObjectStore("entries",  { keyPath:"id", autoIncrement:true });
+        if(!db.objectStoreNames.contains("profiles")) db.createObjectStore("profiles", { keyPath:"id", autoIncrement:true });
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+    return mfDbPromise;
+  }
+
+  async function mfGetAllProfiles(){
+    const db = await mfOpenDB();
+    return new Promise((resolve, reject) => {
+      if(!db.objectStoreNames.contains("profiles")){ resolve([]); return; }
+      const req = db.transaction("profiles","readonly").objectStore("profiles").getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function mfGetEntriesForProfile(profileId){
+    const db = await mfOpenDB();
+    return new Promise((resolve, reject) => {
+      if(!db.objectStoreNames.contains("entries")){ resolve([]); return; }
+      const req = db.transaction("entries","readonly").objectStore("entries").getAll();
+      req.onsuccess = () => resolve((req.result || []).filter(e => e.profileId === profileId));
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function mfGetSettingsForProfile(profileId){
+    const db = await mfOpenDB();
+    return new Promise((resolve, reject) => {
+      if(!db.objectStoreNames.contains("settings")){ resolve(null); return; }
+      const req = db.transaction("settings","readonly").objectStore("settings").get(profileId);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function mfFormatINR(n){
+    const sign = n < 0 ? "-" : "";
+    const abs = Math.abs(Math.round(n));
+    return sign + "₹" + abs.toLocaleString("en-IN");
+  }
+
+  /**
+   * Build a per-SIP summary: one row per profile (each profile = one SIP
+   * in the Step-Up tracker), using each SIP's latest entry for its
+   * invested/current-value snapshot. Also rolls up a grand total across
+   * all SIPs for the tile + panel header.
+   */
+  async function mfGetSummary(){
+    const profiles = await mfGetAllProfiles();
+    const sips = [];
+    for(const p of profiles){
+      const [entries, settings] = await Promise.all([
+        mfGetEntriesForProfile(p.id),
+        mfGetSettingsForProfile(p.id),
+      ]);
+      if(!entries.length) continue;
+      const sorted = entries.slice().sort((a,b)=> a.date.localeCompare(b.date));
+      const latest = sorted[sorted.length-1];
+      const invested = latest.investedAmount || 0;
+      const currentValue = latest.portfolioValue || 0;
+      const pnl = currentValue - invested;
+      const pnlPct = invested ? (pnl/invested)*100 : 0;
+      sips.push({
+        id: p.id,
+        name: settings?.linkedFund?.schemeName || p.name || 'SIP',
+        invested, currentValue, pnl, pnlPct,
+        lastDate: latest.date,
+      });
+    }
+
+    if(!sips.length) return { hasData:false, invested:0, currentValue:0, pnl:0, pnlPct:0, sips:[] };
+
+    const invested = sips.reduce((s,x)=> s+x.invested, 0);
+    const currentValue = sips.reduce((s,x)=> s+x.currentValue, 0);
+    const pnl = currentValue - invested;
+    const pnlPct = invested ? (pnl/invested)*100 : 0;
+    return { hasData:true, invested, currentValue, pnl, pnlPct, sips };
+  }
+
+  window.MutualFundStore = { getSummary: mfGetSummary, formatINR: mfFormatINR };
+})();
+
+async function refreshMutualFundsSummary(){
+  if(typeof MutualFundStore === 'undefined') return;
+  try{
+    const summary = await MutualFundStore.getSummary();
+
+    // 1) Update the "Wealth Lanes" tile
+    const tile = tileGrid.querySelector('[data-target="mutualfunds"]');
+    if(tile){
+      tile.querySelector('.tile-value').textContent = MutualFundStore.formatINR(summary.currentValue);
+      const trendEl = tile.querySelector('.tile-trend');
+      const up = summary.pnl >= 0;
+      trendEl.style.color = up ? 'var(--green)' : 'var(--red)';
+      trendEl.innerHTML = `<i class="bi ${up ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i> ${up?'+':''}${summary.pnlPct.toFixed(1)}%`;
+    }
+
+    // 2) Update the Mutual Funds panel header + total
+    const panelTotal = document.getElementById('mutualFundsPanelTotal');
+    const panelPct = document.getElementById('mutualFundsPanelPct');
+    const holdingsCount = document.getElementById('mutualFundsHoldingsCount');
+    if(panelTotal) panelTotal.textContent = MutualFundStore.formatINR(summary.currentValue);
+    if(panelPct){
+      panelPct.textContent = `${summary.pnl>=0?'+':''}${summary.pnlPct.toFixed(1)}% overall`;
+      panelPct.className = summary.pnl >= 0 ? 'pos' : 'neg';
+    }
+    if(holdingsCount) holdingsCount.textContent = `Step-up SIP tracker · ${summary.sips.length} SIP${summary.sips.length===1?'':'s'}`;
+
+    // 3) Rebuild the table — one row per SIP (name, invested, current value, profit, return)
+    const tbody = document.getElementById('mutualFundsTableBody');
+    if(tbody){
+      const sips = summary.sips.slice().sort((a,b)=> b.currentValue - a.currentValue);
+      if(sips.length === 0){
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="stepUp/index.html" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>`;
+      } else {
+        const frag = document.createDocumentFragment();
+        sips.forEach((s)=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${s.name}</td>
+            <td class="mono-cell">${MutualFundStore.formatINR(s.invested)}</td>
+            <td class="mono-cell">${MutualFundStore.formatINR(s.currentValue)}</td>
+            <td class="mono-cell ${s.pnl>=0?'pos':'neg'}">${s.pnl>=0?'+':''}${MutualFundStore.formatINR(s.pnl)}</td>
+            <td class="mono-cell ${s.pnlPct>=0?'pos':'neg'}">${s.pnlPct>=0?'+':''}${s.pnlPct.toFixed(1)}%</td>`;
+          frag.appendChild(tr);
+        });
+        tbody.innerHTML = '';
+        tbody.appendChild(frag);
+      }
+    }
+    recalcNetWorth();
+  }catch(e){
+    console.error('Could not refresh mutual funds summary from IndexedDB', e);
+  }
+}
+
+// Initial load
+refreshMutualFundsSummary();
+// Re-sync whenever the user comes back to this tab (pages/mutual-funds.html
+// doesn't broadcast a change event, so focus/visibility keeps this in sync)
+window.addEventListener('focus', refreshMutualFundsSummary);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshMutualFundsSummary(); });
+
+/* ============================================================
+   INCOME & EXPENSES — live summary pulled from IndexedDB (shared
+   with the Income Statement ledger app in /incomeStatement/).
+   Reads the SAME 'BlackRoad2' database that app writes to
+   (see incomeStatement/shared.js: DB_NAME = 'BlackRoad2', store
+   'entries'), so the Dashboard tile + panel always reflect its
+   latest data. This dashboard only ever reads that store — all
+   adding/editing of entries still happens in incomeStatement/.
+   ============================================================ */
+(function(){
+  "use strict";
+  const INC_DB_NAME = "BlackRoad2";
+  const INC_DB_VERSION = 1;
+  const INC_STORE = "entries";
+  let incDbPromise = null;
+
+  function incOpenDB(){
+    if(incDbPromise) return incDbPromise;
+    incDbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(INC_DB_NAME, INC_DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if(!db.objectStoreNames.contains(INC_STORE)) db.createObjectStore(INC_STORE, { keyPath:"id", autoIncrement:true });
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+    return incDbPromise;
+  }
+
+  async function incGetAllEntries(){
+    const db = await incOpenDB();
+    return new Promise((resolve, reject) => {
+      if(!db.objectStoreNames.contains(INC_STORE)){ resolve([]); return; }
+      const req = db.transaction(INC_STORE, "readonly").objectStore(INC_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function incFormatINR(n){
+    const sign = n < 0 ? "-" : "";
+    const abs = Math.abs(Math.round(n));
+    return sign + "₹" + abs.toLocaleString("en-IN");
+  }
+
+  function incEscapeHTML(s){
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  /**
+   * Roll every ledger entry + its linked expense transactions up
+   * into totals: overall income / expense / net surplus, plus a
+   * per-category breakdown of expenses (category = each
+   * transaction's `category` field — the same one shown on the
+   * Statement ledger page).
+   */
+  async function incGetSummary(){
+    const entries = await incGetAllEntries();
+    let totalIncome = 0, totalExpense = 0;
+    const catTotals = new Map();
+
+    entries.forEach((e) => {
+      totalIncome += Number(e.income) || 0;
+      (e.transactions || []).forEach((t) => {
+        const amt = Number(t.amount) || 0;
+        totalExpense += amt;
+        const cat = (t.category || "").trim() || "Uncategorized";
+        catTotals.set(cat, (catTotals.get(cat) || 0) + amt);
+      });
+    });
+
+    const categories = [...catTotals.entries()]
+      .map(([label, amount]) => ({ label, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
+    return {
+      hasData: entries.length > 0,
+      totalIncome,
+      totalExpense,
+      net: totalIncome - totalExpense,
+      categories,
+    };
+  }
+
+  window.IncomeStore = { getSummary: incGetSummary, formatINR: incFormatINR, escapeHTML: incEscapeHTML };
+})();
+
+async function refreshIncomeSummary(){
+  if(typeof IncomeStore === 'undefined') return;
+  try{
+    const summary = await IncomeStore.getSummary();
+    const up = summary.net >= 0;
+
+    // 1) "Your Wealth Lanes" tile
+    const tile = tileGrid.querySelector('[data-target="income"]');
+    if(tile){
+      tile.querySelector('.tile-value').textContent = `${up ? '+' : '-'}${IncomeStore.formatINR(Math.abs(summary.net))}`;
+      const trendEl = tile.querySelector('.tile-trend');
+      trendEl.style.color = up ? 'var(--green)' : 'var(--red)';
+      trendEl.innerHTML = `<i class="bi ${up ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i> ${up ? 'Net surplus' : 'Net deficit'}`;
+    }
+
+    // 2) Income & Expenses panel header total
+    const panelTotal = document.getElementById('incomePanelTotal');
+    if(panelTotal){
+      panelTotal.textContent = `${up ? '+' : '-'}${IncomeStore.formatINR(Math.abs(summary.net))}`;
+      panelTotal.style.color = up ? 'var(--green)' : 'var(--red)';
+    }
+    const panelSub = document.getElementById('incomePanelSub');
+    if(panelSub) panelSub.textContent = up ? 'Net surplus' : 'Net deficit';
+
+    // 3) Total Income / Total Expenses boxes
+    const incVal = document.getElementById('incomeTotalVal');
+    const expVal = document.getElementById('expenseTotalVal');
+    if(incVal) incVal.textContent = IncomeStore.formatINR(summary.totalIncome);
+    if(expVal) expVal.textContent = IncomeStore.formatINR(summary.totalExpense);
+
+    // 4) Expense-by-category bars (top 6 categories, scaled to the largest)
+    const barsWrap = document.getElementById('incomeCategoryBars');
+    if(barsWrap){
+      if(!summary.hasData){
+        barsWrap.innerHTML = `<div class="chart-empty">No entries yet — <a href="incomeStatement/statement.html" target="_blank" rel="noopener" style="color:var(--accent);">add your first income entry</a>.</div>`;
+      } else if(summary.categories.length === 0){
+        barsWrap.innerHTML = `<div class="chart-empty">Income logged, but no expenses categorized yet.</div>`;
+      } else {
+        const top = summary.categories.slice(0, 6);
+        const max = top[0].amount || 1;
+        const palette = ['var(--blue)','var(--green)','var(--gold)','var(--violet)','var(--red)','var(--paleGold)'];
+        barsWrap.innerHTML = top.map((c, i) => {
+          const w = Math.max(4, Math.round((c.amount / max) * 100));
+          return `<div class="bar-row"><span class="label">${IncomeStore.escapeHTML(c.label)}</span><div class="bar-track"><div class="bar-fill" data-w="${w}" style="background:${palette[i % palette.length]};width:${w}%"></div></div><span class="amt">${IncomeStore.formatINR(c.amount)}</span></div>`;
+        }).join('');
+      }
+    }
+    recalcNetWorth();
+  }catch(e){
+    console.error('Could not refresh income summary from IndexedDB', e);
+  }
+}
+
+// Initial load
+refreshIncomeSummary();
+// Re-sync whenever the user comes back to this tab (the Statement
+// ledger lives in incomeStatement/ and doesn't broadcast a change
+// event across tabs, so focus/visibility keeps this in sync)
+window.addEventListener('focus', refreshIncomeSummary);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshIncomeSummary(); });
+
+/* initial active state */
+setActiveNav('overview');
+
+/* ============================================================
+   PWA INSTALL — trigger the native "Add to Home Screen" /
+   "Install app" prompt from the dashboard.
+   ============================================================ */
+let deferredInstallPrompt = null;
+const installAppBtn = document.getElementById('installAppBtn');
+const installAppLink = document.getElementById('installAppLink');
+
+function showInstallControls(){
+  if(installAppBtn) installAppBtn.style.display = 'inline-flex';
+  if(installAppLink) installAppLink.style.display = 'flex';
+}
+function hideInstallControls(){
+  if(installAppBtn) installAppBtn.style.display = 'none';
+  if(installAppLink) installAppLink.style.display = 'none';
+}
+
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  showInstallControls();
+});
+
+async function triggerInstall(){
+  if(!deferredInstallPrompt){
+    showToast('App install isn\'t available in this browser right now.', 'bi-info-circle-fill');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  hideInstallControls();
+  showToast(outcome === 'accepted' ? 'BlackRoad installed — check your home screen' : 'Install dismissed', outcome === 'accepted' ? 'bi-check-circle-fill' : 'bi-info-circle-fill');
+}
+if(installAppBtn) installAppBtn.addEventListener('click', triggerInstall);
+if(installAppLink) installAppLink.addEventListener('click', triggerInstall);
+
+window.addEventListener('appinstalled', ()=>{
+  deferredInstallPrompt = null;
+  hideInstallControls();
+  showToast('BlackRoad installed successfully', 'bi-check-circle-fill');
+});
+
+/* Already running as an installed PWA? Then there's nothing to install. */
+if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+  hideInstallControls();
+}
+
+/* Register the service worker so the app is actually installable
+   (Chrome/Edge require one for the install prompt to fire). */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{ /* offline scaffolding is optional */ });
+  });
+}
+</script>
+</body>
+</html>
