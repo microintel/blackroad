@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account — BlackRoad</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon512_rounded.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+:root{
+  --gold:#E8B84B; --green:#4ADE80; --red:#F2545B; --violet:#A78BFA;
+  --radius-sm:12px; --radius-md:18px; --radius-lg:26px;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+html[data-theme="dark"]{
+  --bg:#1B1E24; --surface:#1B1E24; --surface-2:#20242C;
+  --border:rgba(255,255,255,.06); --text:#F2F0EA; --text-dim:#9BA1AC; --text-faint:#5C6270;
+  --accent:var(--gold); --nl:rgba(255,255,255,.05); --nd:rgba(0,0,0,.62);
+  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
+  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
+  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+}
+html[data-theme="light"]{
+  --bg:#EAE7DE; --surface:#EAE7DE; --surface-2:#E2DED2;
+  --border:rgba(30,25,10,.08); --text:#171A1F; --text-dim:#5B6270; --text-faint:#84808f;
+  --accent:#B8862A; --nl:rgba(255,255,255,.9); --nd:rgba(163,150,115,.4);
+  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
+  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
+  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Inter',sans-serif; background:var(--bg); color:var(--text);
+  min-height:100vh; padding:24px; transition:background .3s var(--ease), color .3s var(--ease);
+}
+h1,h2,h3,h4,.display{font-family:'Outfit',sans-serif;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+.lane{height:3px;width:100%;background-image:repeating-linear-gradient(90deg, rgba(232,184,75,.55) 0 26px, transparent 26px 46px);opacity:.9;}
+
+.topbar{max-width:640px;margin:0 auto 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.back-link{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--text-dim);}
+.back-link:hover{color:var(--accent);}
+.theme-toggle{
+  display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border);
+  border-radius:999px; padding:8px 14px; font-size:13px; color:var(--text-dim); box-shadow:var(--shadow-in-sm);
+}
+.theme-toggle i{color:var(--accent);font-size:15px;}
+
+.wrap{max-width:640px;margin:0 auto;}
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow); padding:30px 30px 26px; margin-bottom:20px;
+  animation:cardIn .5s var(--ease);
+}
+@keyframes cardIn{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
+
+.head{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
+.avatar{
+  width:54px;height:54px;border-radius:50%;background:var(--accent);color:#0B0D10;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;
+  box-shadow:var(--shadow-sm);flex-shrink:0;
+}
+.head h2{font-size:19px;}
+.head p{font-size:13px;color:var(--text-faint);margin-top:2px;}
+.tag{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--text-dim);box-shadow:var(--shadow-in-sm);margin-left:auto;}
+.tag.premium{color:var(--accent);}
+
+.sub-head{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+.sub-head i{color:var(--accent);}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.field span{font-size:12px;color:var(--text-faint);font-weight:500;}
+.field input{
+  font-family:inherit;font-size:14px;color:var(--text);background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 13px;
+  box-shadow:var(--shadow-in-sm); transition:box-shadow .2s var(--ease);
+}
+.field input:focus{outline:none;box-shadow:var(--shadow-in-sm), 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);}
+.field input:disabled{color:var(--text-faint);cursor:not-allowed;opacity:.7;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+@media (max-width:560px){ .form-grid{grid-template-columns:1fr;} }
+
+.form-actions{display:flex;align-items:center;gap:14px;margin-top:6px;flex-wrap:wrap;}
+.save-hint{font-size:12.5px;color:var(--green);opacity:0;transition:opacity .3s;}
+.save-hint.show{opacity:1;}
+.err{display:none;color:var(--red);font-size:12.5px;margin:4px 0 10px;}
+.err.show{display:block;}
+
+.btn-primary,.btn-secondary,.btn-danger{
+  display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;padding:10px 18px;
+  border-radius:999px;transition:all .18s var(--ease);border:1px solid transparent;box-shadow:var(--shadow-sm);
+}
+.btn-primary{background:var(--accent);color:#0B0D10;}
+.btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:var(--shadow);}
+.btn-secondary{background:var(--surface);border-color:var(--border);color:var(--text);}
+.btn-secondary:hover{color:var(--accent);transform:translateY(-1px);box-shadow:var(--shadow);}
+.btn-danger{background:var(--surface);color:var(--red);}
+.btn-danger:hover{background:color-mix(in srgb, var(--red) 14%, var(--surface));transform:translateY(-1px);box-shadow:var(--shadow);}
+
+.divider-line{height:1px;background:var(--border);margin:22px 0;}
+
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;flex-wrap:wrap;}
+.settings-row b{font-size:13.5px;font-weight:600;}
+.settings-row p{font-size:12.5px;color:var(--text-faint);margin-top:2px;}
+.switch{width:44px;height:25px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);box-shadow:var(--shadow-in-sm);position:relative;flex-shrink:0;transition:background .25s var(--ease);}
+.switch .knob{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow-sm);transition:transform .25s var(--ease), background .25s var(--ease);}
+.switch.on{background:color-mix(in srgb, var(--accent) 22%, var(--surface-2));}
+.switch.on .knob{transform:translateX(19px);background:var(--accent);}
+
+.google-row{display:flex;align-items:center;gap:12px;padding:12px 0;flex-wrap:wrap;}
+.google-row svg{width:22px;height:22px;flex-shrink:0;}
+.dev-badge{
+  display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-faint);
+  background:var(--surface-2);border:1px dashed var(--border);border-radius:999px;padding:5px 11px;margin-left:auto;
+}
+.dev-badge i{color:var(--accent);}
+
+.toast{
+  position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);
+  padding:12px 18px;border-radius:999px;display:flex;align-items:center;gap:10px;
+  font-size:13px;opacity:0;pointer-events:none;transition:all .3s var(--ease);z-index:400;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast i{color:var(--accent);}
+
+.gate{display:none;min-height:70vh;align-items:center;justify-content:center;text-align:center;flex-direction:column;gap:10px;}
+.gate.show{display:flex;}
+.wrap.hidden{display:none;}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="lane" style="max-width:200px;"></div>
+  <p style="color:var(--text-faint);font-size:13.5px;">Checking your session…</p>
+</div>
+
+<div class="topbar wrap hidden" id="topbarWrap">
+  <a href="blackroad-dashboard.html" class="back-link"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+  <button class="theme-toggle" id="themeToggle"><i class="bi bi-moon-stars-fill" id="themeIcon"></i><span id="themeLabel">Dark</span></button>
+</div>
+
+<div class="wrap hidden" id="mainWrap">
+
+  <div class="card">
+    <div class="head">
+      <div class="avatar" id="avatarInitials">--</div>
+      <div>
+        <h2 id="headName">—</h2>
+        <p id="headEmail">—</p>
+      </div>
+      <span class="tag" id="planTag">Free</span>
+    </div>
+
+    <h4 class="sub-head"><i class="bi bi-person-circle"></i> Profile</h4>
+    <div class="form-grid">
+      <label class="field">
+        <span>Full name</span>
+        <input type="text" id="acctName">
+      </label>
+      <label class="field">
+        <span>Email address</span>
+        <input type="email" id="acctEmail" disabled>
+      </label>
+      <label class="field">
+        <span>Member since</span>
+        <input type="text" id="acctSince" disabled>
+      </label>
+    </div>
+    <p class="err" id="profileErr"></p>
+    <div class="form-actions">
+      <button class="btn-primary" id="saveProfileBtn"><i class="bi bi-check2"></i> Save changes</button>
+      <span class="save-hint" id="profileSaveHint">Saved ✓</span>
+    </div>
+  </div>
+
+  <div class="card" id="passwordCard">
+    <h4 class="sub-head"><i class="bi bi-shield-lock"></i> Security</h4>
+    <div class="form-grid">
+      <label class="field">
+        <span>Current password</span>
+        <input type="password" id="curPw" placeholder="••••••••">
+      </label>
+      <label class="field"></label>
+      <label class="field">
+        <span>New password</span>
+        <input type="password" id="newPw" placeholder="••••••••">
+      </label>
+      <label class="field">
+        <span>Confirm new password</span>
+        <input type="password" id="newPw2" placeholder="••••••••">
+      </label>
+    </div>
+    <p class="err" id="pwErr"></p>
+    <div class="form-actions">
+      <button class="btn-secondary" id="changePwBtn"><i class="bi bi-key"></i> Update password</button>
+      <span class="save-hint" id="pwSaveHint">Password updated ✓</span>
+    </div>
+
+    <div class="divider-line"></div>
+
+    <h4 class="sub-head"><i class="bi bi-stars"></i> Plan</h4>
+    <div class="google-row">
+      <svg viewBox="0 0 48 48"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"/><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg>
+      <div>
+        <b style="font-size:13.5px;">Google Sign-In</b>
+        <p style="font-size:12.5px;color:var(--text-faint);">Reserved for Premium members.</p>
+      </div>
+      <span class="dev-badge"><i class="bi bi-cone-striped"></i> Under development</span>
+    </div>
+    <div class="settings-row">
+      <div>
+        <b>Premium plan (demo toggle)</b>
+        <p>Flips your account's plan locally so you can preview Premium-only UI.</p>
+      </div>
+      <button class="switch" id="premiumSwitch"><span class="knob"></span></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4 class="sub-head"><i class="bi bi-box-arrow-right"></i> Session</h4>
+    <div class="settings-row">
+      <div>
+        <b>Signed in as</b>
+        <p id="sessionEmail">—</p>
+      </div>
+      <a href="logout.html" class="btn-danger"><i class="bi bi-box-arrow-right"></i> Log out</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"><i class="bi bi-check-circle-fill"></i><span id="toastMsg"></span></div>
+
+<script src="auth.js"></script>
+<script>
+const html = document.documentElement;
+const themeToggle = document.getElementById('themeToggle');
+function applyTheme(mode){
+  html.setAttribute('data-theme', mode);
+  document.getElementById('themeIcon').className = 'bi ' + (mode==='dark' ? 'bi-moon-stars-fill' : 'bi-sun-fill');
+  document.getElementById('themeLabel').textContent = mode==='dark' ? 'Dark' : 'Light';
+}
+themeToggle.addEventListener('click', async ()=>{
+  const next = html.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try{ await (window.storage ? window.storage.set('theme', next, false) : localStorage.setItem('br_theme', next)); }catch(e){}
+});
+(async ()=>{
+  try{
+    const saved = window.storage ? (await window.storage.get('theme', false)) : {value: localStorage.getItem('br_theme')};
+    if(saved && saved.value) applyTheme(saved.value);
+  }catch(e){}
+})();
+
+function showToast(msg, icon='bi-check-circle-fill'){
+  const t = document.getElementById('toast');
+  t.querySelector('i').className = 'bi ' + icon;
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 2600);
+}
+function initials(name){
+  return (name||'G').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+}
+function fmtDate(iso){
+  if(!iso) return '—';
+  try{ return new Date(iso).toLocaleDateString(undefined,{month:'long',year:'numeric'}); }catch(e){ return '—'; }
+}
+
+let currentPlan = 'Free';
+
+(async ()=>{
+  const user = await BRAuth.requireAuth('login.html');
+  if(!user) return; // requireAuth already redirected
+
+  if(user.guest){
+    // Guests have nothing to update — send them to register instead.
+    document.getElementById('gate').innerHTML =
+      '<div class="lane" style="max-width:200px;"></div>' +
+      '<p style="font-size:15px;font-weight:600;">Guest sessions can\'t manage an account</p>' +
+      '<p style="color:var(--text-faint);font-size:13.5px;max-width:320px;">Create a real account to save your profile, change your password, and unlock Premium features.</p>' +
+      '<div style="display:flex;gap:10px;margin-top:8px;">' +
+      '<a href="register.html" class="btn-primary" style="padding:10px 18px;border-radius:999px;background:var(--accent);color:#0B0D10;font-weight:600;font-size:13.5px;">Create account</a>' +
+      '<a href="blackroad-dashboard.html" class="btn-secondary" style="padding:10px 18px;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-weight:600;font-size:13.5px;">Back to dashboard</a>' +
+      '</div>';
+    document.getElementById('gate').classList.add('show');
+    return;
+  }
+
+  document.getElementById('gate').classList.remove('show');
+  document.getElementById('topbarWrap').classList.remove('hidden');
+  document.getElementById('mainWrap').classList.remove('hidden');
+
+  currentPlan = user.plan || 'Free';
+  refreshHead(user);
+  document.getElementById('acctName').value = user.name || '';
+  document.getElementById('acctEmail').value = user.email || '';
+  document.getElementById('acctSince').value = fmtDate(user.createdAt);
+  document.getElementById('sessionEmail').textContent = user.email;
+  document.getElementById('premiumSwitch').classList.toggle('on', currentPlan === 'Premium');
+})();
+
+function refreshHead(user){
+  document.getElementById('avatarInitials').textContent = initials(user.name);
+  document.getElementById('headName').textContent = user.name || 'BlackRoad User';
+  document.getElementById('headEmail').textContent = user.email || '';
+  const planTag = document.getElementById('planTag');
+  planTag.textContent = currentPlan;
+  planTag.classList.toggle('premium', currentPlan === 'Premium');
+}
+
+document.getElementById('saveProfileBtn').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('profileErr');
+  errEl.classList.remove('show');
+  try{
+    const user = await BRAuth.updateProfile({
+      name: document.getElementById('acctName').value,
+    });
+    refreshHead(user);
+    const hint = document.getElementById('profileSaveHint');
+    hint.classList.add('show');
+    setTimeout(()=> hint.classList.remove('show'), 2200);
+    showToast('Profile updated');
+  }catch(ex){
+    errEl.textContent = ex.message || 'Could not save your profile.';
+    errEl.classList.add('show');
+  }
+});
+
+document.getElementById('changePwBtn').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('pwErr');
+  errEl.classList.remove('show');
+  try{
+    await BRAuth.changePassword(
+      document.getElementById('curPw').value,
+      document.getElementById('newPw').value,
+      document.getElementById('newPw2').value
+    );
+    document.getElementById('curPw').value = '';
+    document.getElementById('newPw').value = '';
+    document.getElementById('newPw2').value = '';
+    const hint = document.getElementById('pwSaveHint');
+    hint.classList.add('show');
+    setTimeout(()=> hint.classList.remove('show'), 2200);
+    showToast('Password updated', 'bi-shield-check');
+  }catch(ex){
+    errEl.textContent = ex.message || 'Could not update your password.';
+    errEl.classList.add('show');
+  }
+});
+
+document.getElementById('premiumSwitch').addEventListener('click', async function(){
+  const next = !this.classList.contains('on');
+  try{
+    const user = await BRAuth.setPremiumDemo(next);
+    currentPlan = user.plan;
+    this.classList.toggle('on', next);
+    refreshHead(user);
+    showToast(next ? 'Premium (demo) enabled' : 'Back to Free plan', 'bi-stars');
+  }catch(ex){
+    showToast(ex.message || 'Could not update your plan.', 'bi-exclamation-circle-fill');
+  }
+});
+</script>
+</body>
+</html>

@@ -7,7 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon512_rounded.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="auth.js"></script>
 <style>
 /* ============ TOKENS ============ */
 :root{
@@ -434,7 +437,9 @@ footer{
   .greet-eyebrow{ font-size:11px; }
   .greet-title{ font-size:19px; }
   .topbar-actions{ gap:8px; }
-  .topbar-actions .icon-btn:nth-child(1){ display:none; } /* hide search icon, declutter */
+  #searchIconBtn{ display:none; } /* hide search icon, declutter */
+  #installAppBtn span{ display:none; } /* icon-only install button on small screens */
+  #installAppBtn{ padding:9px; }
   .icon-btn,.avatar{ width:34px; height:34px; border-radius:9px; }
 
   .content{ padding:4px 16px calc(var(--bottom-nav-h) + 28px); }
@@ -705,36 +710,17 @@ footer{
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
-<div class="login-screen" id="loginScreen">
-  <div class="login-card">
-    <div class="brand" style="padding:0 0 26px; justify-content:center;">
+<!-- AUTH GATE — real sign-in now lives on login.html; this just guards
+     the dashboard while we confirm your session, so signed-out visitors
+     never see your data flash on screen before the redirect fires. -->
+<div class="login-screen" id="authGate">
+  <div class="login-card" style="text-align:center;">
+    <div class="brand" style="padding:0 0 20px; justify-content:center;">
       <div class="brand-mark" style="width:44px;height:44px;font-size:19px;">BR</div>
       <div class="brand-name" style="font-size:22px;">Black<span>Road</span></div>
     </div>
-    <div class="lane" style="margin-bottom:26px;"></div>
-
-    <h2 class="login-title">Welcome back</h2>
-    <p class="login-sub">Sign in to view your wealth dashboard.</p>
-
-    <form id="loginForm">
-      <label class="field">
-        <span>Email address</span>
-        <input type="email" id="loginEmail" placeholder="you@email.com" value="pranu@gmail.com" required>
-      </label>
-      <label class="field">
-        <span>Password</span>
-        <input type="password" id="loginPassword" placeholder="••••••••" value="blackCrore" required>
-      </label>
-      <div class="login-row">
-        <label class="remember"><input type="checkbox" checked> Remember me</label>
-        <a href="#" class="forgot">Forgot password?</a>
-      </div>
-      <p class="login-error" id="loginError"></p>
-      <button type="submit" class="btn-primary login-submit"><i class="bi bi-box-arrow-in-right"></i> Sign in</button>
-      <button type="button" class="btn-secondary login-guest" id="guestBtn"><i class="bi bi-person"></i> Continue as guest</button>
-    </form>
-    <p class="login-foot">Protected by BlackRoad Security · Developed by <b>Microintel</b></p>
+    <div class="lane" style="margin-bottom:22px;"></div>
+    <p style="color:var(--text-faint);font-size:13.5px;">Checking your session…</p>
   </div>
 </div>
 
@@ -776,6 +762,7 @@ footer{
       <a class="nav-link" data-target="account"><i class="bi bi-person-circle"></i>Account</a>
       <a class="nav-link" data-target="settings"><i class="bi bi-gear"></i>Settings</a>
       <a class="nav-link" href="#"><i class="bi bi-question-circle"></i>Help &amp; Support</a>
+      <a class="nav-link" id="installAppLink" style="display:none;"><i class="bi bi-download"></i>Install App</a>
     </nav>
 
     <div class="sidebar-footer">
@@ -797,7 +784,8 @@ footer{
         </div>
       </div>
       <div class="topbar-actions">
-        <button class="icon-btn"><i class="bi bi-search"></i></button>
+        <button class="btn-secondary" id="installAppBtn" style="display:none;"><i class="bi bi-download"></i><span> Install App</span></button>
+        <button class="icon-btn" id="searchIconBtn"><i class="bi bi-search"></i></button>
         <button class="icon-btn"><i class="bi bi-bell"></i></button>
         <div class="avatar-wrap">
           <button class="avatar" id="avatarBtn">AS</button>
@@ -1037,47 +1025,26 @@ footer{
             <div class="pi" style="background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);"><i class="bi bi-person-circle"></i></div>
             <div><h3>Account</h3><span>Your profile &amp; sign-in details</span></div>
           </div>
-          <span class="tag" id="planTag">Premium</span>
+          <span class="tag" id="planTag">Free</span>
         </div>
 
         <div class="form-grid">
           <label class="field">
             <span>Full name</span>
-            <input type="text" id="acctName" value="Aditya Sharma">
+            <input type="text" id="acctNameView" disabled>
           </label>
           <label class="field">
             <span>Email address</span>
-            <input type="email" id="acctEmail" value="aditya@blackroad.app">
-          </label>
-          <label class="field">
-            <span>Phone number</span>
-            <input type="tel" id="acctPhone" value="+91 98765 43210">
+            <input type="email" id="acctEmailView" disabled>
           </label>
           <label class="field">
             <span>Member since</span>
-            <input type="text" value="February 2024" disabled>
+            <input type="text" id="acctSinceView" disabled>
           </label>
         </div>
         <div class="form-actions">
-          <button class="btn-primary" id="saveAccountBtn"><i class="bi bi-check2"></i> Save changes</button>
-          <span class="save-hint" id="acctSaveHint"></span>
-        </div>
-
-        <div class="lane" style="margin:26px 0;"></div>
-
-        <h4 class="sub-head"><i class="bi bi-shield-lock"></i> Security</h4>
-        <div class="form-grid">
-          <label class="field">
-            <span>Current password</span>
-            <input type="password" placeholder="••••••••">
-          </label>
-          <label class="field">
-            <span>New password</span>
-            <input type="password" placeholder="••••••••">
-          </label>
-        </div>
-        <div class="form-actions">
-          <button class="btn-secondary" id="changePwBtn"><i class="bi bi-key"></i> Update password</button>
+          <a class="btn-primary" href="account.html"><i class="bi bi-pencil-square"></i> Edit account</a>
+          <span class="save-hint" style="color:var(--text-faint);opacity:1;">Profile edits, password changes and Premium live on the Account page.</span>
         </div>
       </section>
 
@@ -1828,75 +1795,65 @@ function showToast(msg, icon='bi-check-circle-fill'){
 }
 
 /* ============================================================
-   LOGIN / SESSION
+   LOGIN / SESSION — real accounts live in BRAuth (auth.js).
+   This page only ever *reads* the signed-in session; sign-in,
+   registration and account edits happen on their own pages
+   (login.html, register.html, account.html) and log-out on
+   logout.html.
    ============================================================ */
-const loginScreen = document.getElementById('loginScreen');
-const loginForm = document.getElementById('loginForm');
-const loginError = document.getElementById('loginError');
+const authGate = document.getElementById('authGate');
 const greetTitle = document.getElementById('greetTitle');
 
 function greetingWord(){
   const h = new Date().getHours();
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 }
-
-function enterApp(name, email, guest=false){
-  greetTitle.textContent = `${greetingWord()}, ${guest ? 'Guest' : name.split(' ')[0]}`;
-  document.getElementById('sessionEmail').textContent = guest ? 'Guest session (not signed in)' : email;
-  document.getElementById('avatarMenuName').textContent = guest ? 'Guest User' : name;
-  document.getElementById('avatarMenuEmail').textContent = guest ? 'Continue without an account' : email;
-  const initials = guest ? 'G' : name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-  document.getElementById('avatarBtn').textContent = initials;
-  document.getElementById('avatarMenuInitials').textContent = initials;
-  document.getElementById('acctName').value = guest ? 'Guest User' : name;
-  document.getElementById('acctEmail').value = guest ? '' : email;
-  loginScreen.classList.add('hidden');
+function initialsOf(name){
+  return (name||'G').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+}
+function fmtMemberSince(iso){
+  if(!iso) return '—';
+  try{ return new Date(iso).toLocaleDateString(undefined,{month:'long',year:'numeric'}); }catch(e){ return '—'; }
 }
 
-loginForm.addEventListener('submit', (e)=>{
-  e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value.trim();
-  if(!email || !password){
-    loginError.textContent = 'Please enter both email and password.';
-    loginError.classList.add('show');
-    return;
-  }
-  loginError.classList.remove('show');
-  const name = 'Aditya Sharma';
-  safeSet('session', { name, email, guest:false }, false);
-  enterApp(name, email, false);
-  showToast('Signed in successfully');
-});
+function enterApp(user){
+  const guest = !!user.guest;
+  const name = guest ? 'Guest User' : (user.name || 'BlackRoad User');
+  const email = guest ? '' : (user.email || '');
 
-document.getElementById('guestBtn').addEventListener('click', ()=>{
-  safeSet('session', { name:'Guest User', email:'', guest:true }, false);
-  enterApp('Guest User', '', true);
-  showToast('Continuing as guest', 'bi-person-fill');
-});
+  greetTitle.textContent = `${greetingWord()}, ${guest ? 'Guest' : name.split(' ')[0]}`;
+  document.getElementById('sessionEmail').textContent = guest ? 'Guest session (not signed in)' : email;
+  document.getElementById('avatarMenuName').textContent = name;
+  document.getElementById('avatarMenuEmail').textContent = guest ? 'Continue without an account' : email;
+  const initials = initialsOf(guest ? 'Guest' : name);
+  document.getElementById('avatarBtn').textContent = initials;
+  document.getElementById('avatarMenuInitials').textContent = initials;
+
+  document.getElementById('acctNameView').value = name;
+  document.getElementById('acctEmailView').value = guest ? 'Guest session' : email;
+  document.getElementById('acctSinceView').value = guest ? '—' : fmtMemberSince(user.createdAt);
+  const planTag = document.getElementById('planTag');
+  planTag.textContent = guest ? 'Guest' : (user.plan || 'Free');
+
+  authGate.classList.add('hidden');
+}
+
+/* Guard the dashboard: redirect signed-out visitors to login.html,
+   otherwise populate the UI from their real account (or guest state). */
+(async ()=>{
+  const user = await BRAuth.requireAuth('login.html');
+  if(!user) return; // already redirecting
+  enterApp(user);
+})();
 
 function doLogout(){
-  safeDelete('session', false);
-  loginScreen.classList.remove('hidden');
-  document.getElementById('loginPassword').value = '';
   avatarMenu.classList.remove('open');
   closeSidebarMobile();
-  showToast('Signed out', 'bi-box-arrow-right');
+  location.href = 'logout.html';
 }
 document.getElementById('logoutBtnMenu').addEventListener('click', doLogout);
 document.getElementById('logoutBtnSidebar').addEventListener('click', doLogout);
 document.getElementById('logoutBtnSettings').addEventListener('click', doLogout);
-
-/* Restore session on load, else show login screen */
-(async ()=>{
-  const saved = await safeGet('session', false);
-  if(saved){
-    try{
-      const s = JSON.parse(saved);
-      enterApp(s.name, s.email, s.guest);
-    }catch(e){ /* keep login screen visible */ }
-  }
-})();
 
 /* ============ AVATAR DROPDOWN ============ */
 const avatarBtn = document.getElementById('avatarBtn');
@@ -1913,30 +1870,6 @@ document.querySelectorAll('.am-item[data-target]').forEach(el=>{
 });
 document.addEventListener('click', (e)=>{
   if(!avatarMenu.contains(e.target) && e.target !== avatarBtn) avatarMenu.classList.remove('open');
-});
-
-/* ============================================================
-   ACCOUNT FORM
-   ============================================================ */
-document.getElementById('saveAccountBtn').addEventListener('click', async ()=>{
-  const name = document.getElementById('acctName').value.trim() || 'Guest User';
-  const email = document.getElementById('acctEmail').value.trim();
-  greetTitle.textContent = `${greetingWord()}, ${name.split(' ')[0]}`;
-  document.getElementById('avatarMenuName').textContent = name;
-  document.getElementById('avatarMenuEmail').textContent = email || 'No email set';
-  document.getElementById('sessionEmail').textContent = email || 'Guest session (not signed in)';
-  const initials = name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-  avatarBtn.textContent = initials;
-  document.getElementById('avatarMenuInitials').textContent = initials;
-  await safeSet('session', { name, email, guest:false }, false);
-  const hint = document.getElementById('acctSaveHint');
-  hint.textContent = 'Saved ✓';
-  hint.classList.add('show');
-  setTimeout(()=> hint.classList.remove('show'), 2200);
-  showToast('Profile updated');
-});
-document.getElementById('changePwBtn').addEventListener('click', ()=>{
-  showToast('Password updated', 'bi-shield-check');
 });
 
 /* ============================================================
@@ -2444,6 +2377,62 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
 
 /* initial active state */
 setActiveNav('overview');
+
+/* ============================================================
+   PWA INSTALL — trigger the native "Add to Home Screen" /
+   "Install app" prompt from the dashboard.
+   ============================================================ */
+let deferredInstallPrompt = null;
+const installAppBtn = document.getElementById('installAppBtn');
+const installAppLink = document.getElementById('installAppLink');
+
+function showInstallControls(){
+  if(installAppBtn) installAppBtn.style.display = 'inline-flex';
+  if(installAppLink) installAppLink.style.display = 'flex';
+}
+function hideInstallControls(){
+  if(installAppBtn) installAppBtn.style.display = 'none';
+  if(installAppLink) installAppLink.style.display = 'none';
+}
+
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  showInstallControls();
+});
+
+async function triggerInstall(){
+  if(!deferredInstallPrompt){
+    showToast('App install isn\'t available in this browser right now.', 'bi-info-circle-fill');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  hideInstallControls();
+  showToast(outcome === 'accepted' ? 'BlackRoad installed — check your home screen' : 'Install dismissed', outcome === 'accepted' ? 'bi-check-circle-fill' : 'bi-info-circle-fill');
+}
+if(installAppBtn) installAppBtn.addEventListener('click', triggerInstall);
+if(installAppLink) installAppLink.addEventListener('click', triggerInstall);
+
+window.addEventListener('appinstalled', ()=>{
+  deferredInstallPrompt = null;
+  hideInstallControls();
+  showToast('BlackRoad installed successfully', 'bi-check-circle-fill');
+});
+
+/* Already running as an installed PWA? Then there's nothing to install. */
+if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+  hideInstallControls();
+}
+
+/* Register the service worker so the app is actually installable
+   (Chrome/Edge require one for the install prompt to fire). */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{ /* offline scaffolding is optional */ });
+  });
+}
 </script>
 </body>
 </html>

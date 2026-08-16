@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — BlackRoad</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon512_rounded.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+:root{
+  --gold:#E8B84B; --green:#4ADE80; --red:#F2545B;
+  --radius-sm:12px; --radius-md:18px; --radius-lg:26px;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+html[data-theme="dark"]{
+  --bg:#1B1E24; --surface:#1B1E24; --surface-2:#20242C;
+  --border:rgba(255,255,255,.06); --text:#F2F0EA; --text-dim:#9BA1AC; --text-faint:#5C6270;
+  --accent:var(--gold); --nl:rgba(255,255,255,.05); --nd:rgba(0,0,0,.62);
+  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
+  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
+  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+}
+html[data-theme="light"]{
+  --bg:#EAE7DE; --surface:#EAE7DE; --surface-2:#E2DED2;
+  --border:rgba(30,25,10,.08); --text:#171A1F; --text-dim:#5B6270; --text-faint:#84808f;
+  --accent:#B8862A; --nl:rgba(255,255,255,.9); --nd:rgba(163,150,115,.4);
+  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
+  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
+  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Inter',sans-serif; background:var(--bg); color:var(--text);
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  transition:background .3s var(--ease), color .3s var(--ease);
+}
+h1,h2,.display{font-family:'Outfit',sans-serif;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+.lane{height:3px;width:100%;background-image:repeating-linear-gradient(90deg, rgba(232,184,75,.55) 0 26px, transparent 26px 46px);opacity:.9;}
+
+.theme-toggle{
+  position:fixed; top:20px; right:20px;
+  display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border);
+  border-radius:999px; padding:8px 14px; font-size:13px; color:var(--text-dim); box-shadow:var(--shadow-in-sm);
+}
+.theme-toggle i{color:var(--accent);font-size:15px;}
+
+.card{
+  width:100%; max-width:400px; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:36px 34px 28px;
+  animation:cardIn .5s var(--ease);
+}
+@keyframes cardIn{ from{opacity:0; transform:translateY(16px) scale(.98);} to{opacity:1; transform:none;} }
+.brand{display:flex;align-items:center;gap:10px;justify-content:center;padding-bottom:26px;}
+.brand-mark{width:44px;height:44px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#0B0D10;font-weight:800;font-size:19px;box-shadow:var(--shadow-sm);}
+.brand-name{font-weight:700;font-size:22px;}
+.brand-name span{color:var(--accent);}
+
+.title{font-size:22px;font-weight:700;margin-top:22px;}
+.sub{font-size:13.5px;color:var(--text-faint);margin:4px 0 24px;}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.field span{font-size:12px;color:var(--text-faint);font-weight:500;}
+.field input{
+  font-family:inherit;font-size:14px;color:var(--text);background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;
+  box-shadow:var(--shadow-in-sm); transition:box-shadow .2s var(--ease);
+}
+.field input:focus{outline:none;box-shadow:var(--shadow-in-sm), 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);}
+
+.row{display:flex;align-items:center;justify-content:space-between;margin:2px 0 16px;font-size:12.5px;}
+.remember{display:flex;align-items:center;gap:7px;color:var(--text-dim);}
+.remember input{accent-color:var(--accent);}
+.err{display:none;color:var(--red);font-size:12.5px;margin-bottom:12px;}
+.err.show{display:block;}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  font-size:13.5px;font-weight:600;padding:11px 18px;border-radius:999px;
+  transition:all .18s var(--ease);border:1px solid transparent;box-shadow:var(--shadow-sm);margin-bottom:10px;
+}
+.btn-primary{background:var(--accent);color:#0B0D10;}
+.btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:var(--shadow);}
+.btn-secondary{background:var(--surface);border-color:var(--border);color:var(--text);}
+.btn-secondary:hover{color:var(--accent);transform:translateY(-1px);box-shadow:var(--shadow);}
+.btn[disabled]{opacity:.55;cursor:not-allowed;}
+.btn[disabled]:hover{transform:none;filter:none;box-shadow:var(--shadow-sm);}
+
+.divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--text-faint);font-size:12px;}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border);}
+
+.google-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:999px;
+  background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm);
+  color:var(--text); transition:all .18s var(--ease); margin-bottom:10px; position:relative;
+}
+.google-btn:not([disabled]):hover{transform:translateY(-1px);box-shadow:var(--shadow);}
+.google-btn[disabled]{opacity:.6;cursor:not-allowed;}
+.google-btn svg{width:18px;height:18px;flex-shrink:0;}
+.premium-pill{
+  font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;
+  color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);
+  padding:2px 7px;border-radius:999px;
+}
+
+.dev-badge{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:11px;color:var(--text-faint);background:var(--surface-2);
+  border:1px dashed var(--border);border-radius:999px;padding:6px 12px;margin-top:4px;
+}
+.dev-badge i{color:var(--accent);}
+
+.foot{text-align:center;font-size:12.5px;color:var(--text-faint);margin-top:22px;}
+.foot b{color:var(--accent);}
+.foot a{color:var(--accent);font-weight:600;}
+.small-foot{text-align:center;font-size:11px;color:var(--text-faint);margin-top:14px;}
+
+.toast{
+  position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);
+  padding:12px 18px;border-radius:999px;display:flex;align-items:center;gap:10px;
+  font-size:13px;opacity:0;pointer-events:none;transition:all .3s var(--ease);z-index:400;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast i{color:var(--accent);}
+
+.more-options{margin-bottom:0;}
+.more-toggle{
+  display:flex;align-items:center;justify-content:center;gap:6px;list-style:none;cursor:pointer;
+  font-size:12.5px;color:var(--text-faint);padding:6px 0 4px;user-select:none;
+}
+.more-toggle::-webkit-details-marker{display:none;}
+.more-toggle i{transition:transform .2s var(--ease);font-size:11px;}
+.more-options[open] .more-toggle i{transform:rotate(180deg);}
+
+@media (max-width: 480px){
+  body{padding:16px;align-items:flex-start;padding-top:64px;}
+  .theme-toggle{top:12px;right:12px;padding:6px 11px;font-size:12px;}
+  .card{padding:26px 20px 20px;border-radius:20px;}
+  .brand{padding-bottom:18px;}
+  .brand-mark{width:38px;height:38px;font-size:16px;border-radius:12px;}
+  .brand-name{font-size:19px;}
+  .title{font-size:19px;margin-top:16px;}
+  .sub{font-size:13px;margin:4px 0 20px;}
+  .field{margin-bottom:12px;}
+  .row{margin:0 0 14px;}
+  .btn{padding:12px 18px;margin-bottom:8px;}
+  .divider{margin:14px 0;}
+  .foot{margin-top:16px;font-size:12px;}
+  .small-foot{margin-top:10px;}
+}
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle"><i class="bi bi-moon-stars-fill" id="themeIcon"></i><span id="themeLabel">Dark</span></button>
+
+<div class="card">
+  <div class="brand">
+    <div class="brand-mark">BR</div>
+    <div class="brand-name">Black<span>Road</span></div>
+  </div>
+  <div class="lane"></div>
+
+  <h2 class="title">Welcome back</h2>
+  <p class="sub">Sign in to view your wealth dashboard.</p>
+
+  <form id="loginForm">
+    <label class="field">
+      <span>Email address</span>
+      <input type="email" id="email" value="pranu@gmail.com" placeholder="you@email.com" autocomplete="email" required>
+    </label>
+    <label class="field">
+      <span>Password</span>
+      <input type="password" id="password" value="Black123" placeholder="••••••••" autocomplete="current-password" required>
+    </label>
+    <div class="row">
+      <label class="remember"><input type="checkbox" id="remember" checked> Remember me</label>
+      <a href="#" class="forgot" id="forgotLink" style="color:var(--accent);font-weight:600;">Forgot password?</a>
+    </div>
+    <p class="err" id="err"></p>
+    <button type="submit" class="btn btn-primary" id="submitBtn"><i class="bi bi-box-arrow-in-right"></i> Sign in</button>
+    <button type="button" class="btn btn-secondary" id="guestBtn"><i class="bi bi-person"></i> Continue as guest</button>
+  </form>
+
+  <details class="more-options" id="moreOptions">
+    <summary class="more-toggle">More sign-in options <i class="bi bi-chevron-down"></i></summary>
+    <div class="divider">OR</div>
+
+    <button type="button" class="google-btn" id="googleBtn" title="Available for Premium accounts">
+      <svg viewBox="0 0 48 48"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"/><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg>
+      Continue with Google <span class="premium-pill">Premium</span>
+    </button>
+    <div class="dev-badge"><i class="bi bi-cone-striped"></i> Blackroad is under development</div>
+  </details>
+
+  <p class="foot" style="margin-top:22px;">New to BlackRoad? <a href="register.html"><b>Create an account</b></a></p>
+  <p class="small-foot">Developed by Microintel</p>
+</div>
+
+<div class="toast" id="toast"><i class="bi bi-check-circle-fill"></i><span id="toastMsg"></span></div>
+
+<script src="auth.js"></script>
+<script>
+/* theme (shared with dashboard via the 'theme' personal key) */
+const html = document.documentElement;
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+const themeLabel = document.getElementById('themeLabel');
+function applyTheme(mode, persist=true){
+  html.setAttribute('data-theme', mode);
+  themeIcon.className = 'bi ' + (mode==='dark' ? 'bi-moon-stars-fill' : 'bi-sun-fill');
+  themeLabel.textContent = mode==='dark' ? 'Dark' : 'Light';
+  if(persist) BRAuth && window.storage; // no-op guard
+}
+themeToggle.addEventListener('click', async ()=>{
+  const next = html.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try{ await (window.storage ? window.storage.set('theme', next, false) : localStorage.setItem('br_theme', next)); }catch(e){}
+});
+(async ()=>{
+  try{
+    const saved = window.storage ? (await window.storage.get('theme', false)) : {value: localStorage.getItem('br_theme')};
+    if(saved && saved.value) applyTheme(saved.value, false);
+  }catch(e){}
+})();
+
+/* keep the extra sign-in options open on desktop (unchanged look), collapsed on small screens */
+const moreOptions = document.getElementById('moreOptions');
+if (window.matchMedia('(min-width: 641px)').matches) moreOptions.open = true;
+
+function showToast(msg, icon='bi-check-circle-fill'){
+  const t = document.getElementById('toast');
+  t.querySelector('i').className = 'bi ' + icon;
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 2600);
+}
+
+/* if already signed in, skip straight to the dashboard */
+BRAuth.redirectIfLoggedIn('blackroad-dashboard.html');
+
+const err = document.getElementById('err');
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  err.classList.remove('show');
+  const submitBtn = document.getElementById('submitBtn');
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  submitBtn.disabled = true;
+  try{
+    await BRAuth.login(email, password);
+    showToast('Signed in successfully');
+    setTimeout(()=> location.href = 'blackroad-dashboard.html', 500);
+  }catch(ex){
+    err.textContent = ex.message || 'Something went wrong. Please try again.';
+    err.classList.add('show');
+    submitBtn.disabled = false;
+  }
+});
+
+document.getElementById('guestBtn').addEventListener('click', async ()=>{
+  await BRAuth.loginGuest();
+  showToast('Continuing as guest', 'bi-person-fill');
+  setTimeout(()=> location.href = 'blackroad-dashboard.html', 500);
+});
+
+document.getElementById('googleBtn').addEventListener('click', ()=>{
+  showToast('Google Sign-In is a Premium feature, still under development.', 'bi-cone-striped');
+});
+
+document.getElementById('forgotLink').addEventListener('click', (e)=>{
+  e.preventDefault();
+  showToast('Password reset is coming soon.', 'bi-info-circle-fill');
+});
+</script>
+</body>
+</html>
