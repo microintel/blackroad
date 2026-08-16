@@ -899,13 +899,13 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b id="mutualFundsPanelTotal">₹0</b><small class="pos" id="mutualFundsPanelPct">0.0% overall</small></div>
-            <a class="btn-secondary" href="https://microintel.github.io/stepup/" target="_blank" rel="noopener">Manage <i class="bi bi-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="stepUp/index.html" target="_blank" rel="noopener">Manage <i class="bi bi-arrow-up-right"></i></a>
           </div>
         </div>
         <table>
           <thead><tr><th>SIP Name</th><th>Invested</th><th>Current Value</th><th>Profit</th><th>Return</th></tr></thead>
           <tbody id="mutualFundsTableBody">
-            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="https://microintel.github.io/stepup/" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="stepUp/index.html" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>
           </tbody>
         </table>
       </section>
@@ -1021,7 +1021,7 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b style="color:var(--red)">₹0</b><small>No liabilities yet</small></div>
-            <a class="btn-secondary" href="pages/loans.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="lending/loans.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <div class="bars" data-bars>
@@ -1337,16 +1337,129 @@ footer{
 
 </script>
 <script>
+/* ============ LendingStore ============
+   Reads the SAME database the /lending app writes to — IndexedDB
+   "LendLedger" — so the dashboard's Loans & Liabilities panel and
+   net-worth math reflect real numbers, live, with no server and no
+   copy of the data. Read-only here; all edits happen in /lending. */
+(function (global) {
+  const DB_NAME = "LendLedger";
+  const DB_VERSION = 3;
+  const STORE_PARTIES = "parties";
+  const STORE_ENTRIES = "entries";
+  const STORE_LOANS = "loans";
+
+  function openLendLedgerDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      // Mirror /lending/shared.js's schema so we never race its own
+      // upgrade — if this tab opens the DB first, the stores still
+      // get created the same way.
+      req.onupgradeneeded = (e) => {
+        const _db = e.target.result;
+        if (!_db.objectStoreNames.contains(STORE_PARTIES)) {
+          _db.createObjectStore(STORE_PARTIES, { keyPath: "id", autoIncrement: true });
+        }
+        if (!_db.objectStoreNames.contains(STORE_ENTRIES)) {
+          const es = _db.createObjectStore(STORE_ENTRIES, { keyPath: "id", autoIncrement: true });
+          es.createIndex("partyId", "partyId", { unique: false });
+        }
+        if (!_db.objectStoreNames.contains(STORE_LOANS)) {
+          _db.createObjectStore(STORE_LOANS, { keyPath: "id", autoIncrement: true });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  function getAll(db, storeName) {
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(storeName, "readonly").objectStore(storeName).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function paidSoFar(loan) {
+    return (loan.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }
+  function outstanding(loan) {
+    return Math.max(0, (Number(loan.principal) || 0) - paidSoFar(loan));
+  }
+
+  // { peopleReceivable, peoplePayable, peopleNet,
+  //   loansOutstanding, monthlyEmi, activeLoanCount,
+  //   liabilities, netLendingPosition }
+  async function getSummary() {
+    let db;
+    try {
+      db = await openLendLedgerDB();
+    } catch (e) {
+      console.error("LendingStore: couldn't open LendLedger DB", e);
+      return {
+        peopleReceivable: 0, peoplePayable: 0, peopleNet: 0,
+        loansOutstanding: 0, monthlyEmi: 0, activeLoanCount: 0,
+        liabilities: 0, netLendingPosition: 0,
+      };
+    }
+
+    const [entries, loans] = await Promise.all([
+      getAll(db, STORE_ENTRIES),
+      getAll(db, STORE_LOANS),
+    ]);
+
+    // People you lend to / borrow from (khata-book side)
+    let peopleReceivable = 0, peoplePayable = 0;
+    const byParty = {};
+    entries.forEach((e) => {
+      const amt = Number(e.amount) || 0;
+      byParty[e.partyId] = byParty[e.partyId] || { gave: 0, got: 0 };
+      if (e.type === "gave") byParty[e.partyId].gave += amt;
+      else byParty[e.partyId].got += amt;
+    });
+    Object.values(byParty).forEach(({ gave, got }) => {
+      const balance = gave - got;
+      if (balance > 0) peopleReceivable += balance; // they owe you
+      else peoplePayable += -balance;                // you owe them
+    });
+
+    // Bank loans / EMIs
+    let loansOutstanding = 0, monthlyEmi = 0, activeLoanCount = 0;
+    loans.forEach((r) => {
+      const out = outstanding(r);
+      loansOutstanding += out;
+      if (out > 0) {
+        monthlyEmi += Number(r.emiAmount) || 0;
+        activeLoanCount += 1;
+      }
+    });
+
+    // Liabilities = money you owe others + bank loan principal left.
+    // Money owed TO you (peopleReceivable) is a receivable, not a
+    // liability — it's netted separately below.
+    const liabilities = peoplePayable + loansOutstanding;
+    const netLendingPosition = peopleReceivable - peoplePayable;
+
+    return { peopleReceivable, peoplePayable, peopleNet: netLendingPosition,
+      loansOutstanding, monthlyEmi, activeLoanCount,
+      liabilities, netLendingPosition };
+  }
+
+  global.LendingStore = { getSummary };
+})(window);
+</script>
+<script>
 /* ============ DATA ============ */
 const categories = [
   { id:'income',       name:'Income & Expenses',   icon:'bi-cash-coin',        value:'₹0', trend:'Loading…', trendUp:true,  color:'green', page:'incomeStatement/statement.html' },
-  { id:'mutualfunds',  name:'Mutual Funds',         icon:'bi-pie-chart-fill',   value:'₹42,18,900',  trend:'+18.4% XIRR', trendUp:true,  color:'gold',  page:'https://microintel.github.io/stepup/' },
+  { id:'mutualfunds',  name:'Mutual Funds',         icon:'bi-pie-chart-fill',   value:'₹42,18,900',  trend:'+18.4% XIRR', trendUp:true,  color:'gold',  page:'stepUp/index.html' },
   { id:'stocks',       name:'Stocks',                icon:'bi-graph-up-arrow',   value:'₹0',  trend:'No holdings yet',      trendUp:true,  color:'green', page:'pages/stocks.html' },
   { id:'gold',         name:'Gold',                  icon:'bi-gem',              value:'₹0',   trend:'No holdings yet',   trendUp:true,  color:'paleGold', page:'pages/gold.html' },
   { id:'realestate',   name:'Real Estate',           icon:'bi-building',         value:'₹0',   trend:'No properties yet',       trendUp:true,  color:'blue',  page:'pages/real-estate.html' },
   { id:'deposits',     name:'Fixed Deposits',        icon:'bi-bank2',            value:'₹0',  trend:'No instruments yet',   trendUp:true,  color:'violet', page:'pages/fixed-deposits.html' },
   { id:'insurance',    name:'Insurance',             icon:'bi-shield-check',     value:'₹0',    trend:'No policies yet',trendUp:true,  color:'green', page:'pages/insurance.html' },
-  { id:'loans',        name:'Loans & Liabilities',   icon:'bi-file-earmark-minus', value:'₹0', trend:'No liabilities yet', trendUp:true, color:'red', page:'pages/loans.html' },
+  { id:'loans',        name:'Loans & Liabilities',   icon:'bi-file-earmark-minus', value:'₹0', trend:'No liabilities yet', trendUp:true, color:'red', page:'lending/loans.html' },
 ];
 
 const allocation = [
@@ -1518,7 +1631,9 @@ const GOLD_VALUE       = 0;
 const REALESTATE_VALUE = 0;
 const DEPOSITS_VALUE   = 0;
 const INSURANCE_VALUE  = 0; // cover amount — shown in the footrow, not counted toward net worth
-const LOANS_VALUE      = 0; // liability — subtracted from net worth
+// LOANS_VALUE used to be hardcoded; it's now read live from LendingStore
+// (the same "LendLedger" IndexedDB the /lending app writes to) inside
+// recalcNetWorth() below.
 
 const nwEl = document.getElementById('netWorthValue');
 let nwCurrent = 0;
@@ -1553,14 +1668,62 @@ function setNetWorth(target){
   }
 }
 
+/* Fills the Loans & Liabilities panel (and its tile) from LendingStore:
+   EMI/bank-loan outstanding, and the lending "khata" balance with people
+   (what you'll get vs. what you'll give). */
+function renderLoansPanel(lending){
+  const total = lending.liabilities;
+  const panelTotalEl = document.querySelector('#loans .panel-total b');
+  const panelSubEl = document.querySelector('#loans .panel-total small');
+  if(panelTotalEl) panelTotalEl.textContent = formatINR(total);
+  if(panelSubEl) panelSubEl.textContent = total > 0 ? 'Live from LendLedger' : 'No liabilities yet';
+
+  const barsWrap = document.querySelector('#loans .bars[data-bars]');
+  if(barsWrap){
+    const rows = [
+      { label:'Bank loans / EMI', amount: lending.loansOutstanding, color:'var(--red)' },
+      { label:"Lending — you'll give", amount: lending.peoplePayable, color:'var(--gold)' },
+      { label:"Lending — you'll get", amount: lending.peopleReceivable, color:'var(--green)' },
+    ];
+    const maxAmt = Math.max(1, ...rows.map(r => r.amount));
+    barsWrap.innerHTML = rows.map(r => `
+      <div class="bar-row">
+        <span class="label">${r.label}</span>
+        <div class="bar-track"><div class="bar-fill in-view" data-w="${Math.round(r.amount / maxAmt * 100)}" style="background:${r.color};width:${Math.round(r.amount / maxAmt * 100)}%"></div></div>
+        <span class="amt">${formatINR(r.amount)}</span>
+      </div>`).join('');
+  }
+
+  // Tile on the overview grid + nav card value
+  const loansCategory = categories.find(c => c.id === 'loans');
+  if(loansCategory){
+    loansCategory.value = formatINR(total);
+    loansCategory.trend = lending.activeLoanCount > 0
+      ? `${lending.activeLoanCount} active EMI · ${formatINR(lending.monthlyEmi)}/mo`
+      : (total > 0 ? "Lending balance outstanding" : "No liabilities yet");
+    loansCategory.trendUp = false;
+    const tile = document.querySelector('.tile[data-target="loans"]');
+    if(tile){
+      const valEl = tile.querySelector('.tile-value');
+      const trendEl = tile.querySelector('.tile-trend');
+      if(valEl) valEl.textContent = loansCategory.value;
+      if(trendEl) trendEl.innerHTML = `<i class="bi bi-graph-down-arrow"></i> ${loansCategory.trend}`;
+    }
+  }
+}
+
 async function recalcNetWorth(){
   let stocksVal = 0, mfVal = 0, incomeNet = 0;
+  let lending = { peopleReceivable: 0, peoplePayable: 0, loansOutstanding: 0, monthlyEmi: 0, activeLoanCount: 0, liabilities: 0 };
   try{ if(typeof StocksStore !== 'undefined') stocksVal = (await StocksStore.getSummary()).currentValue; }catch(e){ console.error(e); }
   try{ if(typeof MutualFundStore !== 'undefined') mfVal = (await MutualFundStore.getSummary()).currentValue; }catch(e){ console.error(e); }
   try{ if(typeof IncomeStore !== 'undefined') incomeNet = (await IncomeStore.getSummary()).net; }catch(e){ console.error(e); }
+  try{ if(typeof LendingStore !== 'undefined') lending = await LendingStore.getSummary(); }catch(e){ console.error(e); }
 
-  const netWorth = stocksVal + mfVal + GOLD_VALUE + REALESTATE_VALUE + DEPOSITS_VALUE + incomeNet - LOANS_VALUE;
+  const LOANS_VALUE = lending.liabilities; // live: bank-loan outstanding + money you owe people
+  const netWorth = stocksVal + mfVal + GOLD_VALUE + REALESTATE_VALUE + DEPOSITS_VALUE + incomeNet + lending.peopleReceivable - LOANS_VALUE;
   setNetWorth(netWorth);
+  renderLoansPanel(lending);
 
   // Live asset-allocation donut (assets only — Loans and the Income
   // surplus/deficit aren't "holdings", so they stay out of this pie).
@@ -2098,7 +2261,7 @@ async function refreshMutualFundsSummary(){
     if(tbody){
       const sips = summary.sips.slice().sort((a,b)=> b.currentValue - a.currentValue);
       if(sips.length === 0){
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="https://microintel.github.io/stepup/" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="stepUp/index.html" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>`;
       } else {
         const frag = document.createDocumentFragment();
         sips.forEach((s)=>{
@@ -2284,4 +2447,3 @@ setActiveNav('overview');
 </script>
 </body>
 </html>
-
