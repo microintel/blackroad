@@ -1,1 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="manifest" href="manifest.json">
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               minimum-scale=1.0,
+               user-scalable=no,
+               viewport-fit=cover">
+<title>StepUP</title>
+<!-- Anti-flash: apply saved theme before first paint -->
+<script>
+  (function(){
+    var t = localStorage.getItem('sip-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- Particle background -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header class="app-header">
+  <div class="app-header-brand">
+  <!--  <div class="brand-logo">
+     <i class="bi bi-graph-up-arrow"></i> 
+    </div>-->
+    <h1>StepUP</h1>
+  </div>
+  <div class="header-center" id="profile-switcher"></div>
+  <div class="header-right" id="settings-info-header"></div>
+</header>
+
+<!-- ═══════════ PAGE: HOME ═══════════ -->
+<div class="page active" id="page-home">
+  <div class="main">
+
+    <!-- Portfolio Breakdown Donut -->
+    <div class="donut-section">
+    <div class="donut-wrap">
+    <canvas id="chart-donut"></canvas>
+    <div class="donut-center">
+    <div class="donut-label">Portfolio</div>
+    <div class="donut-value" id="donut-total">₹0</div>
+    </div>
+    </div>
+    <div class="donut-legend">
+    <div class="donut-leg-item">
+    <span class="donut-leg-dot" style="background:#6366f1"></span>
+    <div>
+    <div class="donut-leg-label">Invested</div>
+    <div class="donut-leg-val" id="donut-invested">₹0</div>
+    </div>
+    </div>
+    <div class="donut-leg-item">
+    <span class="donut-leg-dot" style="background:#10b981"></span>
+    <div>
+    <div class="donut-leg-label">Profit</div>
+    <div class="donut-leg-val" id="donut-profit">₹0</div>
+    </div>
+    </div>
+    <div class="donut-leg-item">
+    <span class="donut-leg-dot" style="background:#f43f5e"></span>
+    <div>
+    <div class="donut-leg-label">Loss</div>
+    <div class="donut-leg-val" id="donut-loss">₹0</div>
+    </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- Statement Hero — single lead panel replaces the old row of hero cards -->
+    <div class="statement-hero">
+      <div class="statement-hero-glow"></div>
+      <div class="statement-eyebrow"><i class="bi bi-bar-chart-fill"></i>Portfolio Value</div>
+      <div class="statement-value-line">
+        <span class="card-value" id="c-value">₹0</span>
+      </div>
+      <div class="statement-delta-line">
+        <span class="card-icon-wrap" id="card-icon-pnl"><i class="bi bi-arrow-up-right-circle-fill"></i></span>
+        <span class="card-value" id="c-pnl">₹0</span>
+        <span class="statement-dot">·</span>
+        <span class="card-value" id="c-ret">0.00%</span>
+      </div>
+      <div class="statement-rule"></div>
+      <div class="statement-foot">
+        <div class="statement-foot-item">
+          <span class="statement-foot-label">Invested</span>
+          <span class="card-value blue" id="c-invested">₹0</span>
+        </div>
+        <div class="statement-foot-item statement-today">
+          <span class="card-icon-wrap" id="card-icon-today"><i class="bi bi-calendar-date"></i></span>
+          <div class="statement-today-text">
+            <span class="card-value" id="c-today-pnl">—</span>
+            <span class="card-sub" id="c-today-pnl-sub"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ledger groups — replaces the small dashboard card grid -->
+    <div class="ledger-groups">
+
+      <div class="section">
+        <div class="section-head">
+          <h2><i class="bi bi-lightning-charge-fill section-icon"></i>Activity</h2>
+        </div>
+        <div class="section-body ledger">
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap amber"><i class="bi bi-calendar-check"></i></span>SIP Contributions</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value">
+              <span class="card-value amber" id="c-sips">0</span>
+              <span class="card-sub" id="c-sips-sub"></span>
+            </span>
+          </div>
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap green"><i class="bi bi-speedometer2"></i></span>XIRR / Annualized</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value"><span class="card-value green" id="c-xirr">—</span></span>
+          </div>
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap amber"><i class="bi bi-clock-history"></i></span>Next SIP</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value">
+              <span class="card-value amber" id="c-next-sip">—</span>
+              <span class="card-sub" id="c-next-sip-sub"></span>
+            </span>
+          </div>
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap green"><i class="bi bi-fire"></i></span>Win Streak</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value"><span class="card-value" id="c-streak">0</span></span>
+          </div>
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap purple"><i class="bi bi-activity"></i></span>Avg Day</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value"><span class="card-value" id="c-avg-day">—</span></span>
+          </div>
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap blue"><i class="bi bi-calendar3"></i></span>Days Active</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value"><span class="card-value blue" id="c-days">0</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2><i class="bi bi-graph-up-arrow section-icon"></i>Growth</h2>
+        </div>
+        <div class="section-body ledger">
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap" id="card-icon-month-growth"><i class="bi bi-graph-up-arrow"></i></span>Monthly Growth / Loss</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value">
+              <span class="card-value" id="c-month-growth">—</span>
+              <span class="card-sub" id="c-month-growth-sub"></span>
+            </span>
+          </div>
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap" id="card-icon-year-growth"><i class="bi bi-graph-up-arrow"></i></span>Yearly Growth / Loss</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value">
+              <span class="card-value" id="c-year-growth">—</span>
+              <span class="card-sub" id="c-year-growth-sub"></span>
+            </span>
+          </div>
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap" id="card-icon-avg-growth"><i class="bi bi-bar-chart-steps"></i></span>Avg Monthly Growth / Loss</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value">
+              <span class="card-value" id="c-avg-growth">—</span>
+              <span class="card-sub" id="c-avg-growth-sub"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2><i class="bi bi-trophy section-icon"></i>Extremes</h2>
+        </div>
+        <div class="section-body ledger">
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap" id="card-icon-best-growth"><i class="bi bi-trophy"></i></span>Best Month (%)</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value">
+              <span class="card-value" id="c-best-growth">—</span>
+              <span class="card-sub" id="c-best-growth-sub"></span>
+            </span>
+          </div>
+          <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap" id="card-icon-worst-growth"><i class="bi bi-exclamation-triangle"></i></span>Worst Month (%)</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value">
+              <span class="card-value" id="c-worst-growth">—</span>
+              <span class="card-sub" id="c-worst-growth-sub"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Up vs Down Days -->
+    <div class="section">
+      <div class="section-head">
+        <h2><i class="bi bi-bar-chart-steps section-icon"></i>Day-wise Performance</h2>
+        <span id="updown-total-badge" class="entry-count-badge"></span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Type</th><th>Count</th><th style="text-align:right;">Share</th></tr>
+          </thead>
+          <tbody id="updown-body">
+            <tr><td colspan="3"><div class="empty"><i class="bi bi-inbox"></i><span>No entries yet.</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: HISTORY ═══════════ -->
+<div class="page" id="page-history">
+  <div class="main">
+    <div class="section">
+      <div class="section-head">
+        <h2><i class="bi bi-clock-history section-icon"></i>History</h2>
+        <span id="entry-count" class="entry-count-badge"></span>
+      </div>
+      <div class="history-controls">
+        <div class="search-wrap">
+          <i class="bi bi-search search-icon"></i>
+          <input type="date" id="history-search-date" class="history-search" placeholder="Search by date…" />
+        </div>
+        <button class="sort-btn sort-desc" id="sort-toggle-btn">
+          <i class="bi bi-calendar3"></i>
+          <span>Date</span>
+          <span class="sort-arrow"></span>
+        </button>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Date</th><th>% Chg</th><th>SIP</th>
+              <th>Portfolio</th><th>Invested</th><th style="text-align:right;">Act</th>
+            </tr>
+          </thead>
+          <tbody id="history-body">
+            <tr><td colspan="7"><div class="empty"><i class="bi bi-inbox"></i><span>No entries yet.</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: ADD ENTRY ═══════════ -->
+<div class="page" id="page-add">
+  <div class="main">
+
+    <!-- Link a Fund: auto-import NAV history, then auto-sync via mfapi.in -->
+    <div class="add-entry-card helper-card" id="fund-link-card">
+      <div class="helper-header">
+        <div class="helper-title-row">
+          <div class="helper-icon"><i class="bi bi-link-45deg"></i></div>
+          <div>
+            <span class="helper-title">Link a Fund</span>
+            <span class="helper-sub">Import NAV history from a fund file — daily entries after that sync automatically via mfapi.in</span>
+          </div>
+        </div>
+      </div>
+
+      <p id="fund-link-status" class="settings-info-text" style="margin:6px 0 14px;"></p>
+
+      <!-- How to get the Fund NAV file -->
+      <div class="fund-help-box">
+        <div class="fund-help-row">
+          <div class="fund-help-text">
+            <div class="fund-help-title"><i class="bi bi-question-circle-fill"></i> Don't have a Fund NAV file yet?</div>
+            <p class="fund-help-desc">Search your fund and download its NAV history as a JSON file, then upload it below.</p>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm fund-help-btn" id="btn-get-fund-data">
+            <i class="bi bi-box-arrow-up-right"></i> Get Fund Data
+          </button>
+        </div>
+        <ol class="howto-steps fund-help-steps">
+          <li>Tap <strong>Get Fund Data</strong> above — it opens the fund lookup tool in a new tab.</li>
+          <li>Search for your fund by name and select it from the results.</li>
+          <li>Download the fund's NAV history as a <strong>JSON</strong> file.</li>
+          <li>Come back here and upload that file below in <strong>Fund NAV File</strong>.</li>
+        </ol>
+      </div>
+
+      <div class="entry-form">
+        <div class="form-group">
+          <label><i class="bi bi-file-earmark-text"></i> Fund NAV File</label>
+          <input type="file" id="fund-json-file" accept="application/json,.json" />
+        </div>
+        <div class="form-group">
+          <label><i class="bi bi-calendar-event"></i> SIP Start Date</label>
+          <input type="date" id="fund-sip-start" />
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" id="btn-import-fund">
+          <i class="bi bi-cloud-arrow-down"></i> Import &amp; Link Fund
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btn-sync-fund" style="display:none;">
+          <i class="bi bi-arrow-repeat"></i> Sync Latest NAV
+        </button>
+      </div>
+    </div>
+
+    <!-- Helper: Convert total return % → daily % -->
+    <div class="add-entry-card helper-card">
+      <div class="helper-header">
+        <div class="helper-title-row">
+          <div class="helper-icon"><i class="bi bi-calculator"></i></div>
+          <div>
+            <span class="helper-title">Daily % Calculator</span>
+            <span class="helper-sub">Enter your broker's total return % to get today's daily change</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="helper-row">
+        <div class="helper-field">
+          <label>Yesterday's Total Return %</label>
+          <div class="pct-input-wrap">
+            <input type="text" inputmode="decimal" id="helper-prev" placeholder="auto" autocomplete="off" />
+            <span class="pct-suffix">%</span>
+          </div>
+          <span class="helper-hint" id="helper-prev-hint"></span>
+        </div>
+        <div class="helper-arrow"><i class="bi bi-arrow-right"></i></div>
+        <div class="helper-field">
+          <label>Today's Total Return %</label>
+          <div class="pct-input-wrap">
+            <input type="text" inputmode="decimal" id="helper-today" placeholder="e.g. 4.37" autocomplete="off" />
+            <span class="pct-suffix">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="helper-result" id="helper-result" style="display:none;">
+        <div class="helper-result-label">Daily % Change</div>
+        <div class="helper-result-value" id="helper-result-value">—</div>
+        <button class="btn btn-primary btn-sm helper-use-btn" id="helper-use-btn">
+          <i class="bi bi-arrow-down-circle"></i> Use this
+        </button>
+      </div>
+    </div>
+
+    <!-- Main entry form -->
+    <div class="add-entry-card">
+      <div class="card-form-header">
+        <div class="card-form-icon"><i class="bi bi-plus-circle-fill"></i></div>
+        <div>
+          <h2>Add Daily Entry</h2>
+          <p>Record today's portfolio % change to track your SIP growth.</p>
+        </div>
+      </div>
+      <div class="entry-form">
+        <div class="form-group">
+          <label><i class="bi bi-calendar-event"></i> Date</label>
+          <input type="date" id="entry-date" />
+        </div>
+        <div class="form-group">
+          <label><i class="bi bi-percent"></i> % Change</label>
+          <div class="pct-input-wrap">
+            <input type="text" inputmode="decimal" id="entry-pct" placeholder="+4.73 or -3.32" autocomplete="off" />
+            <span class="pct-suffix">%</span>
+          </div>
+        </div>
+      </div>
+      <p id="entry-preview" style="margin-top:14px;font-size:.78rem;color:var(--muted);font-family:var(--mono);min-height:1.2em;"></p>
+      <div style="margin-top:18px;">
+        <button class="btn btn-primary btn-block btn-lg" id="btn-add-entry">
+          <i class="bi bi-plus-lg"></i> Add Entry
+        </button>
+      </div>
+    </div>
+
+  </div>
+  
+</div>
+
+<!-- ═══════════ PAGE: GRAPH ═══════════ -->
+<div class="page" id="page-graph">
+  <div class="main">
+    <div class="section">
+      <div class="chart-panel active" id="tab-line" style="padding:14px 16px;">
+        <div class="chart-header">
+          <span class="chart-subtitle"><i class="bi bi-info-circle"></i> scroll/pinch to zoom, drag to pan</span>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <div class="range-pills" id="range-pills-line">
+              <button class="range-pill" data-range="7d">1W</button>
+              <button class="range-pill" data-range="1">1M</button>
+              <button class="range-pill" data-range="3">3M</button>
+              <button class="range-pill" data-range="6">6M</button>
+              <button class="range-pill" data-range="12">1Y</button>
+              <button class="range-pill" data-range="36">3Y</button>
+              <button class="range-pill active" data-range="all">Max</button>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-reset-zoom">
+              <i class="bi bi-arrow-counterclockwise"></i> Reset
+            </button>
+          </div>
+        </div>
+        <div class="overview-wrap" id="overview-wrap">
+          <canvas id="chart-overview"></canvas>
+          <div class="selection-box" id="selection-box">
+            <div class="sel-handle sel-handle-l" data-handle="left"></div>
+            <div class="sel-handle sel-handle-r" data-handle="right"></div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-line"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section" id="fund-history-section">
+      <div class="chart-panel active" style="padding:14px 16px;">
+        <div class="chart-header">
+          <h2 style="font-size:.95rem;margin:0;"><i class="bi bi-hourglass-split section-icon"></i> Fund Performance History</h2>
+          <button class="btn btn-secondary btn-sm" id="btn-reset-fund-history-zoom" style="display:none;">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
+          </button>
+        </div>
+
+        <div class="empty" id="fund-hist-empty">
+          <i class="bi bi-link-45deg"></i>
+          <span>Link a fund on the Add page to see its full NAV track record — however far back it goes.</span>
+        </div>
+
+        <div id="fund-hist-loading" class="empty" style="display:none;">
+          <i class="bi bi-arrow-repeat spin"></i>
+          <span>Pulling the fund's full NAV history…</span>
+        </div>
+
+        <div id="fund-hist-body" style="display:none;">
+          <div class="fund-hist-name" id="fund-hist-name"></div>
+          <span class="chart-subtitle"><i class="bi bi-info-circle"></i> scroll/pinch to zoom, drag to pan</span>
+          <div class="chart-wrap" style="height:260px;"><canvas id="chart-fund-history"></canvas></div>
+          <div class="stat-grid fund-hist-stats">
+            <div class="stat-cell">
+              <div class="stat-cell-label">Track Record</div>
+              <div class="stat-cell-value" id="fh-years">—</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-cell-label">Since</div>
+              <div class="stat-cell-value" id="fh-since">—</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-cell-label">Total Growth</div>
+              <div class="stat-cell-value" id="fh-total">—</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-cell-label">CAGR</div>
+              <div class="stat-cell-value" id="fh-cagr">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="fund-projection-section" style="display:none;">
+      <div class="chart-panel active" style="padding:14px 16px;">
+        <div class="chart-header">
+          <h2 style="font-size:.95rem;margin:0;"><i class="bi bi-signpost-split section-icon"></i> Projected Growth</h2>
+          <div class="range-pills" id="fund-proj-horizon">
+            <button class="range-pill" data-years="5">5Y</button>
+            <button class="range-pill active" data-years="10">10Y</button>
+            <button class="range-pill" data-years="15">15Y</button>
+            <button class="range-pill" data-years="20">20Y</button>
+          </div>
+        </div>
+        <span class="chart-subtitle"><i class="bi bi-info-circle"></i> continues from today's value, three scenarios</span>
+        <div class="chart-wrap" style="height:260px;"><canvas id="chart-fund-projection"></canvas></div>
+        <div class="fund-proj-legend" id="fund-proj-legend"></div>
+        <div class="fund-proj-note"><i class="bi bi-info-circle"></i> Based on this fund's own best, worst and average calendar-year returns — not a guarantee.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="chart-panel active" style="padding:14px 16px;">
+        <div class="chart-header">
+          <h2 style="font-size:.95rem;margin:0;"><i class="bi bi-bar-chart-fill section-icon"></i> Growth / Loss</h2>
+          <div class="range-pills" id="growth-toggle">
+            <button class="range-pill active" data-granularity="month">Monthly</button>
+            <button class="range-pill" data-granularity="year">Yearly</button>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="chart-growth"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="chart-panel active" style="padding:14px 16px;">
+        <div class="chart-header">
+          <h2 style="font-size:.95rem;margin:0;"><i class="bi bi-graph-up section-icon"></i> Monthly Trend</h2>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select id="trend-year-from" class="year-select"></select>
+            <span class="year-range-label">to</span>
+            <select id="trend-year-to" class="year-select"></select>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="chart-monthly-line"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: USER ═══════════ -->
+<div class="page" id="page-user">
+  <div class="user-page">
+
+    <div class="user-avatar"><img src="https://raw.githubusercontent.com/microintel/endgram/main/photo/stepup-trans.png" width="100%" height="100%"></div>
+    <div class="user-name"></div>
+    <div class="user-sub" id="user-sub-line">No settings configured yet</div>
+
+    <div class="user-sections-grid">
+
+    <!-- Manage SIPs -->
+    <div class="user-section">
+      <div class="user-section-title"><i class="bi bi-layers"></i> My SIPs</div>
+      <div id="manage-sips-list" class="manage-sips-list"></div>
+      <div class="user-subblock">
+        <div class="stepup-divider" style="margin-bottom:10px;">
+          <i class="bi bi-plus-circle-fill" style="color:var(--green)"></i>
+          <span>Add New SIP</span>
+        </div>
+        <div class="inline-add-row">
+          <input type="text" id="new-sip-name" class="inline-add-input" placeholder='e.g. "HDFC Midcap"' />
+          <button class="btn btn-primary btn-sm" id="btn-add-new-sip">
+            <i class="bi bi-plus-lg"></i> Add
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIP Settings -->
+    <div class="user-section">
+      <div class="user-section-title"><i class="bi bi-sliders"></i> SIP Settings</div>
+      <div class="user-subblock user-subblock-lg">
+        <div class="form-row">
+          <div class="form-group">
+            <label><i class="bi bi-currency-rupee"></i> Monthly SIP (₹)</label>
+            <input type="text" inputmode="decimal" id="sip-amount" placeholder="5000" />
+          </div>
+          <div class="form-group">
+            <label><i class="bi bi-calendar-event"></i> SIP Start Date</label>
+            <input type="date" id="sip-start" />
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <button class="btn btn-primary btn-sm" id="btn-save-settings">
+            <i class="bi bi-check2-circle"></i> Save Settings
+          </button>
+        </div>
+        <p id="settings-info" class="settings-info-text"></p>
+      </div>
+
+      <!-- Step-Up / Step-Down SIP -->
+      <div class="user-subblock">
+        <div class="stepup-divider">
+          <i class="bi bi-arrow-down-up" style="color:var(--indigo)"></i>
+          <span>Step-Up / Step-Down SIP</span>
+        </div>
+        <p class="subblock-hint">Increase or decrease your SIP amount from a future date — old entries keep their original amounts.</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label><i class="bi bi-currency-rupee"></i> New Amount (₹)</label>
+            <input type="text" inputmode="decimal" id="stepup-amount" placeholder="e.g. 5000" />
+          </div>
+          <div class="form-group">
+            <label><i class="bi bi-calendar-event"></i> Effective From</label>
+            <input type="date" id="stepup-date" />
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm btn-block-mobile" id="btn-add-stepup" style="margin-top:10px;">
+          <i class="bi bi-plus-circle"></i> Add Step-Up / Step-Down
+        </button>
+        <div id="stepup-schedule-list" class="schedule-list"></div>
+      </div>
+
+      <!-- Skip a SIP month -->
+      <div class="user-subblock user-subblock-last">
+        <div class="stepup-divider">
+          <i class="bi bi-skip-forward-fill" style="color:var(--amber)"></i>
+          <span>Skip a Month</span>
+        </div>
+        <p class="subblock-hint">Skip one SIP instalment — that month's investment won't be counted.</p>
+        <div class="skip-row">
+          <div class="form-group">
+            <label><i class="bi bi-calendar-x"></i> SIP Date to Skip</label>
+            <input type="date" id="skip-sip-date" />
+          </div>
+          <button class="btn btn-secondary btn-sm btn-block-mobile" id="btn-skip-sip">
+            <i class="bi bi-slash-circle"></i> Skip
+          </button>
+        </div>
+        <div id="skip-list" class="schedule-list">
+          <span class="muted-note">No skipped months.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="user-section">
+      <div class="user-section-title"><i class="bi bi-bar-chart-line"></i> Portfolio Stats</div>
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-cell-label">Entries</div>
+          <div class="stat-cell-value" id="us-entries">0</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-label">Months Active</div>
+          <div class="stat-cell-value" id="us-months">0</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-label">Best Day</div>
+          <div class="stat-cell-value green" id="us-best">—</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-label">Worst Day</div>
+          <div class="stat-cell-value red" id="us-worst">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Appearance -->
+    <div class="user-section">
+      <div class="user-section-title"><i class="bi bi-palette"></i> Appearance</div>
+      <div class="theme-toggle">
+        <button class="theme-btn" id="theme-btn-light" data-theme="light">
+          <i class="bi bi-sun-fill"></i>
+          <span>Light</span>
+        </button>
+        <button class="theme-btn" id="theme-btn-dark" data-theme="dark">
+          <i class="bi bi-moon-stars-fill"></i>
+          <span>Dark</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Data actions -->
+    <div class="user-section">
+      <div class="user-section-title"><i class="bi bi-database"></i> Data</div>
+      <div class="data-group-label">Current SIP — “<span id="data-current-sip-name"></span>”</div>
+      <div class="user-row" id="btn-pdf-report-row">
+        <div class="user-row-icon icon-amber"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+        <div class="user-row-info">
+          <div class="user-row-label">Download PDF Report</div>
+          <div class="user-row-desc">Full report — daily change, SIP, skipped &amp; step-up/step-down details</div>
+        </div>
+        <i class="bi bi-chevron-right user-row-arrow"></i>
+      </div>
+      <div class="user-row" id="btn-export-row">
+        <div class="user-row-icon icon-green"><i class="bi bi-upload"></i></div>
+        <div class="user-row-info">
+          <div class="user-row-label">Export This SIP</div>
+          <div class="user-row-desc">Download this fund's data as a JSON file</div>
+        </div>
+        <i class="bi bi-chevron-right user-row-arrow"></i>
+      </div>
+      <div class="user-row" id="btn-import-row">
+        <div class="user-row-icon icon-blue"><i class="bi bi-download"></i></div>
+        <div class="user-row-info">
+          <div class="user-row-label">Import Into This SIP</div>
+          <div class="user-row-desc">Restore this fund from a JSON backup</div>
+        </div>
+        <i class="bi bi-chevron-right user-row-arrow"></i>
+      </div>
+      <div class="data-group-label">All SIPs</div>
+      <div class="user-row" id="btn-export-all-row">
+        <div class="user-row-icon icon-purple"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+        <div class="user-row-info">
+          <div class="user-row-label">Export All SIPs</div>
+          <div class="user-row-desc">Backup every fund in one JSON file</div>
+        </div>
+        <i class="bi bi-chevron-right user-row-arrow"></i>
+      </div>
+      <div class="user-row" id="btn-import-all-row">
+        <div class="user-row-icon icon-amber"><i class="bi bi-cloud-arrow-down-fill"></i></div>
+        <div class="user-row-info">
+          <div class="user-row-label">Import All SIPs</div>
+          <div class="user-row-desc">Restore every fund from a full backup</div>
+        </div>
+        <i class="bi bi-chevron-right user-row-arrow"></i>
+      </div>
+    </div>
+
+    <!-- Danger zone -->
+    <div class="user-section">
+      <div class="user-section-title danger-title"><i class="bi bi-exclamation-triangle-fill"></i> Danger Zone</div>
+      <div class="user-row" id="btn-reset-row">
+        <div class="user-row-icon icon-red"><i class="bi bi-trash3-fill"></i></div>
+        <div class="user-row-info">
+          <div class="user-row-label">Reset All Data</div>
+          <div class="user-row-desc">Permanently deletes all entries and settings</div>
+        </div>
+        <i class="bi bi-chevron-right user-row-arrow" style="color:var(--red);"></i>
+      </div>
+    </div>
+
+    <!-- How to Use -->
+    <div class="user-section">
+      <div class="user-section-title"><i class="bi bi-question-circle"></i> How to Use</div>
+
+      <div class="howto-method">
+        <div class="howto-method-title">Method 1 — Enter Daily Changes Manually</div>
+        <ol class="howto-steps">
+          <li>Get today's daily % change for your fund from your brokerage, or the fund's own website/app.</li>
+          <li>Tap <strong>Add Entry</strong> and enter that % change for the day.</li>
+          <li>The app auto-calculates SIP additions, invested amount and portfolio value from there.</li>
+        </ol>
+      </div>
+
+      <div class="howto-method">
+        <div class="howto-method-title">Method 2 — Import From NAV History <span class="howto-badge">For backdating an existing SIP</span></div>
+        <ol class="howto-steps">
+          <li>Download the NAV history for your fund from its website or app (Excel/CSV).</li>
+          <li>Note the true values of your first 3 original entries — use these to anchor the calculation.</li>
+          <li>Export this SIP as a JSON file — see <strong>Export This SIP</strong> above.</li>
+          <li>Send the NAV Excel sheet and the exported JSON file to an AI, and ask it to calculate the daily entries.</li>
+          <li>Import the AI-generated file back in — see <strong>Import Into This SIP</strong> above.</li>
+        </ol>
+      </div>
+
+      <div class="howto-note"><i class="bi bi-cloud-fill"></i> Cloud backup is coming soon — for now, keep your exported JSON files safe.</div>
+    </div>
+
+    </div><!-- /.user-sections-grid -->
+
+    <input type="file" id="import-file" accept=".json" style="display:none" />
+    <input type="file" id="import-all-file" accept=".json" style="display:none" />
+
+  </div>
+</div>
+
+<!-- ═══════════ SWIPE DOTS (mobile position indicator) ═══════════ -->
+<div class="swipe-dots" id="swipe-dots" aria-hidden="true">
+  <span class="swipe-dot active" data-page="page-home"></span>
+  <span class="swipe-dot" data-page="page-history"></span>
+  <span class="swipe-dot" data-page="page-add"></span>
+  <span class="swipe-dot" data-page="page-graph"></span>
+  <span class="swipe-dot" data-page="page-user"></span>
+</div>
+
+<!-- ═══════════ BOTTOM NAV ═══════════ -->
+<nav class="bottom-nav">
+  <button class="nav-item active" data-page="page-home">
+    <i class="bi bi-house-fill nav-icon-fill"></i>
+    <i class="bi bi-house nav-icon-outline"></i>
+    <span>Home</span>
+  </button>
+  <button class="nav-item" data-page="page-history">
+    <i class="bi bi-journal-text nav-icon-fill"></i>
+    <i class="bi bi-journal nav-icon-outline"></i>
+    <span>History</span>
+  </button>
+  <button class="nav-item nav-item-add" data-page="page-add">
+    <div class="nav-add-btn">
+      <i class="bi bi-plus-lg"></i>
+    </div>
+    <span>Add</span>
+  </button>
+  <button class="nav-item" data-page="page-graph">
+    <i class="bi bi-graph-up nav-icon-fill"></i>
+    <i class="bi bi-graph-up nav-icon-outline"></i>
+    <span>Graph</span>
+  </button>
+  <button class="nav-item" data-page="page-user">
+    <i class="bi bi-person-circle nav-icon-fill"></i>
+    <i class="bi bi-person nav-icon-outline"></i>
+    <span>Account</span>
+  </button>
+</nav>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="bi bi-pencil-square"></i> Edit Entry</h3>
+      <button class="modal-close" id="edit-cancel-x"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label><i class="bi bi-calendar-event"></i> Date</label>
+      <input type="date" id="edit-date" />
+    </div>
+    <div class="form-group">
+      <label><i class="bi bi-percent"></i> % Change</label>
+      <div class="pct-input-wrap">
+        <input type="text" inputmode="decimal" id="edit-pct" placeholder="+4.73 or -3.32" />
+        <span class="pct-suffix">%</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="edit-cancel"><i class="bi bi-x"></i> Cancel</button>
+      <button class="btn btn-primary" id="edit-save"><i class="bi bi-check2"></i> Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<footer class="app-footer">Developed by <span>Microintel</span></footer>
+
+<script>
+(function() {
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function createParticles() {
+    particles = [];
+    const count = Math.floor((canvas.width * canvas.height) / 18000);
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.5 + 0.3,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        opacity: Math.random() * 0.4 + 0.1
+      });
+    }
+  }
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const color = isDark ? '99,102,241' : '99,102,241';
+
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${color},${p.opacity})`;
+      ctx.fill();
+    });
+
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(${color},${0.07 * (1 - dist / 100)})`;
+          ctx.lineWidth = 0.5;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(drawParticles);
+  }
+
+  window.addEventListener('resize', () => { resize(); createParticles(); });
+  resize(); createParticles(); drawParticles();
+
+  // close modal via X button (mirrors edit-cancel)
+  document.getElementById('edit-cancel-x').addEventListener('click', () => {
+    document.getElementById('edit-cancel').click();
+  });
+})();
+</script>
+<script type="module" src="app.js"></script>
+
+<!-- ═══════════ SERVICE WORKER REGISTRATION ═══════════ -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+
+      // Detect a new SW waiting → show update toast
+      const checkWaiting = (reg) => {
+        if (reg.waiting) showUpdateToast(reg.waiting);
+      };
+
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateToast(newWorker);
+          }
+        });
+      });
+
+      checkWaiting(reg);
+
+      // Reload once the new SW takes control
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) { refreshing = true; location.reload(); }
+      });
+
+    } catch (err) {
+      console.warn('SW registration failed:', err);
+    }
+  });
+}
+
+function showUpdateToast(worker) {
+  // Reuse the app's existing #toast element
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+
+  toast.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span>🔄 Update available</span>
+      <button onclick="applyUpdate()" style="
+        background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+        color:#fff;border-radius:8px;padding:3px 12px;font-size:.8rem;cursor:pointer;">
+        Refresh
+      </button>
+    </div>`;
+  toast.classList.add('show');
+
+  window._pendingSW = worker;
+}
+
+window.applyUpdate = function () {
+  if (window._pendingSW) {
+    window._pendingSW.postMessage('SKIP_WAITING');
+  }
+};
+</script>
+</body>
+</html>
+
 
