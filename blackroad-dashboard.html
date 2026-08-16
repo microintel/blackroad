@@ -2,7 +2,6 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/png" sizes="192x192"  href="/android-icon-192x192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BlackRoad — Wealth Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -515,7 +514,7 @@ footer{
   .footer-inner{ flex-direction:column; align-items:flex-start; gap:10px; }
 
   .login-card{ padding:30px 22px 24px; border-radius:20px; }
-  .avatar-wrap .avatar-menu{ position:fixed; top:auto; bottom:calc(var(--bottom-nav-h) + 10px); right:14px; left:14px; width:auto; }
+  .avatar-wrap .avatar-menu{ width:min(250px, calc(100vw - 28px)); }
 }
 
 /* ---- Bottom tab bar (native app navigation) ---- */
@@ -1862,28 +1861,10 @@ document.getElementById('logoutBtnSettings').addEventListener('click', doLogout)
 /* ============ AVATAR DROPDOWN ============ */
 const avatarBtn = document.getElementById('avatarBtn');
 const avatarMenu = document.getElementById('avatarMenu');
-const avatarWrap = avatarBtn.closest('.avatar-wrap');
-// .topbar uses backdrop-filter, which silently turns it into the
-// containing block for any position:fixed descendant. On mobile the
-// menu switches to position:fixed to act as a bottom sheet, so left
-// inside .topbar it renders relative to the topbar (off-screen)
-// instead of the viewport. Portal it to <body> on mobile so "fixed"
-// means fixed-to-viewport; put it back in the avatar-wrap on desktop
-// where it's a normal absolutely-positioned dropdown.
-function isMobileAvatarMenu(){ return window.matchMedia('(max-width:940px)').matches; }
-function placeAvatarMenu(){
-  if(isMobileAvatarMenu()){
-    if(avatarMenu.parentElement !== document.body) document.body.appendChild(avatarMenu);
-  } else if(avatarMenu.parentElement !== avatarWrap){
-    avatarWrap.appendChild(avatarMenu);
-  }
-}
 avatarBtn.addEventListener('click', (e)=>{
   e.stopPropagation();
-  placeAvatarMenu();
   avatarMenu.classList.toggle('open');
 });
-window.addEventListener('resize', placeAvatarMenu);
 document.querySelectorAll('.am-item[data-target]').forEach(el=>{
   el.addEventListener('click', ()=>{
     avatarMenu.classList.remove('open');
