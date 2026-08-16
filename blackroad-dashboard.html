@@ -704,6 +704,15 @@ footer{
 }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 .toast i{ color:var(--green); }
+.toast .toast-progress-track{
+  width:64px; height:5px; border-radius:999px; overflow:hidden;
+  background:var(--surface-2); box-shadow:var(--shadow-in-sm); flex-shrink:0; display:none;
+}
+.toast.has-progress .toast-progress-track{ display:block; }
+.toast .toast-progress-fill{
+  height:100%; width:0%; border-radius:999px; background:var(--accent);
+  transition:width .2s var(--ease);
+}
 @media (max-width:940px){ .toast{ bottom:calc(var(--bottom-nav-h) + 16px); } }
 </style>
 </head>
@@ -1691,7 +1700,14 @@ async function recalcNetWorth(){
   try{ if(typeof LendingStore !== 'undefined') lending = await LendingStore.getSummary(); }catch(e){ console.error(e); }
 
   const LOANS_VALUE = lending.liabilities; // live: bank-loan outstanding + money you owe people
-  const netWorth = stocksVal + mfVal + GOLD_VALUE + REALESTATE_VALUE + DEPOSITS_VALUE + incomeNet + lending.peopleReceivable - LOANS_VALUE;
+  // Note: incomeNet (all-time income minus expenses) is intentionally
+  // excluded here. It doesn't know when cash was moved into Stocks/MF
+  // (that's not an "expense"), so including it double-counts any money
+  // you've already invested. Net worth = actual holdings + receivables
+  // - liabilities. incomeNet is still shown separately as a cash-flow
+  // stat (Wealth Lanes tile, panel header, foot row) — just not summed
+  // into net worth.
+  const netWorth = stocksVal + mfVal + GOLD_VALUE + REALESTATE_VALUE + DEPOSITS_VALUE + lending.peopleReceivable - LOANS_VALUE;
   setNetWorth(netWorth);
   renderLoansPanel(lending);
 
@@ -1786,15 +1802,28 @@ async function safeDelete(key, shared=false){
 /* ============ TOAST ============ */
 const toastEl = document.createElement('div');
 toastEl.className = 'toast';
-toastEl.innerHTML = '<i class="bi bi-check-circle-fill"></i><span id="toastMsg"></span>';
+toastEl.innerHTML = '<i class="bi bi-check-circle-fill"></i><span id="toastMsg"></span><span class="toast-progress-track"><span class="toast-progress-fill" id="toastProgressFill"></span></span>';
 document.body.appendChild(toastEl);
 let toastTimer = null;
-function showToast(msg, icon='bi-check-circle-fill'){
+/**
+ * @param {string} msg
+ * @param {string} icon
+ * @param {number|null} percent - 0-100 to show/update a progress bar and
+ *   keep the toast pinned open; omit (or null) for a normal auto-hiding toast.
+ */
+function showToast(msg, icon='bi-check-circle-fill', percent=null){
   toastEl.querySelector('i').className = 'bi ' + icon;
   document.getElementById('toastMsg').textContent = msg;
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 2600);
+  if(percent === null){
+    toastEl.classList.remove('has-progress');
+    toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 2600);
+  }else{
+    toastEl.classList.add('has-progress');
+    document.getElementById('toastProgressFill').style.width = Math.max(0, Math.min(100, percent)) + '%';
+    // No auto-hide while a multi-step operation is still reporting progress.
+  }
 }
 
 /* ============================================================
@@ -1896,32 +1925,194 @@ swatches.forEach(s=>{
 })();
 
 /* ============================================================
-   BACKUP & RESTORE
+   BACKUP & RESTORE — full cross-database IndexedDB export/import
+   Every store, in every IndexedDB database this dashboard reads
+   (main BlackRoadDB + the sub-apps' own LendLedger, sip-compounder,
+   BlackRoad2 databases), is dumped with its exact keys/values and
+   restored the same way — no reshaping, no re-deriving. Import
+   clears each store and put()s the records straight back, so ids
+   and structure survive round-trip exactly. This dashboard is
+   normally read-only for those sub-app databases; import is the
+   one path where it writes to them, on explicit user action only.
    ============================================================ */
+// Same schema each sub-app itself creates on first open (name -> version +
+// store definitions). Import needs this because if the databases were wiped
+// (cleared site data, fresh browser, etc.) there is nothing to write into
+// until the stores exist again — indexedDB.open() alone won't recreate them.
+// Store *shapes* only (keyPath/autoIncrement/indexes) — no hardcoded absolute
+// version numbers. A hardcoded version throws VersionError (silently dropping
+// that whole database from export/import) the moment the DB's real on-disk
+// version has moved past what we guessed. Instead we open at whatever
+// version the DB is already at, and only bump +1 to add a store if it's
+// truly missing (e.g. after a full wipe).
+const BACKUP_DB_SCHEMAS = {
+  BlackRoadDB: {
+    stores: {
+      stocks:   { keyPath:'id', autoIncrement:true, indexes:[{ name:'symbol', keyPath:'symbol', unique:false }] },
+      settings: { keyPath:'id' },
+      entries:  { keyPath:'id', autoIncrement:true },
+      profiles: { keyPath:'id', autoIncrement:true },
+    }
+  },
+  LendLedger: {
+    stores: {
+      parties: { keyPath:'id', autoIncrement:true },
+      entries: { keyPath:'id', autoIncrement:true, indexes:[{ name:'partyId', keyPath:'partyId', unique:false }] },
+      loans:   { keyPath:'id', autoIncrement:true },
+    }
+  },
+  'sip-compounder': {
+    stores: {
+      settings: { keyPath:'id' },
+      entries:  { keyPath:'id', autoIncrement:true },
+      profiles: { keyPath:'id', autoIncrement:true },
+    }
+  },
+  BlackRoad2: {
+    stores: {
+      entries: { keyPath:'id', autoIncrement:true },
+    }
+  }
+};
+const BACKUP_DBS = Object.keys(BACKUP_DB_SCHEMAS);
+
+function createStoreFromDef(db, storeName, def){
+  const store = db.createObjectStore(storeName, { keyPath: def.keyPath, autoIncrement: !!def.autoIncrement });
+  (def.indexes || []).forEach((ix) => store.createIndex(ix.name, ix.keyPath, { unique: !!ix.unique }));
+}
+
+function openDbPlain(name){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(name);
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+    req.onblocked = () => reject(new Error(`"${name}" is open in another tab — close it and retry`));
+  });
+}
+
+/** Opens a backup DB at its real current version, auto-creating any of our
+ *  known stores it's missing (e.g. after a full wipe) by bumping the
+ *  version by exactly one from wherever it actually is right now. */
+async function openBackupDB(name){
+  const schema = BACKUP_DB_SCHEMAS[name];
+  const db = await openDbPlain(name);
+  const missing = Object.keys(schema.stores).filter((s) => !db.objectStoreNames.contains(s));
+  if(missing.length === 0) return db;
+  const nextVersion = db.version + 1;
+  db.close();
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(name, nextVersion);
+    req.onupgradeneeded = (e) => {
+      const udb = e.target.result;
+      missing.forEach((s) => createStoreFromDef(udb, s, schema.stores[s]));
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+    req.onblocked = () => reject(new Error(`"${name}" is open in another tab — close it and retry`));
+  });
+}
+
+/** onProgress(step, totalSteps, label) is called before each store is read. */
+async function exportAllIndexedDB(onProgress){
+  const databases = {};
+  const totalSteps = BACKUP_DBS.reduce((n, name) => n + Object.keys(BACKUP_DB_SCHEMAS[name].stores).length, 0);
+  let step = 0;
+  for(const name of BACKUP_DBS){
+    try{
+      const db = await openBackupDB(name);
+      const stores = {};
+      for(const storeName of Object.keys(BACKUP_DB_SCHEMAS[name].stores)){
+        step++;
+        if(onProgress) onProgress(step, totalSteps, `${name} / ${storeName}`);
+        stores[storeName] = db.objectStoreNames.contains(storeName)
+          ? await new Promise((resolve, reject) => {
+              const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+              req.onsuccess = () => resolve(req.result || []);
+              req.onerror = () => reject(req.error);
+            })
+          : [];
+      }
+      databases[name] = { version: db.version, stores };
+      db.close();
+    }catch(err){
+      console.warn(`Backup: skipped "${name}"`, err);
+    }
+  }
+  return databases;
+}
+
+/**
+ * Returns { restored: <records written>, skipped: [<"db.store"> not found] }.
+ * onProgress(step, totalSteps, label) is called before each store is written.
+ */
+async function importAllIndexedDB(databases, onProgress){
+  const result = { restored: 0, skipped: [] };
+  const dbEntries = Object.entries(databases || {});
+  const totalSteps = dbEntries.reduce((n, [, d]) => n + Object.keys(d.stores || {}).length, 0);
+  let step = 0;
+  for(const [dbName, dbData] of dbEntries){
+    if(!BACKUP_DB_SCHEMAS[dbName]){ result.skipped.push(dbName); continue; }
+    let db;
+    try{ db = await openBackupDB(dbName); }
+    catch(err){ console.warn(`Restore: couldn't open "${dbName}"`, err); result.skipped.push(dbName); continue; }
+    for(const [storeName, records] of Object.entries(dbData.stores || {})){
+      step++;
+      if(onProgress) onProgress(step, totalSteps, `${dbName} / ${storeName}`);
+      if(!db.objectStoreNames.contains(storeName)){
+        console.warn(`Restore: "${dbName}" has no store "${storeName}" — skipped`);
+        result.skipped.push(`${dbName}.${storeName}`);
+        continue;
+      }
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        const os = tx.objectStore(storeName);
+        os.clear();
+        (records || []).forEach((rec) => os.put(rec));
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+      result.restored += (records || []).length;
+    }
+    db.close();
+  }
+  return result;
+}
+
 function snapshotData(){
   return {
     exportedAt: new Date().toISOString(),
     app: 'BlackRoad',
-    netWorth: netWorthTarget,
+    netWorth: nwCurrent,
     categories: categories.map(c=>({ name:c.name, value:c.value, trend:c.trend })),
     allocation
   };
 }
+
 document.getElementById('exportBtn').addEventListener('click', async ()=>{
-  const data = snapshotData();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `blackroad-backup-${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-  const now = new Date().toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  document.getElementById('lastBackupText').textContent = `Last backup: ${now}`;
-  await safeSet('lastBackup', now, false);
-  showToast('Backup downloaded', 'bi-download');
+  showToast('Preparing full backup…', 'bi-hourglass-split', 0);
+  try{
+    const databases = await exportAllIndexedDB((step, total, label) => {
+      showToast(`Exporting ${label}…`, 'bi-hourglass-split', Math.round((step / total) * 100));
+    });
+    const data = Object.assign(snapshotData(), { databases });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `blackroad-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    const now = new Date().toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    document.getElementById('lastBackupText').textContent = `Last backup: ${now}`;
+    await safeSet('lastBackup', now, false);
+    showToast('Full backup downloaded', 'bi-download');
+  }catch(err){
+    console.error('Export failed', err);
+    showToast('Export failed — see console', 'bi-exclamation-triangle-fill');
+  }
 });
 
 document.getElementById('importBtn').addEventListener('click', ()=>{
@@ -1931,11 +2122,34 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = ()=>{
+  reader.onload = async ()=>{
     try{
-      JSON.parse(reader.result);
-      showToast('Data restored from backup', 'bi-check-circle-fill');
+      const data = JSON.parse(reader.result);
+      if(!data || typeof data !== 'object') throw new Error('Empty or malformed file');
+
+      let importResult = { restored: 0, skipped: [] };
+      if(data.databases){
+        showToast('Restoring data…', 'bi-hourglass-split', 0);
+        importResult = await importAllIndexedDB(data.databases, (step, total, label) => {
+          showToast(`Restoring ${label}…`, 'bi-hourglass-split', Math.round((step / total) * 100));
+        });
+      }
+      if(typeof data.netWorth === 'number') setNetWorth(data.netWorth);
+
+      // Re-pull every panel straight from the just-restored IndexedDB data
+      if(typeof refreshStocksSummary === 'function') await refreshStocksSummary();
+      if(typeof refreshMutualFundsSummary === 'function') await refreshMutualFundsSummary();
+      if(typeof refreshIncomeSummary === 'function') await refreshIncomeSummary();
+      if(typeof recalcNetWorth === 'function') await recalcNetWorth();
+
+      if(importResult.restored === 0 && data.databases){
+        console.warn('Restore: nothing was written', importResult.skipped);
+        showToast('Nothing to restore — backup had no records', 'bi-exclamation-triangle-fill');
+      }else{
+        showToast(`Restored ${importResult.restored} record${importResult.restored===1?'':'s'} from backup`, 'bi-check-circle-fill');
+      }
     }catch(err){
+      console.error('Restore failed', err);
       showToast('Invalid backup file', 'bi-exclamation-triangle-fill');
     }
   };
