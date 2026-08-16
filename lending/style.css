@@ -73,9 +73,9 @@ html[data-theme="brass"]{
   --accent2-bg: rgba(217,167,90,0.14);
 }
 html[data-theme="paper"]{
-  --base:        #e9e7e0;
-  --base-raised: #f0eee7;
-  --card:        #f0eee7;
+  --base:        #EDE6D6;
+  --base-raised: #F7FCFE;
+  --card:        #F7FCFE;
   --card-2:      #e2dfd6;
   --line:        rgba(20,20,20,0.11);
   --line-soft:   rgba(20,20,20,0.07);
