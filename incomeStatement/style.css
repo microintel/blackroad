@@ -13,9 +13,9 @@
   /* surfaces — one tonal ladder, low contrast steps.
      Kept off true black/white on purpose: a mid-tone graphite (dark)
      and a warm parchment (light) both read calmer than the extremes. */
-  --base:        #22252c;   /* app background */
-  --base-raised: #282c34;   /* sidebar / nav background */
-  --card:        #2f333c;   /* entry cards, panels, dialogs */
+  --base:        #010409;   /* app background */
+  --base-raised: #0d1017;   /* sidebar / nav background */
+  --card:        #0d1017;   /* entry cards, panels, dialogs */
   --card-2:      #383d47;   /* inputs, chips, hovered rows */
   --line:        rgba(255,255,255,0.09);
   --line-soft:   rgba(255,255,255,0.06);
@@ -73,9 +73,9 @@ html[data-theme="brass"]{
   --accent2-bg: rgba(217,167,90,0.14);
 }
 html[data-theme="paper"]{
-  --base:        #e9e7e0;
-  --base-raised: #f0eee7;
-  --card:        #f0eee7;
+  --base:        #EDE6D6;
+  --base-raised: #F7FCFE;
+  --card:        #F7FCFE;
   --card-2:      #e2dfd6;
   --line:        rgba(20,20,20,0.11);
   --line-soft:   rgba(20,20,20,0.07);
