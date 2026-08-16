@@ -17,23 +17,44 @@
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
-  /* ---- Mobile: stack the stats panels as one connected card ---- */
+  /* ---- Mobile: stack the stats panels as separate cards with breathing room ---- */
   @media (max-width: 640px) {
     .stats-shell #statsBody{
       display:flex; flex-direction:column;
+      gap:16px;
     }
     .stats-shell #statsBody .panel{
-      border-radius:0;
       margin:0;
-      border-left:none; border-right:none; border-top:none;
-      border-bottom:1px solid var(--line-soft, rgba(255,255,255,0.08));
+      border-radius:16px;
     }
-    .stats-shell #statsBody .panel:first-of-type{
-      border-top-left-radius:16px; border-top-right-radius:16px;
+  }
+
+  /* ---- Desktop / tablet: use a grid instead of one long stack, with real gaps ---- */
+  @media (min-width: 641px) {
+    .stats-shell #statsBody{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:20px;
     }
-    .stats-shell #statsBody .panel:last-of-type{
-      border-bottom-left-radius:16px; border-bottom-right-radius:16px;
-      border-bottom:none;
+    .stats-shell #statsBody .panel{
+      margin:0; /* the grid gap handles spacing now */
+    }
+    /* Summary + ratios share the top row */
+    .stats-shell #statsBody section.panel:nth-of-type(1){ grid-column: 1; }
+    .stats-shell #statsBody section.panel:nth-of-type(2){ grid-column: 2; }
+    /* Monthly trend chart wants the full width */
+    .stats-shell #statsBody section.panel:nth-of-type(3){ grid-column: 1 / -1; }
+    /* Expense category gauges: full width, last */
+    .stats-shell #statsBody section.panel:nth-of-type(4){ grid-column: 1 / -1; }
+  }
+
+  /* On wide screens let the category cards use two columns instead of one long list */
+  @media (min-width: 900px) {
+    .cat-gauge-grid{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      align-items:start;
+      gap:14px;
     }
   }
 
@@ -93,6 +114,9 @@
 
 <!-- ============ LEFT NAVIGATION (persistent, same on every page) ============ -->
 <nav class="side-nav" aria-label="Main menu">
+  <a href="../blackroad-dashboard.html" class="side-nav-back" title="Back to BlackRoad">
+    <i class="bi bi-arrow-left"></i><span>Back to BlackRoad</span>
+  </a>
   <div class="side-nav-brand">
     <span class="mark"></span>
     <h1>BlackRoad</h1>
@@ -123,9 +147,9 @@
     <button type="button" class="side-nav-item mobile-tab-btn" id="mobileToolsToggle">
       <span class="side-nav-ico"><i class="bi bi-tools"></i></span><span class="side-nav-label">Tools</span>
     </button>
-    <button type="button" class="side-nav-item mobile-tab-btn" id="mobileAccountToggle">
-      <span class="side-nav-ico"><i class="bi bi-person-circle"></i></span><span class="side-nav-label">Account</span>
-    </button>
+    <a href="../blackroad-dashboard.html" class="side-nav-item mobile-tab-btn" id="mobileHomeLink">
+      <span class="side-nav-ico"><i class="bi bi-house-door-fill"></i></span><span class="side-nav-label">Home</span>
+    </a>
   </div>
 
   <!-- ---- Tools sheet: mobile only, opened from the "Tools" tab ---- -->
@@ -137,10 +161,33 @@
       <a href="jumpto.html" class="tool-item"><span class="side-nav-ico"><i class="bi bi-calendar3"></i></span> Jump to</a>
       <a href="backup.html" class="tool-item"><span class="side-nav-ico"><i class="bi bi-cloud-arrow-down-fill"></i></span> Import / Export</a>
     </div>
+    <div class="side-nav-label-hdr" style="margin-top:14px;">Themes</div>
+    <div class="side-nav-themes">
+      <button class="swatch" data-theme="paper" title="White">
+        <span class="swatch-ico ico-paper"><i class="bi bi-sun-fill"></i></span>
+        <span class="side-nav-label">White</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+      <button class="swatch" data-theme="soft" title="Noir">
+        <span class="swatch-ico ico-soft"><i class="bi bi-moon-stars-fill"></i></span>
+        <span class="side-nav-label">Noir</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+      <button class="swatch" data-theme="dusk" title="Dusk">
+        <span class="swatch-ico ico-dusk"><i class="bi bi-cloud-moon-fill"></i></span>
+        <span class="side-nav-label">Dusk</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+      <button class="swatch" data-theme="brass" title="Brass Ledger">
+        <span class="swatch-ico ico-brass"><i class="bi bi-gem"></i></span>
+        <span class="side-nav-label">Brass Ledger</span>
+        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
+      </button>
+    </div>
     <div class="side-nav-footer"><span class="side-nav-note">More tools are on the way</span></div>
   </div>
 
-  <!-- ---- Account section: theme swatches. Inline on desktop, opened from the "Account" tab on mobile ---- -->
+  <!-- ---- Account section: theme swatches. Shown inline on desktop ---- -->
   <div class="side-nav-section" id="accountSheet">
     <div class="side-nav-label-hdr">Account</div>
     <div class="side-nav-themes">
@@ -199,14 +246,6 @@
       <div class="ratio-grid" id="ratioGrid"></div>
     </section>
 
-    <!-- ---- Expense category gauges ---- -->
-    <section class="panel">
-      <h2>Expense category gauges</h2>
-      <p class="score-desc" style="margin:-6px 0 12px;">Tap a category to see its transactions, highest to lowest.</p>
-      <div class="cat-gauge-grid" id="catGaugeGrid"></div>
-      <div class="chart-empty" id="catGaugeEmpty" style="display:none;">No expenses logged yet</div>
-    </section>
-
     <!-- ---- Monthly income / expense / balance ---- -->
     <section class="panel">
       <h2>Income, expense &amp; balance by month</h2>
@@ -218,6 +257,14 @@
         <canvas id="monthlyChart"></canvas>
       </div>
       <div class="chart-empty" id="monthlyChartEmpty" style="display:none;">Not enough data yet</div>
+    </section>
+
+    <!-- ---- Expense category gauges ---- -->
+    <section class="panel">
+      <h2>Expense category gauges</h2>
+      <p class="score-desc" style="margin:-6px 0 12px;">Tap a category to see its transactions, highest to lowest.</p>
+      <div class="cat-gauge-grid" id="catGaugeGrid"></div>
+      <div class="chart-empty" id="catGaugeEmpty" style="display:none;">No expenses logged yet</div>
     </section>
 
   </div>

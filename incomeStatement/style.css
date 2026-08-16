@@ -151,6 +151,10 @@ body{ padding-left: var(--rail-w); }
   z-index:165;
 }
 
+.side-nav-back{
+  display:none;
+}
+
 .side-nav-brand{
   display:flex;
   align-items:center;
@@ -249,6 +253,21 @@ body{ padding-left: var(--rail-w); }
 
 @media (min-width: 900px){
   .side-nav{ align-items:stretch; padding:26px 16px; }
+  .side-nav-back{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 6px;
+    margin-bottom:8px;
+    font-size:0.78rem;
+    font-weight:600;
+    color:var(--text-dim);
+    text-decoration:none;
+    border-radius:10px;
+    transition:0.12s;
+  }
+  .side-nav-back:hover{ background:var(--card-2); color:var(--text); }
+  .side-nav-back i{ font-size:0.92rem; }
   .side-nav-brand{ justify-content:flex-start; padding-left:6px; }
   .side-nav-brand h1{ display:block; }
   .side-nav-item{ justify-content:flex-start; }
@@ -303,10 +322,12 @@ body{ padding-left: var(--rail-w); }
 
 /* ---------- Mobile: bottom tab bar navigation ----------
    Below 900px the left rail becomes a fixed bottom tab bar with 4
-   tabs: Dashboard, Add income, Tools and Account. Tools and Account
-   open as floating sheets above the bar; Search / Jump to / Import
-   & Export move inside the Tools sheet on mobile (they stay as
-   regular rail links on desktop, where .nav-desktop-only is ignored). */
+   tabs: Dashboard, Add income, Tools and Home. Tools opens as a
+   floating sheet above the bar (Search / Jump to / Import & Export
+   and the theme swatches all live inside it on mobile, while they
+   stay as regular inline rail items/sections on desktop, where
+   .nav-desktop-only is ignored); Home links straight back to the
+   BlackRoad dashboard. */
 @media (max-width: 899px){
   body{ padding-left:0; padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
 

@@ -170,16 +170,15 @@ function initSideNav() {
   });
 }
 
-/* ---------- Mobile bottom-tab-bar sheets (Tools / Account) ----------
-   On phones, Search / Jump to / Import & Export live behind the
-   "Tools" tab and the theme swatches live behind the "Account" tab
-   in the bottom bar, instead of sitting inline in the rail. Both
-   open as small floating sheets with a tap-out backdrop; opening
-   one closes the other. */
+/* ---------- Mobile bottom-tab-bar sheet (Tools) ----------
+   On phones, Search / Jump to / Import & Export — and the theme
+   swatches — live behind the "Tools" tab in the bottom bar, instead
+   of sitting inline in the rail. The old "Account" tab is now a
+   plain link back to the BlackRoad dashboard (see initMobileAddIncomeTab
+   area / mobileHomeLink in the markup), so it no longer opens a sheet. */
 function initMobileSheets() {
   const groups = [
     { toggle: document.getElementById("mobileToolsToggle"), sheet: document.getElementById("toolsSheet") },
-    { toggle: document.getElementById("mobileAccountToggle"), sheet: document.getElementById("accountSheet") },
   ].filter((g) => g.toggle && g.sheet);
   if (!groups.length) return;
 
