@@ -10,13 +10,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root{
-  /* surfaces — one tonal ladder, low contrast steps.
-     Kept off true black/white on purpose: a mid-tone graphite (dark)
-     and a warm parchment (light) both read calmer than the extremes. */
-  --base:        #22252c;   /* app background */
-  --base-raised: #282c34;   /* sidebar / nav background */
-  --card:        #2f333c;   /* entry cards, panels, dialogs */
-  --card-2:      #383d47;   /* inputs, chips, hovered rows */
+  /* surfaces — two-tone palette pulled directly from the reference:
+     a near-black app background with sidebar/cards/panels one shade
+     up, so sections read as distinct "cut" surfaces against the base. */
+  --base:        #010409;   /* app background */
+  --base-raised: #0d1017;   /* sidebar / nav background */
+  --card:        #0d1017;   /* entry cards, panels, dialogs */
+  --card-2:      #191c23;   /* inputs, chips, hovered rows */
   --line:        rgba(255,255,255,0.09);
   --line-soft:   rgba(255,255,255,0.06);
 
