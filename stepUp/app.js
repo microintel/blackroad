@@ -262,6 +262,7 @@ function syncSwipeDots(pageId) {
 
 document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (!btn.dataset.page) return; // external link (e.g. BlackRoad tab) — let the browser navigate normally
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
@@ -793,9 +794,9 @@ function renderFundProjectionSection(series) {
       <span class="fund-proj-leg-text">${label}<br><strong>${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%/yr</strong></span>
     </div>`;
   legendEl.innerHTML =
-    row('#4ADE80', 'Optimistic · best year on record', projection.bestPct) +
-    row('#E8B84B', 'Expected · average year',          projection.avgPct) +
-    row('#F2545B', 'Pessimistic · worst year on record', projection.worstPct);
+    row('#3ecf8e', 'Optimistic · best year on record', projection.bestPct) +
+    row('#e3ac54', 'Expected · average year',          projection.avgPct) +
+    row('#f27a8a', 'Pessimistic · worst year on record', projection.worstPct);
 }
 
 document.getElementById('fund-proj-horizon')?.addEventListener('click', e => {

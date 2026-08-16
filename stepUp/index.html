@@ -22,7 +22,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -33,6 +33,9 @@
 <!-- ═══════════ HEADER ═══════════ -->
 <header class="app-header">
   <div class="app-header-brand">
+    <a href="../blackroad-dashboard.html" class="app-header-back" title="Back to BlackRoad" target="_blank" rel="noopener">
+      <i class="bi bi-arrow-left-circle"></i><span>BlackRoad</span>
+    </a>
   <!--  <div class="brand-logo">
      <i class="bi bi-graph-up-arrow"></i> 
     </div>-->
@@ -57,21 +60,21 @@
     </div>
     <div class="donut-legend">
     <div class="donut-leg-item">
-    <span class="donut-leg-dot" style="background:#6366f1"></span>
+    <span class="donut-leg-dot" style="background:var(--indigo)"></span>
     <div>
     <div class="donut-leg-label">Invested</div>
     <div class="donut-leg-val" id="donut-invested">₹0</div>
     </div>
     </div>
     <div class="donut-leg-item">
-    <span class="donut-leg-dot" style="background:#10b981"></span>
+    <span class="donut-leg-dot" style="background:var(--green)"></span>
     <div>
     <div class="donut-leg-label">Profit</div>
     <div class="donut-leg-val" id="donut-profit">₹0</div>
     </div>
     </div>
     <div class="donut-leg-item">
-    <span class="donut-leg-dot" style="background:#f43f5e"></span>
+    <span class="donut-leg-dot" style="background:var(--red)"></span>
     <div>
     <div class="donut-leg-label">Loss</div>
     <div class="donut-leg-val" id="donut-loss">₹0</div>
@@ -793,6 +796,10 @@
     <i class="bi bi-person nav-icon-outline"></i>
     <span>Account</span>
   </button>
+  <a class="nav-item nav-item-external" href="../blackroad-dashboard.html" target="_blank" rel="noopener">
+    <i class="bi bi-grid-1x2"></i>
+    <span>BlackRoad</span>
+  </a>
 </nav>
 
 <!-- Edit Modal -->
@@ -853,7 +860,7 @@
   function drawParticles() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    const color = isDark ? '99,102,241' : '99,102,241';
+    const color = isDark ? '91,157,255' : '91,157,255';
 
     particles.forEach(p => {
       p.x += p.vx; p.y += p.vy;

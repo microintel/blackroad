@@ -1,43 +1,45 @@
 /* ══════════════════════════════════════════════════════
    CSS Variables — Dark (default)
+   Palette matches the Lending (LendLedger) app's "Soft" theme —
+   calm graphite surfaces, one considered accent per role.
 ══════════════════════════════════════════════════════ */
 :root {
-  /* BlackRoad palette — gold-accent neumorphic dark */
-  --gold:        #E8B84B;
-  --gold-dim:    #B8912F;
-  --paleGold:    #F0D48A;
+  /* Lending palette — graphite dark, soft-azure accent */
+  --gold:        #e3ac54;
+  --gold-dim:    #b8862a;
+  --paleGold:    #f0d48a;
 
-  --bg:          #1B1E24;
-  --bg2:         #1B1E24;
-  --surface:     #1B1E24;
-  --surface2:    #20242C;
-  --surface3:    #262B35;
-  --border:      rgba(255,255,255,.06);
-  --border2:     rgba(255,255,255,.12);
-  --text:        #F2F0EA;
-  --text2:       #9BA1AC;
-  --muted:       #5C6270;
+  --bg:          #22252c;
+  --bg2:         #22252c;
+  --surface:     #22252c;
+  --surface2:    #282c34;
+  --surface3:    #383d47;
+  --border:      rgba(255,255,255,.09);
+  --border2:     rgba(255,255,255,.14);
+  --text:        #f2f3f5;
+  --text2:       #9297a1;
+  --muted:       #5a5f68;
 
-  --indigo:      #E8B84B;   /* accent — was red, now BlackRoad gold */
-  --indigo-soft: #B8912F;
-  --indigo-dim:  #2a2308;
-  --green:       #4ADE80;
-  --green-dim:   #0d2417;
-  --red:         #F2545B;
-  --red-dim:     #2a0d10;
-  --amber:       #F0D48A;
-  --amber-dim:   #2a2413;
-  --purple:      #A78BFA;
+  --indigo:      #5b9dff;   /* accent — Lending's soft azure */
+  --indigo-soft: #4a80d1;
+  --indigo-dim:  #16223a;
+  --green:       #3ecf8e;
+  --green-dim:   #0f2a20;
+  --red:         #f27a8a;
+  --red-dim:     #301419;
+  --amber:       #e3ac54;
+  --amber-dim:   #2b2011;
+  --purple:      #a78bfa;
   --purple-dim:  #201a38;
-  --blue:        #60A5FA;
-  --blue-dim:    #0e1c30;
+  --blue:        #5b9dff;
+  --blue-dim:    #101f33;
 
-  --mono:        'JetBrains Mono', 'Fira Mono', monospace;
+  --mono:        'IBM Plex Mono', 'Fira Mono', monospace;
   --sans:        'Inter', system-ui, sans-serif;
-  --display:     'Outfit', 'Inter', system-ui, sans-serif;
-  --radius:      18px;
-  --radius-sm:   12px;
-  --radius-xs:   8px;
+  --display:     'Inter', system-ui, sans-serif;
+  --radius:      20px;
+  --radius-sm:   14px;
+  --radius-xs:   10px;
   --nav-h:       70px;
   --safe-b:      env(safe-area-inset-bottom, 0px);
   --ease:        cubic-bezier(.4,0,.2,1);
@@ -47,36 +49,42 @@
 h1, h2, h3, h4, .display { font-family: var(--display); }
 
 /* ══════════════════════════════════════════════════════
-   Light Theme — warm off-white, easy on the eyes
+   Light Theme — matches the Lending app's "Paper" theme
 ══════════════════════════════════════════════════════ */
 html[data-theme="light"] {
-  /* BlackRoad palette — warm parchment light theme */
-  --bg:          #EAE7DE;
-  --bg2:         #E2DED2;
-  --surface:     #EAE7DE;
-  --surface2:    #E2DED2;
-  --surface3:    #D9D3C4;
+  /* Lending "Paper" palette — warm parchment light theme */
+  --bg:          #e9e7e0;
+  --bg2:         #e2dfd6;
+  --surface:     #e9e7e0;
+  --surface2:    #f0eee7;
+  --surface3:    #e2dfd6;
 
   /* Borders */
-  --border:      rgba(30,25,10,.08);
-  --border2:     rgba(30,25,10,.14);
+  --border:      rgba(20,20,20,.11);
+  --border2:     rgba(20,20,20,.16);
 
   /* Text */
-  --text:        #171A1F;
-  --text2:       #5B6270;
-  --muted:       #84808F;
+  --text:        #17181a;
+  --text2:       #62666e;
+  --muted:       #9a9ea5;
 
-  /* Accent — BlackRoad gold, deepened for light backgrounds */
-  --indigo:      #B8862A;
-  --indigo-soft: #96701F;
+  /* Accent — Lending's Paper-theme blue */
+  --indigo:      #2f6fe0;
+  --indigo-soft: #2558b0;
+
+  /* Role colors, deepened for light backgrounds */
+  --green:       #1c9a5b;
+  --red:         #d54b5a;
+  --amber:       #a97a1c;
+  --blue:        #2f6fe0;
 
   /* Accent dim backgrounds */
-  --indigo-dim:  #F5EAD2;
-  --green-dim:   #E4F5EB;
-  --red-dim:     #FCE8EA;
-  --amber-dim:   #FBF2DC;
-  --purple-dim:  #F0ECFC;
-  --blue-dim:    #E7F1FE;
+  --indigo-dim:  #e7f0fd;
+  --green-dim:   #e4f5eb;
+  --red-dim:     #fce8ea;
+  --amber-dim:   #fbf2dc;
+  --purple-dim:  #f0ecfc;
+  --blue-dim:    #e7f1fe;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -130,7 +138,7 @@ html[data-theme="light"] #particle-canvas { opacity: .35; }
   padding: 0 16px;
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 100;
-  background: rgba(7,9,15,.88);
+  background: rgba(34,37,44,.88);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -143,6 +151,29 @@ html[data-theme="light"] .app-header {
 
 .app-header-brand {
   display: flex; align-items: center; gap: 10px;
+}
+
+.app-header-back {
+  display: none; /* shown on desktop only, see @media below */
+  align-items: center; gap: 6px;
+  padding: 6px 10px 6px 8px;
+  border-radius: var(--radius-xs);
+  color: var(--text2);
+  text-decoration: none;
+  font-size: .78rem; font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  transition: color .15s var(--ease), background .15s var(--ease), border-color .15s var(--ease);
+}
+.app-header-back .bi { font-size: 1rem; }
+.app-header-back:hover {
+  color: var(--indigo);
+  border-color: var(--indigo);
+  background: var(--indigo-dim);
+}
+
+@media (min-width: 769px) {
+  .app-header-back { display: flex; }
 }
 
 .brand-logo {
@@ -174,7 +205,7 @@ html[data-theme="light"] .app-header {
   position: fixed; bottom: 0; left: 0; right: 0;
   height: calc(var(--nav-h) + var(--safe-b));
   padding-bottom: var(--safe-b);
-  background: rgba(7,9,15,.92);
+  background: rgba(34,37,44,.92);
   border-top: 1px solid var(--border);
   display: flex; z-index: 200;
   backdrop-filter: blur(24px) saturate(180%);
@@ -194,6 +225,7 @@ html[data-theme="light"] .bottom-nav {
   letter-spacing: .05em; text-transform: uppercase;
   transition: color .2s var(--ease); padding: 6px 4px;
   position: relative;
+  text-decoration: none;
 }
 
 .nav-item .bi { font-size: 1.25rem; display: block; }
@@ -1532,9 +1564,16 @@ html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
     background: var(--indigo);
     transform: scale(1.4);
   }
+
+  /* Six tabs now share the bar (incl. BlackRoad) — trim icon/button
+     size a touch so it doesn't feel packed edge-to-edge. */
+  .nav-item { padding: 6px 2px; }
+  .nav-item .bi { font-size: 1.08rem; }
+  .nav-add-btn { width: 38px; height: 38px; font-size: 1.05rem; }
 }
 @media (min-width: 769px) {
   .swipe-dots { display: none; }
+  .nav-item-external { display: none; } /* desktop has the header link instead */
 }
 
 /* ══════════════════════════════════════════════════════

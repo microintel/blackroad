@@ -72,7 +72,7 @@ export function renderLineChart(calc) {
       datasets: [{
         label:                 'Portfolio Value',
         data:                  fullValues,
-        borderColor:           positive ? '#4ADE80' : '#F2545B',
+        borderColor:           positive ? '#3ecf8e' : '#f27a8a',
         borderWidth:           3,
         tension:               0.45,
         pointRadius:           0,
@@ -149,7 +149,7 @@ export function renderOverviewChart() {
         segment: {
           borderColor: ctx =>
             (ctx.p0DataIndex >= selRange.min && ctx.p1DataIndex <= selRange.max)
-              ? '#60A5FA' : grey,
+              ? '#5b9dff' : grey,
         },
       }],
     },
@@ -258,9 +258,9 @@ export function renderDonutChart(invested, pnl) {
                : isLoss   ? [invested, loss]
                :             [invested, profit || 0.001];
 
-  const colors = isEmpty  ? ['#20242C']
-               : isLoss   ? ['#60A5FA', '#F2545B']
-               :             ['#60A5FA', '#4ADE80'];
+  const colors = isEmpty  ? ['#282c34']
+               : isLoss   ? ['#5b9dff', '#f27a8a']
+               :             ['#5b9dff', '#3ecf8e'];
 
   const tooltipLabels = isLoss ? ['Invested', 'Loss'] : ['Invested', 'Profit'];
 
@@ -319,7 +319,7 @@ export function renderGrowthChart(periods) {
   const labels = periods.map(p => p.label);
   const values = periods.map(p => +p.growth.toFixed(2));
   const pcts   = periods.map(p => p.growthPct);
-  const colors = values.map(v => (v >= 0 ? '#4ADE80' : '#F2545B'));
+  const colors = values.map(v => (v >= 0 ? '#3ecf8e' : '#f27a8a'));
 
   makeChart('chart-growth', {
     type: 'bar',
@@ -383,7 +383,7 @@ export function renderMonthlyLineChart(periods) {
         {
           label:            'Portfolio Value',
           data:             values,
-          borderColor:      positive ? '#4ADE80' : '#F2545B',
+          borderColor:      positive ? '#3ecf8e' : '#f27a8a',
           backgroundColor:  positive ? 'rgba(0,200,83,.15)' : 'rgba(255,82,82,.15)',
           borderWidth:      3,
           tension:          0.35,
@@ -394,7 +394,7 @@ export function renderMonthlyLineChart(periods) {
         {
           label:            'Invested',
           data:             invested,
-          borderColor:      '#9BA1AC',
+          borderColor:      '#9297a1',
           borderDash:       [6, 4],
           borderWidth:      1.5,
           tension:          0,
@@ -439,7 +439,7 @@ export function renderFundHistoryChart(series) {
   fundHistLabels = series.map(e => e.date);
   const values   = series.map(e => e.growth);
   const positive = values[values.length - 1] >= values[0];
-  const glow     = positive ? '#4ADE80' : '#F2545B';
+  const glow     = positive ? '#3ecf8e' : '#f27a8a';
 
   makeChart('chart-fund-history', {
     type: 'line',
@@ -543,9 +543,9 @@ export function renderFundProjectionChart(projection) {
     data: {
       labels: fundProjLabels,
       datasets: [
-        line(projection.optimistic,  '#4ADE80', 'Optimistic'),
-        line(projection.expected,    '#E8B84B', 'Expected'),
-        line(projection.pessimistic, '#F2545B', 'Pessimistic'),
+        line(projection.optimistic,  '#3ecf8e', 'Optimistic'),
+        line(projection.expected,    '#e3ac54', 'Expected'),
+        line(projection.pessimistic, '#f27a8a', 'Pessimistic'),
       ],
     },
     options: {
