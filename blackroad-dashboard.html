@@ -279,6 +279,24 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 }
 .donut-center small{ font-size:9.5px; color:var(--text-faint); letter-spacing:.5px; }
 .donut-center b{ font-size:15px; font-family:'JetBrains Mono',monospace; }
+/* Docked tooltip — replaces Chart.js's floating tooltip, which on a
+   small ring like this always renders on top of .donut-center and
+   becomes unreadable. This sits in a fixed spot below the donut
+   instead, so a tap/hover never covers the ring or the center total. */
+.donut-tooltip{
+  display:flex; align-items:center; gap:8px;
+  margin-top:14px; padding:10px 14px;
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  box-shadow:var(--shadow-in-sm);
+  font-size:12.5px; color:var(--text);
+  opacity:0; transform:translateY(-4px);
+  transition:opacity .15s var(--ease), transform .15s var(--ease);
+  pointer-events:none;
+}
+.donut-tooltip.visible{ opacity:1; transform:translateY(0); }
+.donut-tooltip .dot{ width:9px;height:9px;border-radius:3px; flex-shrink:0; }
+.donut-tooltip b{ margin-left:auto; font-family:'JetBrains Mono',monospace; }
 .legend{ display:flex; flex-direction:column; gap:9px; }
 .legend-item{ display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--text-dim); }
 .legend-dot{ width:9px;height:9px;border-radius:3px; flex-shrink:0; }
@@ -841,6 +859,7 @@ footer{
               </div>
               <div class="legend" id="legend"></div>
             </div>
+            <div class="donut-tooltip" id="donutTooltip"></div>
           </div>
         </div>
 
@@ -1497,11 +1516,28 @@ const assetChart = new Chart(document.getElementById('assetChart'), {
     plugins: {
       legend: { display: false },
       tooltip: {
-        callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed}%` }
+        enabled: false, // default floating tooltip overlaps donut-center on this ring size — docked below instead
+        external: renderDonutTooltip
       }
     }
   }
 });
+
+/* Docked tooltip renderer — reads Chart.js's tooltip model but paints
+   it into the fixed #donutTooltip element instead of floating it over
+   the canvas, so it never collides with the center total. */
+const donutTooltipEl = document.getElementById('donutTooltip');
+function renderDonutTooltip(context){
+  const tooltipModel = context.tooltip;
+  if(!tooltipModel || tooltipModel.opacity === 0 || !tooltipModel.dataPoints || !tooltipModel.dataPoints.length){
+    donutTooltipEl.classList.remove('visible');
+    return;
+  }
+  const dp = tooltipModel.dataPoints[0];
+  const color = assetChart.data.datasets[0].backgroundColor[dp.dataIndex];
+  donutTooltipEl.innerHTML = `<span class="dot" style="background:${color}"></span>${dp.label}<b>${dp.parsed}%</b>`;
+  donutTooltipEl.classList.add('visible');
+}
 
 const legend = document.getElementById('legend');
 /* Re-render the donut + legend from a fresh set of {label, pct, color} items.
@@ -1700,18 +1736,19 @@ async function recalcNetWorth(){
   try{ if(typeof LendingStore !== 'undefined') lending = await LendingStore.getSummary(); }catch(e){ console.error(e); }
 
   const LOANS_VALUE = lending.liabilities; // live: bank-loan outstanding + money you owe people
-  // Note: incomeNet (all-time income minus expenses) is intentionally
-  // excluded here. It doesn't know when cash was moved into Stocks/MF
-  // (that's not an "expense"), so including it double-counts any money
-  // you've already invested. Net worth = actual holdings + receivables
-  // - liabilities. incomeNet is still shown separately as a cash-flow
-  // stat (Wealth Lanes tile, panel header, foot row) — just not summed
-  // into net worth.
+  // Cash & Bank = incomeNet (all-time income minus expenses). This is
+  // real, spendable money you're holding that hasn't been assigned to
+  // any other tracked asset — so it belongs in Net Worth like any other
+  // asset. (If you later track "moved X into Stocks" as its own
+  // transaction type, subtract that here to avoid double-counting —
+  // for now Income & Expenses has no such linkage, so the full surplus
+  // counts as cash on hand.)
   //
   // Every figure below (hero total, donut, foot row) is now built from
   // this SAME `items` list, so Total Assets − Total Liabilities always
   // equals the hero Net Worth exactly — no more drift between them.
   const items = [
+    { label:'Cash & Bank',           amount:incomeNet,                 color:'#22D3EE'        },
     { label:'Real Estate',           amount:REALESTATE_VALUE,        color:'var(--blue)'    },
     { label:'Mutual Funds',          amount:mfVal,                    color:'var(--gold)'   },
     { label:'Stocks',                amount:stocksVal,                color:'var(--green)'  },
@@ -1726,8 +1763,12 @@ async function recalcNetWorth(){
 
   // Live asset-allocation donut — every rupee counted in rawTotalAssets
   // above also gets a slice here, so the pie always sums to 100%.
-  const totalAssets = rawTotalAssets || 1; // avoid /0 in percentages
-  renderAllocation(items.map(i => ({ ...i, pct: +(i.amount / totalAssets * 100).toFixed(1) })));
+  // Negative amounts (e.g. a cash shortfall) still count toward the
+  // totals above but can't be drawn as a pie slice, so they're floored
+  // at 0 for the chart/legend only.
+  const chartItems = items.map(i => ({ ...i, amount: Math.max(0, i.amount) }));
+  const totalAssets = chartItems.reduce((s,i)=> s + i.amount, 0) || 1; // avoid /0 in percentages
+  renderAllocation(chartItems.map(i => ({ ...i, pct: +(i.amount / totalAssets * 100).toFixed(1) })));
 
   // Hero footrow + donut center total
   const footAssets = document.getElementById('footTotalAssets');
