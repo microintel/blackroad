@@ -124,7 +124,14 @@
   <div class="ledger-toolbar">
     <div class="ledger-head">
       <h2>Statement</h2>
-      <button class="add-income-btn top-add-income-btn" id="addIncomeBtn" type="button"><i class="bi bi-plus-lg"></i> Add income</button>
+      <div class="ledger-head-actions">
+        <div class="date-filter update-date-field" id="updateDateField" title="Income & Expenditure — updated last date">
+          <i class="bi bi-clock-history"></i>
+          <span class="update-date-label">Updated</span>
+          <input type="date" id="updateDateInput" aria-label="Income &amp; Expenditure updated last date">
+        </div>
+        <button class="add-income-btn top-add-income-btn" id="addIncomeBtn" type="button"><i class="bi bi-plus-lg"></i> Add income</button>
+      </div>
     </div>
 
     <!-- ---- Date range filter + collapse-all (large-ledger controls) ---- -->
@@ -139,10 +146,6 @@
       <button class="ghost-btn" id="collapseAllBtn" type="button"><i class="bi bi-arrows-collapse"></i> Collapse all</button>
       <a class="ghost-btn" href="search.html"><i class="bi bi-search"></i> Search</a>
       <a class="ghost-btn" href="jumpto.html"><i class="bi bi-calendar3"></i> Jump to</a>
-      <div class="date-filter" id="updateDateField" title="Income & Expenditure — updated last date">
-        <i class="bi bi-clock-history"></i>
-        <input type="date" id="updateDateInput" aria-label="Income &amp; Expenditure updated last date">
-      </div>
     </div>
 
     <div class="search-status" id="searchStatus" style="display:none;"></div>

@@ -7,11 +7,14 @@
    future page) stay in sync.
    Storage: IndexedDB, database "BlackRoad2"
    Store:   "entries"  { id, income, date, from, expense, balance, transactions:[] }
-   Store:   "meta"     out-of-line key/value store, e.g. key "updateDate"
+   Store:   "meta"     { key, value } — e.g. { key:"updateDate", value:"2026-08-17" }
+                       (keyPath "key", so it round-trips through the
+                       whole-app backup/export on the main dashboard
+                       the same way every other store does)
 ========================================================= */
 
 const DB_NAME = "BlackRoad2";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE = "entries";
 const META_STORE = "meta";
 
@@ -27,9 +30,12 @@ function openDB() {
       if (!_db.objectStoreNames.contains(STORE)) {
         _db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
       }
-      if (!_db.objectStoreNames.contains(META_STORE)) {
-        _db.createObjectStore(META_STORE);
+      // recreate "meta" with an in-line keyPath (older builds created it as
+      // an out-of-line store, which can't be dumped by the generic backup)
+      if (_db.objectStoreNames.contains(META_STORE)) {
+        _db.deleteObjectStore(META_STORE);
       }
+      _db.createObjectStore(META_STORE, { keyPath: "key" });
     };
     req.onsuccess = (e) => resolve(e.target.result);
     req.onerror = (e) => reject(e.target.error);
@@ -86,14 +92,22 @@ const UPDATE_DATE_KEY = "updateDate";
 function getUpdateDate() {
   return new Promise((resolve, reject) => {
     const req = metaTx("readonly").get(UPDATE_DATE_KEY);
-    req.onsuccess = () => resolve(req.result || "");
+    req.onsuccess = () => resolve(req.result ? req.result.value : "");
     req.onerror = () => reject(req.error);
   });
 }
 
 function setUpdateDate(dateStr) {
   return new Promise((resolve, reject) => {
-    const req = metaTx("readwrite").put(dateStr, UPDATE_DATE_KEY);
+    const req = metaTx("readwrite").put({ key: UPDATE_DATE_KEY, value: dateStr });
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function clearMetaDB() {
+  return new Promise((resolve, reject) => {
+    const req = metaTx("readwrite").clear();
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
