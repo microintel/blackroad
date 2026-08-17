@@ -1878,12 +1878,15 @@ async function recalcNetWorth(){
   setNetWorth(netWorth);
   renderLoansPanel(lending);
 
-  // Live asset-allocation donut — every rupee counted in rawTotalAssets
-  // above also gets a slice here, so the pie always sums to 100%.
-  // Negative amounts (e.g. a cash shortfall) still count toward the
-  // totals above but can't be drawn as a pie slice, so they're floored
-  // at 0 for the chart/legend only.
-  const chartItems = items.map(i => ({ ...i, amount: Math.max(0, i.amount) }));
+  // Live asset-allocation donut — by request, this only includes
+  // Lending Receivables (what you'll get back from loans/liabilities)
+  // and Mutual Funds current value. Everything else (Cash & Bank, Real
+  // Estate, Stocks, Fixed Deposits, Gold) is left out of this chart,
+  // and any amount at or below 0 is skipped entirely rather than
+  // being summed in. Note: this only affects the donut/bar/legend —
+  // rawTotalAssets and Net Worth above still use the full items list.
+  const ALLOCATION_LABELS = ['Lending Receivables', 'Mutual Funds'];
+  const chartItems = items.filter(i => ALLOCATION_LABELS.includes(i.label) && i.amount > 0);
   const totalAssets = chartItems.reduce((s,i)=> s + i.amount, 0) || 1; // avoid /0 in percentages
   renderAllocation(chartItems.map(i => ({ ...i, pct: +(i.amount / totalAssets * 100).toFixed(1) })));
 
@@ -1900,7 +1903,11 @@ async function recalcNetWorth(){
     footSurplus.textContent = formatINR(incomeNet);
     footSurplus.style.color = incomeNet >= 0 ? 'var(--green)' : 'var(--red)';
   }
-  if(donutCenter) donutCenter.textContent = formatINR(rawTotalAssets);
+  // Donut center must match what the ring actually shows: the sum of
+  // just the allocation chart items (Mutual Funds + Lending
+  // Receivables), not the full rawTotalAssets used for Net Worth.
+  const chartTotal = chartItems.reduce((s,i)=> s + i.amount, 0);
+  if(donutCenter) donutCenter.textContent = formatINR(chartTotal);
 }
 // NOTE: recalcNetWorth() is intentionally NOT called here. At this point in
 // the script, MutualFundStore and IncomeStore haven't been defined yet
