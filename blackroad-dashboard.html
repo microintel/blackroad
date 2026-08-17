@@ -1902,7 +1902,14 @@ async function recalcNetWorth(){
   }
   if(donutCenter) donutCenter.textContent = formatINR(rawTotalAssets);
 }
-recalcNetWorth();
+// NOTE: recalcNetWorth() is intentionally NOT called here. At this point in
+// the script, MutualFundStore and IncomeStore haven't been defined yet
+// (they're set up further down in this same <script> block), so calling it
+// here would silently treat Mutual Funds and Cash & Bank as ₹0 on first
+// load — leaving only Stocks/Lending Receivables/Liabilities in the totals
+// and the allocation donut. The real first call happens at the very end of
+// this script, after every store (Stocks, Lending, Mutual Funds, Income)
+// has been defined. See the matching call near the bottom of the file.
 
 /* ============ THEME TOGGLE ============ */
 const html = document.documentElement;
@@ -2845,6 +2852,15 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(()=>{ /* offline scaffolding is optional */ });
   });
 }
+
+/* ============ INITIAL NET WORTH CALC ============
+   This is the real first call to recalcNetWorth() — placed here,
+   at the very end of the script, so that StocksStore, LendingStore,
+   MutualFundStore and IncomeStore are ALL guaranteed to be defined
+   by the time it runs. Calling it earlier in the file (before
+   MutualFundStore/IncomeStore exist yet) was the bug that made the
+   hero total / donut only reflect Stocks + Lending on first load. */
+recalcNetWorth();
 </script>
 </body>
 </html>
