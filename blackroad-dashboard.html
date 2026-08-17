@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BlackRoad — Wealth Management</title>
+<script>
+/* Apply saved theme immediately (before CSS paints) so reload never
+   flashes the wrong mode. Uses localStorage only — separate from the
+   window.storage-backed IndexedDB data used elsewhere on this page. */
+(function(){
+  try{
+    const saved = localStorage.getItem('br_theme');
+    if(saved === 'dark' || saved === 'light'){
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  }catch(e){}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -265,9 +278,17 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 
 /* ---- Donut (Chart.js) ---- */
 .donut-card{ padding:26px 28px; display:flex; flex-direction:column; }
-.donut-card h4{ font-size:15px; font-weight:600; margin-bottom:18px; display:flex; align-items:center; gap:8px;}
+.donut-card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.donut-card h4{ font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; margin-bottom:0; }
 .donut-card h4 i{ color:var(--accent); }
+.chart-toggle{ display:flex; gap:4px; padding:3px; border-radius:10px; background:var(--surface-2); border:1px solid var(--border); flex-shrink:0; }
+.chart-toggle-btn{ width:28px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:12.5px; transition:all .15s var(--ease); }
+.chart-toggle-btn:hover{ color:var(--text); }
+.chart-toggle-btn.active{ background:var(--surface); color:var(--accent); box-shadow:var(--shadow-sm); }
 .donut-wrap{ display:flex; align-items:center; gap:20px; }
+.bar-wrap{ display:none; height:220px; }
+.bar-wrap.visible{ display:block; }
+.donut-wrap.hidden{ display:none; }
 .donut{
   width:132px;height:132px;
   position:relative;
@@ -300,7 +321,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .legend{ display:flex; flex-direction:column; gap:9px; }
 .legend-item{ display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--text-dim); }
 .legend-dot{ width:9px;height:9px;border-radius:3px; flex-shrink:0; }
-.legend-item b{ color:var(--text); font-weight:600; margin-left:auto; padding-left:10px; font-family:'JetBrains Mono',monospace; font-size:12px;}
+.legend-vals{ display:flex; flex-direction:column; align-items:flex-end; margin-left:auto; padding-left:10px; }
+.legend-item b{ color:var(--text); font-weight:600; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.3;}
+.legend-item .legend-pct{ color:var(--text-faint); font-size:10.5px; font-family:'JetBrains Mono',monospace; line-height:1.3; }
 
 /* ---- Section headers ---- */
 .section-head{ display:flex; align-items:baseline; justify-content:space-between; margin:8px 0 16px; }
@@ -851,13 +874,22 @@ footer{
           </div>
 
           <div class="card donut-card">
-            <h4><i class="bi bi-pie-chart"></i> Asset Allocation</h4>
-            <div class="donut-wrap">
+            <div class="donut-card-head">
+              <h4><i class="bi bi-pie-chart"></i> Asset Allocation</h4>
+              <div class="chart-toggle" id="chartToggle">
+                <button class="chart-toggle-btn active" data-mode="pie" title="Pie view"><i class="bi bi-pie-chart-fill"></i></button>
+                <button class="chart-toggle-btn" data-mode="bar" title="Bar view"><i class="bi bi-bar-chart-fill"></i></button>
+              </div>
+            </div>
+            <div class="donut-wrap" id="pieView">
               <div class="donut" id="donut">
                 <canvas id="assetChart" width="132" height="132"></canvas>
                 <div class="donut-center"><small>ASSETS</small><b id="donutCenterTotal">₹0</b></div>
               </div>
               <div class="legend" id="legend"></div>
+            </div>
+            <div class="bar-wrap" id="barView">
+              <canvas id="assetBarChart"></canvas>
             </div>
             <div class="donut-tooltip" id="donutTooltip"></div>
           </div>
@@ -1535,29 +1567,94 @@ function renderDonutTooltip(context){
   }
   const dp = tooltipModel.dataPoints[0];
   const color = assetChart.data.datasets[0].backgroundColor[dp.dataIndex];
-  donutTooltipEl.innerHTML = `<span class="dot" style="background:${color}"></span>${dp.label}<b>${dp.parsed}%</b>`;
+  const amt = assetChart.data.datasets[0].amounts ? assetChart.data.datasets[0].amounts[dp.dataIndex] : null;
+  donutTooltipEl.innerHTML = `<span class="dot" style="background:${color}"></span>${dp.label}<b>${amt!=null?formatINR(amt)+' · ':''}${dp.parsed}%</b>`;
   donutTooltipEl.classList.add('visible');
 }
 
 const legend = document.getElementById('legend');
-/* Re-render the donut + legend from a fresh set of {label, pct, color} items.
-   Called once on load with the static placeholder `allocation`, then again
-   every time recalcNetWorth() has real numbers from the live stores. */
+
+/* ---- Bar chart (amounts instead of percentages) ---- */
+const assetBarChart = new Chart(document.getElementById('assetBarChart'), {
+  type: 'bar',
+  data: {
+    labels: allocation.map(a => a.label),
+    datasets: [{
+      data: allocation.map(a => a.amount || 0),
+      backgroundColor: allocation.map(a => resolveColor(a.color)),
+      borderRadius: 6,
+      maxBarThickness: 28
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => ' ' + formatINR(ctx.parsed.x)
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { callback: (v) => formatINR(v), color: 'var(--text-faint)', font: { size: 10.5 } },
+        grid: { color: 'var(--border)' }
+      },
+      y: {
+        ticks: { color: 'var(--text-dim)', font: { size: 11.5 } },
+        grid: { display: false }
+      }
+    }
+  }
+});
+
+/* Re-render the donut + bar + legend from a fresh set of
+   {label, pct, amount, color} items. Called once on load with the
+   static placeholder `allocation`, then again every time
+   recalcNetWorth() has real numbers from the live stores. */
 function renderAllocation(items){
   assetChart.data.labels = items.map(a => a.label);
   assetChart.data.datasets[0].data = items.map(a => a.pct);
   assetChart.data.datasets[0].backgroundColor = items.map(a => resolveColor(a.color));
+  assetChart.data.datasets[0].amounts = items.map(a => a.amount);
   assetChart.update();
+
+  assetBarChart.data.labels = items.map(a => a.label);
+  assetBarChart.data.datasets[0].data = items.map(a => a.amount || 0);
+  assetBarChart.data.datasets[0].backgroundColor = items.map(a => resolveColor(a.color));
+  assetBarChart.update();
 
   legend.innerHTML = '';
   items.forEach(a=>{
     const row = document.createElement('div');
     row.className = 'legend-item';
-    row.innerHTML = `<span class="legend-dot" style="background:${a.color}"></span>${a.label}<b>${a.pct}%</b>`;
+    row.innerHTML = `<span class="legend-dot" style="background:${a.color}"></span>${a.label}<span class="legend-vals"><b>${formatINR(a.amount||0)}</b><span class="legend-pct">${a.pct}%</span></span>`;
     legend.appendChild(row);
   });
 }
 renderAllocation(allocation);
+
+/* ---- Pie / Bar toggle ---- */
+const pieView = document.getElementById('pieView');
+const barView = document.getElementById('barView');
+document.getElementById('chartToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.chart-toggle-btn');
+  if(!btn) return;
+  document.querySelectorAll('.chart-toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const mode = btn.dataset.mode;
+  if(mode === 'bar'){
+    pieView.classList.add('hidden');
+    barView.classList.add('visible');
+    assetBarChart.resize();
+  } else {
+    pieView.classList.remove('hidden');
+    barView.classList.remove('visible');
+  }
+});
 
 /* ============ NAV: click to scroll ============ */
 function scrollToSection(id){
@@ -1799,7 +1896,7 @@ function applyTheme(mode, persist=true){
     if(icon) icon.className = mode === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
     if(label) label.textContent = mode === 'dark' ? 'Dark mode' : 'Light mode';
   });
-  if(persist) safeSet('theme', mode, false);
+  if(persist){ try{ localStorage.setItem('br_theme', mode); }catch(e){} }
 }
 function toggleTheme(){
   const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -1807,6 +1904,9 @@ function toggleTheme(){
 }
 themeToggle.addEventListener('click', toggleTheme);
 if(themeToggle2) themeToggle2.addEventListener('click', toggleTheme);
+// Sync the toggle icon/label with whatever theme the inline head script
+// already applied from localStorage on this load.
+applyTheme(html.getAttribute('data-theme'), false);
 
 /* ============ MOBILE SIDEBAR ============ */
 const sidebar = document.getElementById('sidebar');
