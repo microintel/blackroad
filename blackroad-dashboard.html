@@ -880,7 +880,7 @@ footer{
         <div class="panel-head">
           <div class="panel-title">
             <div class="pi" style="background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green);"><i class="bi bi-cash-coin"></i></div>
-            <div><h3>Income &amp; Expenses</h3><span>Cash flow · This month</span></div>
+            <div><h3>Income &amp; Expenses</h3><span>Cash flow · This month · <span id="incomeUpdatedBadge"><i class="bi bi-clock-history"></i> Updated: —</span></span></div>
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b id="incomePanelTotal" style="color:var(--green)">₹0</b><small id="incomePanelSub">Net surplus</small></div>
@@ -2017,6 +2017,7 @@ const BACKUP_DB_SCHEMAS = {
   BlackRoad2: {
     stores: {
       entries: { keyPath:'id', autoIncrement:true },
+      meta:    { keyPath:'key' },
     }
   }
 };
@@ -2499,8 +2500,9 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
 (function(){
   "use strict";
   const INC_DB_NAME = "BlackRoad2";
-  const INC_DB_VERSION = 1;
+  const INC_DB_VERSION = 3;
   const INC_STORE = "entries";
+  const INC_META_STORE = "meta";
   let incDbPromise = null;
 
   function incOpenDB(){
@@ -2510,6 +2512,8 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
         if(!db.objectStoreNames.contains(INC_STORE)) db.createObjectStore(INC_STORE, { keyPath:"id", autoIncrement:true });
+        if(db.objectStoreNames.contains(INC_META_STORE)) db.deleteObjectStore(INC_META_STORE);
+        db.createObjectStore(INC_META_STORE, { keyPath:"key" });
       };
       req.onsuccess = (e) => resolve(e.target.result);
       req.onerror = (e) => reject(e.target.error);
@@ -2525,6 +2529,23 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       req.onsuccess = () => resolve(req.result || []);
       req.onerror = () => reject(req.error);
     });
+  }
+
+  async function incGetUpdateDate(){
+    const db = await incOpenDB();
+    return new Promise((resolve, reject) => {
+      if(!db.objectStoreNames.contains(INC_META_STORE)){ resolve(""); return; }
+      const req = db.transaction(INC_META_STORE, "readonly").objectStore(INC_META_STORE).get("updateDate");
+      req.onsuccess = () => resolve(req.result ? req.result.value : "");
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function incFmtUpdateDate(dateStr){
+    if(!dateStr) return "Not set";
+    const d = new Date(dateStr + "T00:00:00");
+    if(isNaN(d)) return "Not set";
+    return d.toLocaleDateString("en-US", { day:"numeric", month:"short", year:"numeric" });
   }
 
   function incFormatINR(n){
@@ -2574,7 +2595,7 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
     };
   }
 
-  window.IncomeStore = { getSummary: incGetSummary, formatINR: incFormatINR, escapeHTML: incEscapeHTML };
+  window.IncomeStore = { getSummary: incGetSummary, formatINR: incFormatINR, escapeHTML: incEscapeHTML, getUpdateDate: incGetUpdateDate, fmtUpdateDate: incFmtUpdateDate };
 })();
 
 async function refreshIncomeSummary(){
@@ -2600,6 +2621,13 @@ async function refreshIncomeSummary(){
     }
     const panelSub = document.getElementById('incomePanelSub');
     if(panelSub) panelSub.textContent = up ? 'Net surplus' : 'Net deficit';
+
+    // 2b) "Updated: <date>" badge in the panel subtitle
+    const updatedBadge = document.getElementById('incomeUpdatedBadge');
+    if(updatedBadge){
+      const updateDate = await IncomeStore.getUpdateDate();
+      updatedBadge.innerHTML = `<i class="bi bi-clock-history"></i> Updated: ${IncomeStore.fmtUpdateDate(updateDate)}`;
+    }
 
     // 3) Total Income / Total Expenses boxes
     const incVal = document.getElementById('incomeTotalVal');
