@@ -12,6 +12,12 @@ let ENTRIES = [];
 async function refresh() {
   ENTRIES = await getAllEntries();
   renderDashboard();
+  await renderUpdateDateBadge();
+}
+
+async function renderUpdateDateBadge() {
+  const el = document.getElementById("updateDateBadgeVal");
+  if (el) el.textContent = fmtUpdateDate(await getUpdateDate());
 }
 
 function renderDashboard() {

@@ -798,6 +798,25 @@ body{ padding-left: var(--rail-w); }
   margin:0;
   color:var(--text);
 }
+.dashboard-head-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.update-date-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  background:var(--card);
+  border:1px solid var(--line-soft);
+  color:var(--text-dim);
+  font-size:0.76rem;
+  font-family:var(--font-mono);
+  padding:9px 14px;
+  border-radius:var(--radius-pill);
+}
+.update-date-badge i{ color:var(--text-faint); font-size:0.78rem; }
 .dashboard-grid{
   display:grid;
   grid-template-columns:1fr;

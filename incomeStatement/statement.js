@@ -386,6 +386,14 @@ function collapseAllEntries() {
 }
 document.getElementById("collapseAllBtn").addEventListener("click", collapseAllEntries);
 
+/* ---------------- Income & Expenditure "updated last date" ---------------- */
+
+const updateDateInput = document.getElementById("updateDateInput");
+updateDateInput.addEventListener("change", async () => {
+  await setUpdateDate(updateDateInput.value);
+  showToast("Update date saved");
+});
+
 /* ---------------- Sticky toolbar height tracking ----------------
    Keeps the year/month sticky headers positioned just below the
    ledger toolbar (head + quick stats + search + filters), whose
@@ -443,6 +451,7 @@ function handleDeepLink() {
   try {
     db = await openDB();
     await refresh();
+    updateDateInput.value = await getUpdateDate();
     updateToolbarHeight();
     handleDeepLink();
   } catch (err) {

@@ -7,11 +7,13 @@
    future page) stay in sync.
    Storage: IndexedDB, database "BlackRoad2"
    Store:   "entries"  { id, income, date, from, expense, balance, transactions:[] }
+   Store:   "meta"     out-of-line key/value store, e.g. key "updateDate"
 ========================================================= */
 
 const DB_NAME = "BlackRoad2";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = "entries";
+const META_STORE = "meta";
 
 let db = null;
 
@@ -25,6 +27,9 @@ function openDB() {
       if (!_db.objectStoreNames.contains(STORE)) {
         _db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
       }
+      if (!_db.objectStoreNames.contains(META_STORE)) {
+        _db.createObjectStore(META_STORE);
+      }
     };
     req.onsuccess = (e) => resolve(e.target.result);
     req.onerror = (e) => reject(e.target.error);
@@ -33,6 +38,10 @@ function openDB() {
 
 function tx(mode) {
   return db.transaction(STORE, mode).objectStore(STORE);
+}
+
+function metaTx(mode) {
+  return db.transaction(META_STORE, mode).objectStore(META_STORE);
 }
 
 function getAllEntries() {
@@ -65,6 +74,36 @@ function clearAllDB() {
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
+}
+
+/* ---------------- Income & Expenditure "last updated" date ----------------
+   A single global date (not tied to any one entry) recording when the
+   ledger was last brought up to date. Set from the Statement toolbar,
+   shown on the dashboard. Persisted in the "meta" IndexedDB store. */
+
+const UPDATE_DATE_KEY = "updateDate";
+
+function getUpdateDate() {
+  return new Promise((resolve, reject) => {
+    const req = metaTx("readonly").get(UPDATE_DATE_KEY);
+    req.onsuccess = () => resolve(req.result || "");
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function setUpdateDate(dateStr) {
+  return new Promise((resolve, reject) => {
+    const req = metaTx("readwrite").put(dateStr, UPDATE_DATE_KEY);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function fmtUpdateDate(dateStr) {
+  if (!dateStr) return "Not set";
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d)) return "Not set";
+  return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 }
 
 /* ---------------- Formatting / misc utilities ---------------- */
