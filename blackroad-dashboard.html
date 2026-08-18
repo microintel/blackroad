@@ -1988,6 +1988,23 @@ function renderLoansPanel(lending){
   }
 }
 
+// Stocks, Mutual Funds, and Income each call recalcNetWorth() after
+// refreshing their own numbers, and all three can fire back-to-back
+// (e.g. on a single tab focus/visibilitychange). Routing those calls
+// through queueRecalc() instead of calling recalcNetWorth() directly
+// collapses any burst within the same frame into one real recalc —
+// so a tab focus does 4 DB reads + 2 chart updates total instead of
+// up to 3x that.
+let recalcQueued = false;
+function queueRecalc(){
+  if (recalcQueued) return;
+  recalcQueued = true;
+  requestAnimationFrame(async () => {
+    recalcQueued = false;
+    await recalcNetWorth();
+  });
+}
+
 async function recalcNetWorth(){
   let stocksVal = 0, mfVal = 0, incomeNet = 0;
   let lending = { peopleReceivable: 0, peoplePayable: 0, loansOutstanding: 0, monthlyEmi: 0, activeLoanCount: 0, liabilities: 0 };
@@ -2602,7 +2619,7 @@ async function refreshStocksSummary(){
         tbody.appendChild(frag);
       }
     }
-    recalcNetWorth();
+    queueRecalc();
   }catch(e){
     console.error('Could not refresh stocks summary from IndexedDB', e);
   }
@@ -2772,7 +2789,7 @@ async function refreshMutualFundsSummary(){
         tbody.appendChild(frag);
       }
     }
-    recalcNetWorth();
+    queueRecalc();
   }catch(e){
     console.error('Could not refresh mutual funds summary from IndexedDB', e);
   }
@@ -2949,7 +2966,7 @@ async function refreshIncomeSummary(){
         }).join('');
       }
     }
-    recalcNetWorth();
+    queueRecalc();
   }catch(e){
     console.error('Could not refresh income summary from IndexedDB', e);
   }
