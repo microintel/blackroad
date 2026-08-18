@@ -8,7 +8,7 @@
   /* apply saved theme immediately, before first paint, on every page */
   (function(){ try{
     var t = localStorage.getItem('br-theme');
-    if (t && t !== 'soft') document.documentElement.setAttribute('data-theme', t);
+    if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
   }catch(e){} })();
 </script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -24,7 +24,7 @@
   </a>
   <div class="side-nav-brand">
     <span class="mark"></span>
-    <h1>BlackRoad</h1>
+    <h1>Income Statement</h1>
   </div>
 
   <div class="side-nav-links">
@@ -68,24 +68,14 @@
     </div>
     <div class="side-nav-label-hdr" style="margin-top:14px;">Themes</div>
     <div class="side-nav-themes">
-      <button class="swatch" data-theme="paper" title="White">
-        <span class="swatch-ico ico-paper"><i class="bi bi-sun-fill"></i></span>
+      <button class="swatch" data-theme="light" title="White">
+        <span class="swatch-ico ico-light"><i class="bi bi-sun-fill"></i></span>
         <span class="side-nav-label">White</span>
         <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
       </button>
-      <button class="swatch" data-theme="soft" title="Noir">
-        <span class="swatch-ico ico-soft"><i class="bi bi-moon-stars-fill"></i></span>
-        <span class="side-nav-label">Noir</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="dusk" title="Dusk">
-        <span class="swatch-ico ico-dusk"><i class="bi bi-cloud-moon-fill"></i></span>
-        <span class="side-nav-label">Dusk</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="brass" title="Brass Ledger">
-        <span class="swatch-ico ico-brass"><i class="bi bi-gem"></i></span>
-        <span class="side-nav-label">Brass Ledger</span>
+      <button class="swatch" data-theme="dark" title="Dark">
+        <span class="swatch-ico ico-dark"><i class="bi bi-moon-stars-fill"></i></span>
+        <span class="side-nav-label">Dark</span>
         <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
       </button>
     </div>
@@ -96,24 +86,14 @@
   <div class="side-nav-section" id="accountSheet">
     <div class="side-nav-label-hdr">Account</div>
     <div class="side-nav-themes">
-      <button class="swatch" data-theme="paper" title="White">
-        <span class="swatch-ico ico-paper"><i class="bi bi-sun-fill"></i></span>
+      <button class="swatch" data-theme="light" title="White">
+        <span class="swatch-ico ico-light"><i class="bi bi-sun-fill"></i></span>
         <span class="side-nav-label">White</span>
         <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
       </button>
-      <button class="swatch" data-theme="soft" title="Noir">
-        <span class="swatch-ico ico-soft"><i class="bi bi-moon-stars-fill"></i></span>
-        <span class="side-nav-label">Noir</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="dusk" title="Dusk">
-        <span class="swatch-ico ico-dusk"><i class="bi bi-cloud-moon-fill"></i></span>
-        <span class="side-nav-label">Dusk</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="brass" title="Brass Ledger">
-        <span class="swatch-ico ico-brass"><i class="bi bi-gem"></i></span>
-        <span class="side-nav-label">Brass Ledger</span>
+      <button class="swatch" data-theme="dark" title="Dark">
+        <span class="swatch-ico ico-dark"><i class="bi bi-moon-stars-fill"></i></span>
+        <span class="side-nav-label">Dark</span>
         <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
       </button>
     </div>
@@ -124,7 +104,7 @@
 <div class="dashboard-shell">
 
   <div class="dashboard-head">
-    <h2>BlackRoad</h2>
+    <h2>Income Statement</h2>
     <div class="dashboard-head-actions">
       <span class="update-date-badge" id="updateDateBadge" title="Income &amp; Expenditure — updated last date">
         <i class="bi bi-clock-history"></i> <span id="updateDateBadgeVal">Not set</span>

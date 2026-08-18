@@ -196,13 +196,12 @@ function matchesSearch(entry, term) {
 const THEME_KEY = "br-theme";
 
 function getStoredTheme() {
-  try { return localStorage.getItem(THEME_KEY) || "soft"; }
-  catch (e) { return "soft"; }
+  try { return localStorage.getItem(THEME_KEY) || "dark"; }
+  catch (e) { return "dark"; }
 }
 
 function applyTheme(theme) {
-  if (theme === "soft") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.setAttribute("data-theme", theme);
   try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
   document.querySelectorAll(".swatch").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.theme === theme);

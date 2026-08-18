@@ -28,6 +28,94 @@ const filterClearBtn = document.getElementById("filterClear");
 const downloadPdfBtn = document.getElementById("downloadPdfBtn");
 
 const norm = (v) => (v || "").toLowerCase().trim();
+const tokenize = (v) => norm(v).split(/[^a-z0-9]+/).filter(Boolean);
+
+/* ---------------- Perf: Trie (prefix tree) search index ----------------
+   The previous version (and the naive fix before this) both matched terms
+   with String.includes() — a linear scan over every transaction's text for
+   every keystroke: O(n · m) where n = transaction count, m = string length.
+   That's the actual algorithmic bottleneck, not just repeated work.
+
+   A trie turns "does any word start with this query" into a walk of one
+   node per typed character — O(k) for a query of length k, regardless of
+   how many transactions exist — and each node carries the set of
+   transaction ids that pass through it, so a match is a direct set
+   lookup, not a re-scan.
+
+   Trade-off, stated plainly: a trie indexes by WORD PREFIX. Typing "groc"
+   still finds "Groceries" (prefix match), but typing "eries" (a mid-word
+   fragment) no longer would — the old substring scan could do that, this
+   can't. In practice people search ledgers by typing the start of a word
+   (a name, a category, a merchant), so this trades an edge case for a
+   real algorithmic speedup. */
+class TrieNode {
+  constructor() {
+    this.children = new Map();
+    this.ids = new Set(); // every id whose word passes through this node
+  }
+}
+class Trie {
+  constructor() { this.root = new TrieNode(); }
+  insert(word, id) {
+    let node = this.root;
+    node.ids.add(id);
+    for (const ch of word) {
+      let next = node.children.get(ch);
+      if (!next) { next = new TrieNode(); node.children.set(ch, next); }
+      node = next;
+      node.ids.add(id);
+    }
+  }
+  // ids of every indexed word starting with `prefix` — O(prefix length)
+  idsWithPrefix(prefix) {
+    let node = this.root;
+    for (const ch of prefix) {
+      node = node.children.get(ch);
+      if (!node) return null; // no matches at all
+    }
+    return node.ids;
+  }
+}
+
+let txnTrie = new Trie();   // word -> Set of "entryIdx:txnIdx" ids (from description + category)
+let entryTrie = new Trie(); // word -> Set of entryIdx ids (from entry.from)
+
+// Intersect the id sets for each word in a multi-word query (AND semantics),
+// e.g. "grocery mart" only matches transactions whose text has a word
+// starting with "grocery" AND a word starting with "mart".
+function trieMatchIds(trie, term) {
+  const words = tokenize(term);
+  if (!words.length) return null;
+  let result = null;
+  for (const w of words) {
+    const ids = trie.idsWithPrefix(w);
+    if (!ids || ids.size === 0) return new Set(); // one word had zero matches -> no results
+    result = result === null ? ids : new Set([...result].filter((id) => ids.has(id)));
+    if (result.size === 0) return result;
+  }
+  return result;
+}
+
+/* ---------------- Perf: precomputed normalization + trie build ----------------
+   Normalization and index-building both happen ONCE when entries load
+   (and again if entries change), never on a per-keystroke basis. */
+function primeSearchCache(entries) {
+  txnTrie = new Trie();
+  entryTrie = new Trie();
+  entries.forEach((entry, entryIdx) => {
+    entry._id = entryIdx;
+    entry._fromNorm = norm(entry.from);
+    tokenize(entry.from).forEach((w) => entryTrie.insert(w, entryIdx));
+
+    (entry.transactions || []).forEach((t, txnIdx) => {
+      t._id = `${entryIdx}:${txnIdx}`;
+      t._descNorm = norm(t.description);
+      t._catNorm = norm(t.category);
+      tokenize(t.description).forEach((w) => txnTrie.insert(w, t._id));
+      tokenize(t.category).forEach((w) => txnTrie.insert(w, t._id));
+    });
+  });
+}
 
 /* ---------------- Build chip-based filter pickers from IndexedDB entries ----------------
    Each option is a tappable pill (not a native <select multiple>, which is
@@ -70,42 +158,56 @@ function populateFilterOptions() {
 /* ---------------- Combined search + filter matching ---------------- */
 
 // Transactions to show/sum for an entry, given the current term + filters.
-function matchingTxns(entry, term) {
+// Term matching now goes through the trie (trieMatchIds), an O(k) set
+// lookup instead of an O(m) string scan per transaction.
+function matchingTxns(entry, term, termTxnIds, entryMatch) {
   let txns = entry.transactions || [];
-  if (FILTERS.categories.length) {
-    txns = txns.filter((t) => FILTERS.categories.some((c) => norm(t.category).includes(norm(c))));
+  if (FILTERS.categoriesNorm && FILTERS.categoriesNorm.length) {
+    txns = txns.filter((t) => FILTERS.categoriesNorm.some((c) => t._catNorm.includes(c)));
   }
-  if (term) {
-    const entryNameMatch = norm(entry.from).includes(term);
-    if (!entryNameMatch) {
-      txns = txns.filter((t) => norm(t.description).includes(term) || norm(t.category).includes(term));
-    }
+  if (term && !entryMatch) {
+    txns = txns.filter((t) => termTxnIds.has(t._id));
   }
   return txns;
 }
 
-function getFilteredEntries(term) {
+// Filters entries AND computes each entry's matching transactions in a
+// single pass. Term matches are resolved once per render via the trie
+// (trieMatchIds), then every entry just does Set.has() lookups — O(1)
+// per transaction — instead of re-scanning text.
+function getFilteredEntryData(term) {
   const fTime = FILTERS.fromDate ? new Date(FILTERS.fromDate).setHours(0, 0, 0, 0) : null;
   const tTime = FILTERS.toDate ? new Date(FILTERS.toDate).setHours(23, 59, 59, 999) : null;
+  const sourcesNorm = FILTERS.sources.map(norm);
+  FILTERS.categoriesNorm = FILTERS.categories.map(norm);
 
-  return ENTRIES.filter((entry) => {
+  const termEntryIds = term ? trieMatchIds(entryTrie, term) : null; // Set of entryIdx (or null if no term)
+  const termTxnIds = term ? trieMatchIds(txnTrie, term) : null;     // Set of "entryIdx:txnIdx"
+
+  const out = [];
+  for (const entry of ENTRIES) {
     if (fTime && tTime) {
       const recordTime = new Date(entry.date).getTime();
-      if (!(recordTime >= fTime && recordTime <= tTime)) return false;
+      if (!(recordTime >= fTime && recordTime <= tTime)) continue;
     }
-    if (FILTERS.sources.length && !FILTERS.sources.some((s) => norm(entry.from).includes(norm(s)))) {
-      return false;
+    if (sourcesNorm.length && !sourcesNorm.some((s) => entry._fromNorm.includes(s))) {
+      continue;
     }
-    if (term) {
-      const entryMatch = norm(entry.from).includes(term);
-      const txnMatch = matchingTxns(entry, term).length > 0;
-      if (!entryMatch && !txnMatch) return false;
-    }
-    if (FILTERS.categories.length && matchingTxns(entry, term).length === 0) {
-      return false;
-    }
-    return true;
-  });
+
+    const entryMatch = !term || (termEntryIds && termEntryIds.has(entry._id));
+    const txns = matchingTxns(entry, term, termTxnIds, entryMatch);
+
+    if (term && !entryMatch && txns.length === 0) continue;
+    if (FILTERS.categoriesNorm.length && txns.length === 0) continue;
+
+    out.push({ entry, txns, entryMatch });
+  }
+  return out;
+}
+
+// Back-compat shim (kept in case anything else on the page calls this).
+function getFilteredEntries(term) {
+  return getFilteredEntryData(term).map((r) => r.entry);
 }
 
 function hasActiveFilters() {
@@ -114,15 +216,15 @@ function hasActiveFilters() {
 
 /* ---------------- Summary ---------------- */
 
-function renderSummary(entries, term) {
+function renderSummary(rows) {
   let income = 0, expense = 0, txnCount = 0;
-  entries.forEach((e) => {
-    income += Number(e.income) || 0;
-    matchingTxns(e, term).forEach((t) => { expense += Number(t.amount) || 0; txnCount++; });
+  rows.forEach(({ entry, txns }) => {
+    income += Number(entry.income) || 0;
+    txns.forEach((t) => { expense += Number(t.amount) || 0; txnCount++; });
   });
   const balance = income - expense;
   summaryEl.innerHTML = `
-    <div class="sm-item"><span class="sm-label">Entries</span><span class="sm-val">${entries.length}</span></div>
+    <div class="sm-item"><span class="sm-label">Entries</span><span class="sm-val">${rows.length}</span></div>
     <div class="sm-item"><span class="sm-label">Transactions</span><span class="sm-val">${txnCount}</span></div>
     <div class="sm-item"><span class="sm-label">Income</span><span class="sm-val">${fmtMoney(income)}</span></div>
     <div class="sm-item"><span class="sm-label">Expense</span><span class="sm-val">${fmtMoney(expense)}</span></div>
@@ -146,14 +248,14 @@ function renderResults() {
     return;
   }
 
-  const entries = getFilteredEntries(term);
+  const rows = getFilteredEntryData(term);
 
   searchStatus.style.display = "block";
-  searchStatus.textContent = entries.length === 0
+  searchStatus.textContent = rows.length === 0
     ? (rawTerm ? `No matches for "${rawTerm}"` : "No entries match these filters")
-    : `${entries.length} entr${entries.length === 1 ? "y" : "ies"} match`;
+    : `${rows.length} entr${rows.length === 1 ? "y" : "ies"} match`;
 
-  if (entries.length === 0) {
+  if (rows.length === 0) {
     resultsEl.innerHTML = `
       <div class="empty-state">
         <span class="mark-big"><i class="bi bi-search"></i></span>
@@ -165,12 +267,10 @@ function renderResults() {
     return;
   }
 
-  renderSummary(entries, term);
+  renderSummary(rows);
   downloadPdfBtn.style.display = "inline-flex";
 
-  resultsEl.innerHTML = entries.map((entry) => {
-    const entryMatch = !rawTerm || norm(entry.from).includes(term);
-    const txns = matchingTxns(entry, term);
+  resultsEl.innerHTML = rows.map(({ entry, txns, entryMatch }) => {
     const showTxns = !entryMatch || FILTERS.categories.length > 0;
     const balanceClass = entry.balance <= 0 ? "zero" : "";
     let txnHTML = "";
@@ -216,14 +316,14 @@ function renderResults() {
 function downloadPDF() {
   const rawTerm = searchInput.value.trim();
   const term = norm(rawTerm);
-  const entries = getFilteredEntries(term);
-  if (entries.length === 0) { showToast("No results to export"); return; }
+  const rows = getFilteredEntryData(term);
+  if (rows.length === 0) { showToast("No results to export"); return; }
 
   let globalIncome = 0, globalExpense = 0;
   const categorySummary = {};
-  entries.forEach((entry) => {
+  rows.forEach(({ entry, txns }) => {
     globalIncome += Number(entry.income) || 0;
-    matchingTxns(entry, term).forEach((t) => {
+    txns.forEach((t) => {
       const amt = Number(t.amount) || 0;
       globalExpense += amt;
       categorySummary[t.category || "Uncategorized"] = (categorySummary[t.category || "Uncategorized"] || 0) + amt;
@@ -288,8 +388,7 @@ function downloadPDF() {
   });
 
   y = pdf.lastAutoTable.finalY + 20;
-  entries.forEach((entry) => {
-    const txns = matchingTxns(entry, term);
+  rows.forEach(({ entry, txns }) => {
     const recExp = txns.reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
     if (y > 240) { pdf.addPage(); y = 20; }
@@ -322,9 +421,15 @@ function downloadPDF() {
 
 /* ---------------- Events ---------------- */
 
+// Debounce: renderResults() re-filters + re-renders every entry/txn row.
+// Without this it ran on every single keystroke, which is the main thing
+// that made fast typing feel laggy on a large ledger. 120ms is short
+// enough to still feel instant but skips the wasted work on rapid typing.
+let searchDebounceId = null;
 searchInput.addEventListener("input", () => {
   searchClear.style.display = searchInput.value.trim() ? "block" : "none";
-  renderResults();
+  clearTimeout(searchDebounceId);
+  searchDebounceId = setTimeout(renderResults, 120);
 });
 
 searchClear.addEventListener("click", () => {
@@ -364,6 +469,7 @@ downloadPdfBtn.addEventListener("click", downloadPDF);
     db = await openDB();
     ENTRIES = await getAllEntries();
     ENTRIES.sort((a, b) => new Date(b.date) - new Date(a.date));
+    primeSearchCache(ENTRIES);
     populateFilterOptions();
     searchInput.focus();
   } catch (err) {
