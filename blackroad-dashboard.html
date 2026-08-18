@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-style="neumo">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +13,10 @@
     const saved = localStorage.getItem('br_theme');
     if(saved === 'dark' || saved === 'light'){
       document.documentElement.setAttribute('data-theme', saved);
+    }
+    const savedStyle = localStorage.getItem('br_style');
+    if(savedStyle === 'neumo' || savedStyle === 'glass' || savedStyle === 'flat' || savedStyle === 'skeuo'){
+      document.documentElement.setAttribute('data-style', savedStyle);
     }
   }catch(e){}
 })();
@@ -91,6 +95,119 @@ html[data-theme="light"]{
   --shadow-in: inset 5px 5px 11px var(--nd), inset -5px -5px 11px var(--nl);
   --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
   --dash-color: rgba(184,134,42,.5);
+}
+
+/* ============ THEME STYLES ============
+   "neumo" (soft-UI, above) is the default. The three variants below
+   override the same token set — surface fill, border and the five
+   --shadow-* values — so every component built on those tokens
+   (.card, .panel, .tile, .icon-btn, .tag, .bar-track, etc.) restyles
+   itself automatically with no per-component overrides needed. */
+
+/* ---- Glassmorphism: translucent, frosted, blurred ---- */
+html[data-theme="dark"][data-style="glass"]{
+  --surface: rgba(255,255,255,.055);
+  --surface-2: rgba(255,255,255,.09);
+  --border: rgba(255,255,255,.16);
+  --shadow: 0 8px 32px rgba(0,0,0,.45);
+  --shadow-lg: 0 18px 48px rgba(0,0,0,.55);
+  --shadow-sm: 0 4px 18px rgba(0,0,0,.35);
+  --shadow-in: inset 0 1px 1px rgba(255,255,255,.10), inset 0 -1px 10px rgba(0,0,0,.3);
+  --shadow-in-sm: inset 0 1px 1px rgba(255,255,255,.08), inset 0 -1px 6px rgba(0,0,0,.25);
+}
+html[data-theme="light"][data-style="glass"]{
+  --surface: rgba(255,255,255,.4);
+  --surface-2: rgba(255,255,255,.58);
+  --border: rgba(255,255,255,.75);
+  --shadow: 0 8px 32px rgba(120,105,60,.16);
+  --shadow-lg: 0 18px 44px rgba(120,105,60,.22);
+  --shadow-sm: 0 4px 16px rgba(120,105,60,.14);
+  --shadow-in: inset 0 1px 1px rgba(255,255,255,.75), inset 0 -1px 10px rgba(120,105,60,.14);
+  --shadow-in-sm: inset 0 1px 1px rgba(255,255,255,.65), inset 0 -1px 6px rgba(120,105,60,.1);
+}
+html[data-style="glass"] .card,
+html[data-style="glass"] .panel,
+html[data-style="glass"] .tile,
+html[data-style="glass"] .ie-box,
+html[data-style="glass"] .icon-btn,
+html[data-style="glass"] .avatar,
+html[data-style="glass"] .theme-toggle,
+html[data-style="glass"] .chart-toggle,
+html[data-style="glass"] .tag,
+html[data-style="glass"] .donut-tooltip,
+html[data-style="glass"] .bar-track,
+html[data-style="glass"] .style-opt,
+html[data-style="glass"] .swatch,
+html[data-style="glass"] .login-card,
+html[data-style="glass"] .field input,
+html[data-style="glass"] .btn-secondary{
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+
+/* ---- Flat design: solid fills, no shadows, thin borders ---- */
+html[data-theme="dark"][data-style="flat"]{
+  --surface:#20242C;
+  --surface-2:#262B34;
+  --border: rgba(255,255,255,.14);
+  --shadow:none; --shadow-lg:none; --shadow-sm:none; --shadow-in:none; --shadow-in-sm:none;
+}
+html[data-theme="light"][data-style="flat"]{
+  --surface:#FFFFFF;
+  --surface-2:#F3F0E7;
+  --border: rgba(20,15,5,.14);
+  --shadow:none; --shadow-lg:none; --shadow-sm:none; --shadow-in:none; --shadow-in-sm:none;
+}
+html[data-style="flat"] .tile:hover,
+html[data-style="flat"] .icon-btn:hover,
+html[data-style="flat"] .btn-secondary:hover{ transform:none; border-color:color-mix(in srgb, var(--accent) 55%, var(--border)); }
+
+/* ---- Skeuomorphic: raised bevels + gloss ---- */
+html[data-theme="dark"][data-style="skeuo"]{
+  --surface:#262B34;
+  --surface-2:#2C313B;
+  --border: rgba(255,255,255,.10);
+  --shadow: 7px 7px 16px rgba(0,0,0,.55), -4px -4px 10px rgba(255,255,255,.035), inset 0 1px 0 rgba(255,255,255,.05);
+  --shadow-lg: 11px 11px 26px rgba(0,0,0,.6), -5px -5px 14px rgba(255,255,255,.045), inset 0 1px 0 rgba(255,255,255,.06);
+  --shadow-sm: 3px 3px 9px rgba(0,0,0,.5), -2px -2px 6px rgba(255,255,255,.03), inset 0 1px 0 rgba(255,255,255,.05);
+  --shadow-in: inset 4px 4px 9px rgba(0,0,0,.6), inset -3px -3px 7px rgba(255,255,255,.03);
+  --shadow-in-sm: inset 2px 2px 5px rgba(0,0,0,.55), inset -2px -2px 4px rgba(255,255,255,.03);
+}
+html[data-theme="light"][data-style="skeuo"]{
+  --surface:#F1EDE0;
+  --surface-2:#E7E2D2;
+  --border: rgba(120,105,60,.22);
+  --shadow: 7px 7px 16px rgba(163,150,115,.45), -4px -4px 10px rgba(255,255,255,.95), inset 0 1px 0 rgba(255,255,255,.6);
+  --shadow-lg: 11px 11px 26px rgba(163,150,115,.5), -5px -5px 14px rgba(255,255,255,1), inset 0 1px 0 rgba(255,255,255,.7);
+  --shadow-sm: 3px 3px 9px rgba(163,150,115,.4), -2px -2px 6px rgba(255,255,255,.9), inset 0 1px 0 rgba(255,255,255,.6);
+  --shadow-in: inset 4px 4px 9px rgba(163,150,115,.5), inset -3px -3px 7px rgba(255,255,255,.85);
+  --shadow-in-sm: inset 2px 2px 5px rgba(163,150,115,.45), inset -2px -2px 4px rgba(255,255,255,.8);
+}
+html[data-style="skeuo"] .card,
+html[data-style="skeuo"] .panel,
+html[data-style="skeuo"] .tile,
+html[data-style="skeuo"] .ie-box,
+html[data-style="skeuo"] .icon-btn,
+html[data-style="skeuo"] .avatar,
+html[data-style="skeuo"] .theme-toggle,
+html[data-style="skeuo"] .btn-secondary,
+html[data-style="skeuo"] .swatch,
+html[data-style="skeuo"] .style-opt,
+html[data-style="skeuo"] .chart-toggle-btn.active{
+  background-image: linear-gradient(145deg, rgba(255,255,255,.07), rgba(0,0,0,.10));
+}
+html[data-theme="light"][data-style="skeuo"] .card,
+html[data-theme="light"][data-style="skeuo"] .panel,
+html[data-theme="light"][data-style="skeuo"] .tile,
+html[data-theme="light"][data-style="skeuo"] .ie-box,
+html[data-theme="light"][data-style="skeuo"] .icon-btn,
+html[data-theme="light"][data-style="skeuo"] .avatar,
+html[data-theme="light"][data-style="skeuo"] .theme-toggle,
+html[data-theme="light"][data-style="skeuo"] .btn-secondary,
+html[data-theme="light"][data-style="skeuo"] .swatch,
+html[data-theme="light"][data-style="skeuo"] .style-opt,
+html[data-theme="light"][data-style="skeuo"] .chart-toggle-btn.active{
+  background-image: linear-gradient(145deg, rgba(255,255,255,.65), rgba(120,105,60,.08));
 }
 
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -700,6 +817,21 @@ footer{
 .swatch:hover{ transform:scale(1.12); }
 .swatch.active{ border-color:var(--text); transform:scale(1.12); }
 
+.style-picker{ display:flex; gap:10px; flex-wrap:wrap; }
+.style-opt{
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  width:84px; padding:12px 8px;
+  border-radius:var(--radius-md);
+  background:var(--surface); border:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+  font-size:11.5px; color:var(--text-dim); text-align:center;
+  cursor:pointer; transition:all .2s var(--ease);
+}
+.style-opt i{ font-size:18px; color:var(--text-faint); transition:color .2s var(--ease); }
+.style-opt:hover{ color:var(--text); transform:translateY(-2px); }
+.style-opt.active{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow:var(--shadow-in-sm); }
+.style-opt.active i{ color:var(--accent); }
+
 .backup-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 
 /* ============================================================
@@ -1125,6 +1257,18 @@ footer{
             <i class="bi bi-moon-stars-fill" id="themeIcon2"></i>
             <span id="themeLabel2">Dark mode</span>
           </button>
+        </div>
+        <div class="settings-row" style="align-items:flex-start;">
+          <div>
+            <b>Theme style</b>
+            <p>Choose how cards, panels &amp; buttons are rendered.</p>
+          </div>
+          <div class="style-picker" id="stylePicker">
+            <button class="style-opt" data-style="neumo" title="Neumorphic"><i class="bi bi-circle-square"></i><span>Neumorphic</span></button>
+            <button class="style-opt" data-style="glass" title="Glassmorphism"><i class="bi bi-droplet-half"></i><span>Glass</span></button>
+            <button class="style-opt" data-style="flat" title="Flat design"><i class="bi bi-square"></i><span>Flat</span></button>
+            <button class="style-opt" data-style="skeuo" title="Skeuomorphic"><i class="bi bi-box-seam"></i><span>Skeuomorphic</span></button>
+          </div>
         </div>
         <div class="settings-row" style="align-items:flex-start;">
           <div>
@@ -1942,6 +2086,24 @@ if(themeToggle2) themeToggle2.addEventListener('click', toggleTheme);
 // Sync the toggle icon/label with whatever theme the inline head script
 // already applied from localStorage on this load.
 applyTheme(html.getAttribute('data-theme'), false);
+
+/* ============ THEME STYLE (neumorphic / glass / flat / skeuomorphic) ============ */
+const styleOpts = document.querySelectorAll('.style-opt');
+function applyStyle(style, persist=true){
+  html.setAttribute('data-style', style);
+  styleOpts.forEach(b=> b.classList.toggle('active', b.dataset.style === style));
+  if(persist){ try{ localStorage.setItem('br_style', style); }catch(e){} }
+  if(typeof refreshAssetBarChartTheme === 'function') refreshAssetBarChartTheme();
+}
+styleOpts.forEach(b=>{
+  b.addEventListener('click', ()=>{
+    applyStyle(b.dataset.style);
+    showToast('Theme style updated', 'bi-palette2');
+  });
+});
+// Sync the picker with whatever style the inline head script already
+// applied from localStorage on this load (defaults to neumorphic).
+applyStyle(html.getAttribute('data-style') || 'neumo', false);
 
 /* ============ MOBILE SIDEBAR ============ */
 const sidebar = document.getElementById('sidebar');
