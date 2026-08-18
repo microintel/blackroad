@@ -10,7 +10,7 @@
    window.storage-backed IndexedDB data used elsewhere on this page. */
 (function(){
   try{
-    const saved = localStorage.getItem('br_theme');
+    const saved = localStorage.getItem('br-theme');
     if(saved === 'dark' || saved === 'light'){
       document.documentElement.setAttribute('data-theme', saved);
     }
@@ -2091,7 +2091,7 @@ function applyTheme(mode, persist=true){
     if(icon) icon.className = mode === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
     if(label) label.textContent = mode === 'dark' ? 'Dark mode' : 'Light mode';
   });
-  if(persist){ try{ localStorage.setItem('br_theme', mode); }catch(e){} }
+  if(persist){ try{ localStorage.setItem('br-theme', mode); }catch(e){} }
   if(typeof refreshAssetBarChartTheme === 'function') refreshAssetBarChartTheme();
 }
 function toggleTheme(){
