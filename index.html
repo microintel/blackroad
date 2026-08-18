@@ -14,8 +14,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<!-- Fallback for browsers/robots without JS: redirect after 6s (after the intro would have finished) -->
-<meta http-equiv="refresh" content="6; url=blackroad-dashboard.html">
+<!-- Fallback for browsers/robots without JS: redirect after 8s (after the intro would have finished) -->
+<meta http-equiv="refresh" content="8; url=blackroad-dashboard.html">
 <style>
   :root{
     --bg: #E5B851;
@@ -45,12 +45,12 @@
   .splash{
     position:fixed;
     inset:0;
-    background: radial-gradient(ellipse at 50% 46%, var(--bg-soft) 0%, var(--bg) 70%);
+    background: var(--bg);
     display:flex;
     align-items:center;
     justify-content:center;
-    animation: cineFade 0.85s ease-in forwards;
-    animation-delay: 4.25s;
+    animation: cineFade 0.84s ease-in forwards;
+    animation-delay: 6.16s;
   }
 
   @keyframes cineFade{
@@ -84,13 +84,96 @@
     background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, transparent 72%);
     opacity:0;
     filter: blur(14px);
-    animation: bloom 1.6s ease-out forwards;
-    animation-delay: 1.5s;
+    animation: bloom 1.68s ease-out forwards;
+    animation-delay: 2.17s;
   }
 
   @keyframes bloom{
     to{ opacity:1; }
   }
+
+  /* ---------------- icon orbit (bank / cash / savings / loans / fund / stocks) ---------------- */
+
+  .icon-orbit{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:1;
+    pointer-events:none;
+  }
+
+  .icon-orbit-inner{
+    position:relative;
+    width:1px;
+    height:1px;
+    transform: scale(1);
+  }
+
+  /* keep the orbit radius proportionate on small screens */
+  @media (max-width: 420px){
+    .icon-orbit-inner{ transform: scale(0.62); }
+  }
+  @media (min-width: 421px) and (max-width: 640px){
+    .icon-orbit-inner{ transform: scale(0.78); }
+  }
+  @media (min-width: 641px) and (max-width: 900px){
+    .icon-orbit-inner{ transform: scale(0.92); }
+  }
+  @media (min-width: 1400px){
+    .icon-orbit-inner{ transform: scale(1.15); }
+  }
+
+  .icon-chip{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:64px;
+    height:64px;
+    margin:-32px 0 0 -32px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 8px 18px rgba(23,19,8,0.22), inset 0 1px 0 rgba(255,255,255,0.35);
+    opacity:0;
+    animation: iconIn 0.77s cubic-bezier(.34,1.56,.64,1) forwards, iconOut 0.7s cubic-bezier(.4,0,1,1) forwards;
+    animation-delay: var(--in-delay), 1.75s;
+  }
+
+  .icon-chip svg{
+    width:32px;
+    height:32px;
+  }
+
+  @keyframes iconIn{
+    0%{
+      transform: translate(var(--fx), var(--fy)) scale(0.35) rotate(-18deg);
+      opacity:0;
+    }
+    70%{
+      transform: translate(calc(var(--tx) * 1.04), calc(var(--ty) * 1.04)) scale(1.05) rotate(2deg);
+      opacity:1;
+    }
+    100%{
+      transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg);
+      opacity:1;
+    }
+  }
+
+  @keyframes iconOut{
+    0%{
+      transform: translate(var(--tx), var(--ty)) scale(1);
+      opacity:1;
+    }
+    100%{
+      transform: translate(0px, 0px) scale(0.15);
+      opacity:0;
+    }
+  }
+
+  /* ---------------- BR mark stage ---------------- */
 
   .stage{
     position:relative;
@@ -100,6 +183,14 @@
     align-items:center;
     justify-content:center;
     z-index:2;
+    opacity:0;
+    transform: scale(0.82);
+    animation: stageIn 0.77s cubic-bezier(.2,.8,.2,1) forwards;
+    animation-delay: 2.24s;
+  }
+
+  @keyframes stageIn{
+    to{ opacity:1; transform: scale(1); }
   }
 
   .mark-svg{
@@ -107,8 +198,8 @@
     height:auto;
     overflow: visible;
     filter: drop-shadow(0 0 0 rgba(23,19,8,0));
-    animation: settleGlow 1s ease forwards;
-    animation-delay: 1.55s;
+    animation: settleGlow 1.26s ease forwards;
+    animation-delay: 3.08s;
   }
 
   @keyframes settleGlow{
@@ -119,8 +210,8 @@
 
   /* the light-edge that leads the reveal wipe */
   .lead-edge{
-    animation: leadMove 1.45s cubic-bezier(.4,0,.2,1) forwards;
-    animation-delay: 0.35s;
+    animation: leadMove 1.4s cubic-bezier(.4,0,.2,1) forwards;
+    animation-delay: 3.01s;
     opacity:0;
   }
 
@@ -134,8 +225,8 @@
   /* the reveal mask itself — starts fully covering the letters, then slides away to the right, revealing left→right */
   .wipe-rect{
     transform: translateX(0);
-    animation: wipeOpen 1.45s cubic-bezier(.4,0,.2,1) forwards;
-    animation-delay: 0.35s;
+    animation: wipeOpen 1.4s cubic-bezier(.4,0,.2,1) forwards;
+    animation-delay: 3.01s;
   }
 
   @keyframes wipeOpen{
@@ -149,8 +240,8 @@
     height: 1px;
     background: linear-gradient(to right, transparent, var(--ink) 50%, transparent);
     margin: 22px 0 16px;
-    animation: drawLine 0.8s ease forwards;
-    animation-delay: 2.0s;
+    animation: drawLine 0.84s ease forwards;
+    animation-delay: 4.41s;
   }
 
   @keyframes drawLine{
@@ -159,14 +250,14 @@
 
   .tagline{
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: clamp(11px, 2.4vw, 14px);
-    font-weight:600;
+    font-size: clamp(16px, 4vw, 22px);
+    font-weight:700;
     letter-spacing: 0.15em;
     text-transform: uppercase;
     color: var(--ink);
     opacity:0;
-    animation: taglineIn 1.1s ease forwards;
-    animation-delay: 2.25s;
+    animation: taglineIn 1.12s ease forwards;
+    animation-delay: 4.69s;
   }
 
   @keyframes taglineIn{
@@ -184,13 +275,13 @@
     left:50%;
     transform: translateX(-50%);
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: clamp(10px, 2.2vw, 12px);
-    font-weight:500;
+    font-size: clamp(13px, 3vw, 16px);
+    font-weight:600;
     letter-spacing: 0.08em;
     color: var(--ink);
     opacity:0;
-    animation: creditIn 0.7s ease forwards;
-    animation-delay: 3.1s;
+    animation: creditIn 0.84s ease forwards;
+    animation-delay: 5.18s;
     z-index:2;
   }
 
@@ -203,14 +294,16 @@
   }
 
   @media (prefers-reduced-motion: reduce){
+    .icon-orbit{ display:none; }
     .glow{ animation:none; opacity:1; }
+    .stage{ animation:none; opacity:1; transform:scale(1); }
     .mark-svg{ animation:none; filter: drop-shadow(0 2px 6px rgba(23,19,8,0.22)); }
     .lead-edge{ display:none; }
     .wipe-rect{ animation:none; transform: translateX(430px); }
     .divider{ animation:none; width:62%; }
     .tagline{ animation:none; opacity:0.82; letter-spacing:0.5em; }
     .credit{ animation:none; opacity:0.55; }
-    .splash{ animation: cineFade 0.4s ease-in forwards; animation-delay: 4.25s; }
+    .splash{ animation: cineFade 0.56s ease-in forwards; animation-delay: 5.95s; }
   }
 </style>
 </head>
@@ -221,7 +314,74 @@
     <div class="vignette"></div>
     <div class="glow"></div>
 
-    <div class="stage">
+    <!-- Icon orbit: bank, cash, savings, loans, mutual fund, stocks fly in, form a ring, then converge to the center -->
+    <div class="icon-orbit" id="iconOrbit">
+      <div class="icon-orbit-inner">
+
+        <!-- Bank -->
+        <div class="icon-chip" style="background:#4F8EF7; --tx:0px; --ty:-104px; --fx:0px; --fy:-360px; --in-delay:0s;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.5L2.5 8h19L12 2.5z" fill="#ffffff" stroke="none"/>
+            <line x1="4.5" y1="9.5" x2="4.5" y2="18.5"/>
+            <line x1="9" y1="9.5" x2="9" y2="18.5"/>
+            <line x1="15" y1="9.5" x2="15" y2="18.5"/>
+            <line x1="19.5" y1="9.5" x2="19.5" y2="18.5"/>
+            <line x1="2.5" y1="20.5" x2="21.5" y2="20.5"/>
+          </svg>
+        </div>
+
+        <!-- Cash -->
+        <div class="icon-chip" style="background:#2ECC71; --tx:90px; --ty:-52px; --fx:310px; --fy:-180px; --in-delay:0.07s;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.5" y="6.5" width="19" height="11" rx="2"/>
+            <circle cx="12" cy="12" r="3"/>
+            <line x1="5.5" y1="9" x2="5.5" y2="9"/>
+            <line x1="18.5" y1="15" x2="18.5" y2="15"/>
+          </svg>
+        </div>
+
+        <!-- Stocks -->
+        <div class="icon-chip" style="background:#14B8B8; --tx:90px; --ty:52px; --fx:310px; --fy:180px; --in-delay:0.14s;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="14" width="3.2" height="7"/>
+            <rect x="10.4" y="10" width="3.2" height="11"/>
+            <rect x="17.8" y="5.5" width="3.2" height="15.5"/>
+            <path d="M13 6.5h6.5v6.5" stroke-dasharray="0" opacity="0"/>
+          </svg>
+        </div>
+
+        <!-- Loans -->
+        <div class="icon-chip" style="background:#FF8A3D; --tx:0px; --ty:104px; --fx:0px; --fy:360px; --in-delay:0.21s;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="7.5" cy="7.5" r="2.2"/>
+            <circle cx="16.5" cy="16.5" r="2.2"/>
+            <line x1="6" y1="18" x2="18" y2="6"/>
+          </svg>
+        </div>
+
+        <!-- Mutual fund -->
+        <div class="icon-chip" style="background:#8B5CF6; --tx:-90px; --ty:52px; --fx:-310px; --fy:180px; --in-delay:0.28s;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <line x1="12" y1="12" x2="12" y2="3"/>
+            <line x1="12" y1="12" x2="19.2" y2="16.5"/>
+            <line x1="12" y1="12" x2="4.8" y2="16.5"/>
+          </svg>
+        </div>
+
+        <!-- Savings -->
+        <div class="icon-chip" style="background:#FF3EA5; --tx:-90px; --ty:-52px; --fx:-310px; --fy:-180px; --in-delay:0.35s;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 13c0-3.6 3.2-6.5 8-6.5 3 0 5 1 6.3 2.3.9-.2 1.7.1 2.2.8-.5.9-1.3 1.2-2 1.2.3.6.5 1.3.5 2.2 0 3.6-3.2 6-7 6-1 0-1.9-.1-2.7-.4L7.5 20H5l1.2-2.6C4.7 16.2 4 14.8 4 13z" fill="#ffffff" stroke="none"/>
+            <circle cx="15.5" cy="11.3" r="0.6" fill="#FF3EA5" stroke="none"/>
+            <line x1="9" y1="9.2" x2="7" y2="7.6"/>
+          </svg>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
       <svg class="mark-svg" id="markSvg" viewBox="0 0 400 180" preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id="brushedGold" x1="0" y1="0" x2="0" y2="1">
@@ -262,7 +422,7 @@
   </div>
 
 <script>
-  const SPLASH_DURATION = 5000;
+  const SPLASH_DURATION = 7000;
   const REDIRECT_URL = "blackroad-dashboard.html";
 
   window.addEventListener('DOMContentLoaded', () => {
@@ -276,7 +436,7 @@
           document.body.style.background = '#E5B851';
         }
       });
-    }, SPLASH_DURATION - 750);
+    }, SPLASH_DURATION - 1050);
 
     // Hand off to the dashboard once the intro has fully played.
     setTimeout(() => {
