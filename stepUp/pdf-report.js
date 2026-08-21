@@ -8,7 +8,7 @@
    Currency Symbols block) at report-generation time, embed it in
    the PDF, and use it for every piece of text so ₹ renders correctly.
 
-   Includes: daily % change, invested/value, SIP amounts, skipped
+   Includes: daily % change, invested/value, P&L, SIP amounts, skipped
    instalments, step-up schedule, and an overall portfolio-value
    line chart. Header = project name + fund name. Footer =
    "Developed by Microintel" on every page.
@@ -329,15 +329,17 @@ export async function generatePdfReport(entries, settings, fundName) {
       const pctText = p.growthPct === null ? '—' : `${p.growthPct >= 0 ? '+' : ''}${p.growthPct.toFixed(2)}%`;
       const text  = (p.growth >= 0 ? '+' : '') + fmt(p.growth);
       const color = p.growth >= 0 ? [22, 163, 74] : [220, 38, 38];
-      return [p.label, fmt(p.invested), fmt(p.value), { text, color }, { text: pctText, color }];
+      const pnlText  = (p.pnl >= 0 ? '+' : '') + fmt(p.pnl);
+      const pnlColor = p.pnl >= 0 ? [22, 163, 74] : [220, 38, 38];
+      return [p.label, fmt(p.invested), fmt(p.value), { text: pnlText, color: pnlColor }, { text, color }, { text: pctText, color }];
     });
 
     y = drawTable(doc, {
       startY: y, margin, pageW, pageH,
-      head: ['Month', 'Invested', 'Portfolio Value', 'Growth / Loss', '%'],
+      head: ['Month', 'Invested', 'Portfolio Value', 'P&L', 'Growth / Loss', '%'],
       rows: growthRows,
-      widths: [usableW2 * 0.20, usableW2 * 0.23, usableW2 * 0.23, usableW2 * 0.20, usableW2 * 0.14],
-      aligns: ['left', 'right', 'right', 'right', 'right'],
+      widths: [usableW2 * 0.17, usableW2 * 0.18, usableW2 * 0.19, usableW2 * 0.16, usableW2 * 0.16, usableW2 * 0.14],
+      aligns: ['left', 'right', 'right', 'right', 'right', 'right'],
     });
     y += 22;
   }
@@ -402,28 +404,32 @@ export async function generatePdfReport(entries, settings, fundName) {
   y += 8;
 
   const usableW = pageW - margin * 2;
-  const widths  = [usableW * 0.16, usableW * 0.16, usableW * 0.20, usableW * 0.24, usableW * 0.24];
+  const widths  = [usableW * 0.14, usableW * 0.14, usableW * 0.17, usableW * 0.19, usableW * 0.19, usableW * 0.17];
 
   const rows = [...calc]
     .sort((a, b) => b.date.localeCompare(a.date))
     .map(e => {
       const pctText = (e.percentChange >= 0 ? '+' : '') + e.percentChange.toFixed(2) + '%';
       const pctColor = e.percentChange >= 0 ? [22, 163, 74] : [220, 38, 38];
+      const pnl = e.portfolioValue - e.investedAmount;
+      const pnlText  = (pnl >= 0 ? '+' : '') + fmt(pnl);
+      const pnlColor = pnl >= 0 ? [22, 163, 74] : [220, 38, 38];
       return [
         e.date,
         { text: pctText, color: pctColor },
         e.sipAdded ? `+${fmt(e.sipTotal)}` : '—',
         fmt(e.investedAmount),
         fmt(e.portfolioValue),
+        { text: pnlText, color: pnlColor },
       ];
     });
 
   drawTable(doc, {
     startY: y, margin, pageW, pageH,
-    head: ['Date', 'Daily Change', 'SIP Added', 'Invested', 'Portfolio Value'],
+    head: ['Date', 'Daily Change', 'SIP Added', 'Invested', 'Portfolio Value', 'P&L'],
     rows,
     widths,
-    aligns: ['left', 'right', 'right', 'right', 'right'],
+    aligns: ['left', 'right', 'right', 'right', 'right', 'right'],
     fontSize: 8.5,
     rowH: 15,
   });

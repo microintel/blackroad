@@ -72,7 +72,7 @@ export function renderLineChart(calc) {
       datasets: [{
         label:                 'Portfolio Value',
         data:                  fullValues,
-        borderColor:           positive ? '#3ecf8e' : '#f27a8a',
+        borderColor:           positive ? '#00c853' : '#ff5252',
         borderWidth:           3,
         tension:               0.45,
         pointRadius:           0,
@@ -149,7 +149,7 @@ export function renderOverviewChart() {
         segment: {
           borderColor: ctx =>
             (ctx.p0DataIndex >= selRange.min && ctx.p1DataIndex <= selRange.max)
-              ? '#5b9dff' : grey,
+              ? '#2f81f7' : grey,
         },
       }],
     },
@@ -258,9 +258,9 @@ export function renderDonutChart(invested, pnl) {
                : isLoss   ? [invested, loss]
                :             [invested, profit || 0.001];
 
-  const colors = isEmpty  ? ['#282c34']
-               : isLoss   ? ['#5b9dff', '#f27a8a']
-               :             ['#5b9dff', '#3ecf8e'];
+  const colors = isEmpty  ? ['#21262d']
+               : isLoss   ? ['#58a6ff', '#f85149']
+               :             ['#58a6ff', '#00c853'];
 
   const tooltipLabels = isLoss ? ['Invested', 'Loss'] : ['Invested', 'Profit'];
 
@@ -319,7 +319,7 @@ export function renderGrowthChart(periods) {
   const labels = periods.map(p => p.label);
   const values = periods.map(p => +p.growth.toFixed(2));
   const pcts   = periods.map(p => p.growthPct);
-  const colors = values.map(v => (v >= 0 ? '#3ecf8e' : '#f27a8a'));
+  const colors = values.map(v => (v >= 0 ? '#00c853' : '#ff5252'));
 
   makeChart('chart-growth', {
     type: 'bar',
@@ -383,7 +383,7 @@ export function renderMonthlyLineChart(periods) {
         {
           label:            'Portfolio Value',
           data:             values,
-          borderColor:      positive ? '#3ecf8e' : '#f27a8a',
+          borderColor:      positive ? '#00c853' : '#ff5252',
           backgroundColor:  positive ? 'rgba(0,200,83,.15)' : 'rgba(255,82,82,.15)',
           borderWidth:      3,
           tension:          0.35,
@@ -394,7 +394,7 @@ export function renderMonthlyLineChart(periods) {
         {
           label:            'Invested',
           data:             invested,
-          borderColor:      '#9297a1',
+          borderColor:      '#7d8590',
           borderDash:       [6, 4],
           borderWidth:      1.5,
           tension:          0,
@@ -426,6 +426,108 @@ export function renderMonthlyLineChart(periods) {
 }
 
 /* ══════════════════════════════════════════════════════
+   Daily Profit / Loss Chart — pure P&L (portfolioValue -
+   investedAmount) per entry, no SIP/invested line. Zoomable
+   via wheel/pinch/pan, driven by its own range pills.
+══════════════════════════════════════════════════════ */
+let fullPnlLabels = [];
+let fullPnlValues = [];
+
+export function renderPnlChart(calc) {
+  const canvas = document.getElementById('chart-pnl');
+  if (!canvas) return;
+
+  fullPnlLabels = calc.map(e => e.date);
+  fullPnlValues = calc.map(e => +(e.portfolioValue - e.investedAmount).toFixed(2));
+  const positive = fullPnlValues.length ? fullPnlValues[fullPnlValues.length - 1] >= 0 : true;
+  const glow     = positive ? '#00c853' : '#ff5252';
+
+  makeChart('chart-pnl', {
+    type: 'line',
+    data: {
+      labels: fullPnlLabels,
+      datasets: [{
+        label:                 'Profit / Loss',
+        data:                  fullPnlValues,
+        borderColor:           glow,
+        borderWidth:           2.5,
+        tension:               0.3,
+        pointRadius:           0,
+        pointHoverRadius:      5,
+        pointHoverBackgroundColor: glow,
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
+        fill:                  true,
+        backgroundColor: ctx => {
+          const { ctx: canvas, chartArea } = ctx.chart;
+          if (!chartArea) return null;
+          const gradient = canvas.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          if (positive) {
+            gradient.addColorStop(0, 'rgba(0,200,83,.32)');
+            gradient.addColorStop(1, 'rgba(0,200,83,0)');
+          } else {
+            gradient.addColorStop(0, 'rgba(255,82,82,.32)');
+            gradient.addColorStop(1, 'rgba(255,82,82,0)');
+          }
+          return gradient;
+        },
+      }],
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      interaction:         { intersect: false, mode: 'index' },
+      animation:            { duration: 700, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...getTooltipStyle(),
+          displayColors: false,
+          callbacks: {
+            title: items => items[0] ? new Date(items[0].label).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+            label: c => ` ${c.parsed.y >= 0 ? '+' : ''}${fmtK(c.parsed.y)}`,
+          },
+        },
+        zoom: {
+          pan:  { enabled: true, mode: 'x' },
+          zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            drag:  { enabled: false },
+            mode:  'x',
+          },
+          limits: { x: { min: 0, max: Math.max(fullPnlLabels.length - 1, 0), minRange: 5 } },
+        },
+      },
+      scales: { x: { display: false }, y: { display: false } },
+    },
+  });
+
+  lockChartTouch(canvas);
+  applyRangeToPnl(_activeRange.pnl || 'all');
+}
+
+export function applyRangeToPnl(rangeVal) {
+  setActiveRange('pnl', rangeVal);
+  const n = fullPnlLabels.length;
+  const chart = charts['chart-pnl'];
+  if (!chart || !n) return;
+  let minIdx = 0;
+  if (rangeVal !== 'all') {
+    const lastDate = new Date(fullPnlLabels[n - 1]), cutoff = new Date(lastDate);
+    if (rangeVal === '7d') cutoff.setDate(cutoff.getDate() - 7);
+    else cutoff.setMonth(cutoff.getMonth() - parseInt(rangeVal));
+    const idx = fullPnlLabels.findIndex(d => new Date(d) >= cutoff);
+    minIdx = idx === -1 ? 0 : idx;
+  }
+  chart.zoomScale('x', { min: minIdx, max: n - 1 }, 'none');
+}
+
+export function resetPnlZoom() {
+  applyRangeToPnl('all');
+}
+
+/* ══════════════════════════════════════════════════════
    Fund Performance History — full NAV life of the linked
    fund (can span decades), independent of the user's SIP.
    ₹100 base, day-wise, pinch/pan zoomable like the main chart.
@@ -439,7 +541,7 @@ export function renderFundHistoryChart(series) {
   fundHistLabels = series.map(e => e.date);
   const values   = series.map(e => e.growth);
   const positive = values[values.length - 1] >= values[0];
-  const glow     = positive ? '#3ecf8e' : '#f27a8a';
+  const glow     = positive ? '#00c853' : '#ff5252';
 
   makeChart('chart-fund-history', {
     type: 'line',
@@ -543,9 +645,9 @@ export function renderFundProjectionChart(projection) {
     data: {
       labels: fundProjLabels,
       datasets: [
-        line(projection.optimistic,  '#3ecf8e', 'Optimistic'),
-        line(projection.expected,    '#e3ac54', 'Expected'),
-        line(projection.pessimistic, '#f27a8a', 'Pessimistic'),
+        line(projection.optimistic,  '#00c853', 'Optimistic'),
+        line(projection.expected,    '#f5a623', 'Expected'),
+        line(projection.pessimistic, '#ff5252', 'Pessimistic'),
       ],
     },
     options: {
@@ -565,6 +667,82 @@ export function renderFundProjectionChart(projection) {
         },
       },
       scales: { x: { display: false }, y: { display: false } },
+    },
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   Goal Projection — Target Corpus, based on the linked fund's
+   own historical best/avg/worst calendar-year returns, with the
+   current SIP contribution compounding monthly. Own canvas, plus
+   a flat dashed "Target" line at the goal amount.
+══════════════════════════════════════════════════════ */
+let goalProjLabels = [];
+
+export function renderGoalProjectionChart(scenarios, goalAmount) {
+  const canvas = document.getElementById('chart-goal-projection');
+  if (!canvas || !scenarios) return;
+
+  goalProjLabels = scenarios.expected.map(p => p.date);
+  const muted = themeColor('--muted');
+
+  const line = (points, color, dashLabel) => ({
+    label:            dashLabel,
+    data:             points.map(p => p.value),
+    borderColor:      color,
+    borderWidth:      2.5,
+    borderDash:       [7, 4],
+    tension:          0.25,
+    pointRadius:      0,
+    pointHoverRadius: 5,
+    pointHoverBackgroundColor: color,
+    pointHoverBorderColor: '#fff',
+    pointHoverBorderWidth: 2,
+    fill:             false,
+  });
+
+  const targetLine = {
+    label:       'Target',
+    data:        goalProjLabels.map(() => goalAmount),
+    borderColor: '#f5a623',
+    borderWidth: 2,
+    borderDash:  [3, 3],
+    tension:     0,
+    pointRadius: 0,
+    fill:        false,
+  };
+
+  makeChart('chart-goal-projection', {
+    type: 'line',
+    data: {
+      labels: goalProjLabels,
+      datasets: [
+        line(scenarios.optimistic,  '#00c853', 'Optimistic'),
+        line(scenarios.expected,    '#2f81f7', 'Expected'),
+        line(scenarios.pessimistic, '#ff5252', 'Pessimistic'),
+        targetLine,
+      ],
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      interaction:         { intersect: false, mode: 'index' },
+      animation:            { duration: 700, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...getTooltipStyle(),
+          displayColors: true,
+          callbacks: {
+            title: items => items[0] ? new Date(items[0].label).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+            label: c => ` ${c.dataset.label}: ${fmtK(c.parsed.y)}`,
+          },
+        },
+      },
+      scales: {
+        x: { display: false },
+        y: { ticks: { color: muted, font: { size: 10 }, callback: v => fmtK(v) }, grid: { color: 'rgba(125,133,144,.12)' } },
+      },
     },
   });
 }

@@ -3,8 +3,8 @@
 ══════════════════════════════════════════════════════ */
 
 import { fmtK, fmtPct, todayStr } from './helpers.js';
-import { recalcAll, periodGrowth } from './calc.js';
-import { renderLineChart, getActiveRange, renderDonutChart, renderGrowthChart, renderMonthlyLineChart } from './charts.js';
+import { recalcAll, periodGrowth, projectGoalDate } from './calc.js';
+import { renderLineChart, getActiveRange, renderDonutChart, renderGrowthChart, renderMonthlyLineChart, renderPnlChart } from './charts.js';
 
 let historySortDir      = 'desc';
 let historySearchDate   = '';
@@ -122,6 +122,8 @@ export function renderDashboard(calc, settings) {
     const updownBadge = document.getElementById('updown-total-badge');
     if (updownBadge) updownBadge.textContent = '';
     renderDonutChart(0, 0);
+    const goalSection = document.getElementById('goal-section');
+    if (goalSection) goalSection.style.display = 'none';
     fitCardValueLengths();
     return;
   }
@@ -196,6 +198,7 @@ export function renderDashboard(calc, settings) {
      call XIRR — it is NOT the same as annualizing the TWR.
   ── */
   const xirrEl = document.getElementById('c-xirr');
+  let xirrValue = null;
   if (xirrEl) {
     const flows = [];
     for (const e of calc) {
@@ -209,7 +212,7 @@ export function renderDashboard(calc, settings) {
     const lastD  = flows[flows.length - 1].date;
     const days   = Math.round((lastD - firstD) / 86400000);
 
-    const xirrValue = computeXIRR(flows);
+    xirrValue = computeXIRR(flows);
 
     if (days >= 30 && xirrValue !== null) {
       const ann = xirrValue * 100;
@@ -374,6 +377,72 @@ export function renderDashboard(calc, settings) {
   /* ── Donut Chart ── */
   renderDonutChart(last.investedAmount, pnl);
 
+  /* ── 16. Goal Progress ── */
+  const goalSection = document.getElementById('goal-section');
+  if (goalSection) {
+    if (settings.goalAmount > 0) {
+      goalSection.style.display = '';
+      const current  = last.portfolioValue;
+      const goalAmt  = settings.goalAmount;
+      const pct      = Math.min(100, (current / goalAmt) * 100);
+
+      const pctEl = document.getElementById('goal-pct');
+      if (pctEl) pctEl.textContent = pct.toFixed(1) + '%';
+
+      const fillEl = document.getElementById('goal-progress-fill');
+      const currentEl = document.getElementById('goal-current');
+      const targetEl  = document.getElementById('goal-target');
+      if (currentEl) currentEl.textContent = fmtK(current);
+      if (targetEl) {
+        const dateText = settings.goalDate
+          ? ` by ${new Date(settings.goalDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+          : '';
+        targetEl.textContent = `of ${fmtK(goalAmt)}${dateText}`;
+      }
+
+      const schedule = settings.sipSchedule || [];
+      const monthlyContribution = schedule.length
+        ? schedule[schedule.length - 1].amount
+        : (settings.sipAmount || 0);
+      const rate = xirrValue !== null ? xirrValue : 0;
+
+      const projection = projectGoalDate(current, goalAmt, rate, monthlyContribution, last.date);
+      const textEl = document.getElementById('goal-projection-text');
+
+      if (current >= goalAmt) {
+        if (fillEl) { fillEl.style.width = '100%'; fillEl.className = 'goal-progress-fill'; }
+        if (textEl) { textEl.textContent = '🎉 Goal reached!'; textEl.className = 'goal-projection-text on-track'; }
+      } else if (!projection) {
+        if (fillEl) fillEl.style.width = pct.toFixed(1) + '%';
+        if (textEl) {
+          textEl.textContent = 'Not reachable within 50 years at the current rate and SIP amount.';
+          textEl.className = 'goal-projection-text behind';
+        }
+      } else {
+        if (fillEl) fillEl.style.width = pct.toFixed(1) + '%';
+        const reachLabel = new Date(projection.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        let onTrack = true;
+        let extra = '';
+        if (settings.goalDate) {
+          const target    = new Date(settings.goalDate);
+          const projected = new Date(projection.date);
+          const diffMonths = Math.round((target - projected) / (30.44 * 86400000));
+          onTrack = projected <= target;
+          extra = onTrack
+            ? ` — ${Math.abs(diffMonths)} mo ahead of your ${new Date(settings.goalDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })} target`
+            : ` — ${Math.abs(diffMonths)} mo behind your ${new Date(settings.goalDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })} target`;
+        }
+        if (textEl) {
+          textEl.textContent = `At this rate, you'll reach ${fmtK(goalAmt)} by ${reachLabel}${extra}`;
+          textEl.className = 'goal-projection-text ' + (onTrack ? 'on-track' : 'behind');
+        }
+        if (fillEl) fillEl.className = 'goal-progress-fill' + (onTrack ? '' : ' behind');
+      }
+    } else {
+      goalSection.style.display = 'none';
+    }
+  }
+
   fitCardValueLengths();
 }
 
@@ -392,7 +461,7 @@ export function renderTable(calc, settings) {
   else                          sorted.sort((a, b) => b.date.localeCompare(a.date));
 
   if (!sorted.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">${
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty">${
       historySearchDate ? 'No entry found for this date.' : 'No entries yet — add your first daily % change.'
     }</div></td></tr>`;
     return;
@@ -400,6 +469,7 @@ export function renderTable(calc, settings) {
 
   tbody.innerHTML = sorted.map((e, i) => {
     const pct      = e.percentChange;
+    const pnl      = e.portfolioValue - e.investedAmount;
     const sipBadge = e.sipAdded
       ? `<span class="sip-badge sip-yes">+₹${(e.sipTotal || e.sipCount * settings.sipAmount).toLocaleString('en-IN')}</span>`
       : `<span class="sip-badge sip-no">—</span>`;
@@ -410,6 +480,7 @@ export function renderTable(calc, settings) {
       <td>${sipBadge}</td>
       <td class="mono">${fmtK(e.portfolioValue)}</td>
       <td class="mono" style="color:var(--blue)">${fmtK(e.investedAmount)}</td>
+      <td class="mono ${pnl >= 0 ? 'pct-up' : 'pct-down'}">${(pnl >= 0 ? '+' : '') + fmtK(pnl)}</td>
       <td style="text-align:right;">
         <button class="btn-icon" onclick="startEdit(${e.id})" title="Edit">✏️</button>
         <button class="btn-icon" onclick="deleteEntry(${e.id})" title="Delete" style="color:var(--red)">🗑</button>
@@ -460,6 +531,7 @@ export function renderAll(entries, settings) {
   renderTable(calc, settings);
   if (document.getElementById('page-graph').classList.contains('active')) {
     renderLineChart(calc);
+    renderPnlChart(calc);
     renderGrowthChart(periodGrowth(calc, growthGranularity));
 
     const monthPeriods = periodGrowth(calc, 'month');

@@ -170,6 +170,76 @@ function formatMonthLabel(ym) {
   return d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
 }
 
+/**
+ * Project forward from the current portfolio value to a target goal amount,
+ * compounding monthly at annualRate and adding monthlyContribution each
+ * month, starting the month after fromDateStr.
+ *
+ * @param {number} currentValue        latest portfolioValue
+ * @param {number} goalAmount          target corpus
+ * @param {number} annualRate          e.g. 0.12 for 12% (typically the XIRR)
+ * @param {number} monthlyContribution current monthly SIP amount
+ * @param {string} fromDateStr         'YYYY-MM-DD' — latest entry date
+ * @returns {{ date: string, months: number } | null} projected reach date,
+ *          or null if unreachable within 50 years at this rate/contribution
+ */
+export function projectGoalDate(currentValue, goalAmount, annualRate, monthlyContribution, fromDateStr) {
+  if (!goalAmount || goalAmount <= 0) return null;
+  if (currentValue >= goalAmount) return { date: fromDateStr, months: 0 };
+
+  const monthlyRate = Math.pow(1 + (annualRate || 0), 1 / 12) - 1;
+  let value = currentValue;
+  const maxMonths = 600; // 50-year cap
+
+  for (let m = 1; m <= maxMonths; m++) {
+    value = value * (1 + monthlyRate) + (monthlyContribution || 0);
+    if (value >= goalAmount) {
+      const d = new Date(fromDateStr);
+      d.setMonth(d.getMonth() + m);
+      return { date: dateToStr(d), months: m };
+    }
+  }
+  return null;
+}
+
+/**
+ * Project the SIP portfolio forward toward a target corpus using three
+ * annual-return scenarios drawn from the LINKED FUND's own historical
+ * calendar-year returns (best / average / worst year on record) — not a
+ * market-wide assumption. Unlike projectGoalDate (single XIRR-based line),
+ * this compounds monthly and keeps adding the current SIP contribution,
+ * producing three full point series so the chart can show a spread.
+ *
+ * @param {number} currentValue        latest portfolioValue
+ * @param {number} monthlyContribution current monthly SIP amount
+ * @param {{avg:number, best:number, worst:number}} rates  annual % figures
+ * @param {number} monthsAhead         how many months to project
+ * @param {string} fromDateStr         'YYYY-MM-DD' — latest entry date
+ * @returns {{expected:Array, optimistic:Array, pessimistic:Array}}
+ *          each an array of { date, value } points, anchored at fromDateStr
+ */
+export function projectGoalScenarios(currentValue, monthlyContribution, rates, monthsAhead, fromDateStr) {
+  function scenario(annualPct) {
+    const monthlyRate = Math.pow(1 + annualPct / 100, 1 / 12) - 1;
+    const anchorDate   = new Date(fromDateStr);
+    const points = [{ date: fromDateStr, value: +currentValue.toFixed(2) }];
+    let value = currentValue;
+    for (let m = 1; m <= monthsAhead; m++) {
+      value = value * (1 + monthlyRate) + (monthlyContribution || 0);
+      const d = new Date(anchorDate);
+      d.setMonth(d.getMonth() + m);
+      points.push({ date: dateToStr(d), value: +value.toFixed(2) });
+    }
+    return points;
+  }
+
+  return {
+    expected:    scenario(rates.avg),
+    optimistic:  scenario(rates.best),
+    pessimistic: scenario(rates.worst),
+  };
+}
+
 /** Persist the recalculated values back to IndexedDB. */
 export async function saveCalcEntries(calc, profileId) {
   for (const e of calc) {

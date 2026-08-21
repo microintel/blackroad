@@ -22,7 +22,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -30,12 +30,39 @@
 <!-- Particle background -->
 <canvas id="particle-canvas"></canvas>
 
+<!-- ═══════════ DESKTOP SIDE NAV (≥900px) ═══════════
+     Replaces the fixed bottom tab bar on wide screens so the app
+     doesn't feel like a stretched phone UI. Reuses the same
+     .nav-item / data-page click binding as the bottom nav below —
+     no extra JS needed for the 5 primary pages. -->
+<nav class="side-nav" id="sideNav">
+  <div class="side-nav-brand">
+    <div class="brand-logo"><i class="bi bi-graph-up-arrow"></i></div>
+    <h1>StepUP</h1>
+  </div>
+
+  <a class="side-nav-back" href="../blackroad-dashboard.html">
+    <i class="bi bi-arrow-left"></i> Back to Dashboard
+  </a>
+
+  <a class="side-nav-stepup" data-goto="stepup">
+    <i class="bi bi-arrow-down-up"></i> Step-Up / Step-Down SIP
+  </a>
+
+  <div class="side-nav-label">Menu</div>
+  <button class="nav-item side-nav-link active" data-page="page-home"><i class="bi bi-house-fill"></i> Home</button>
+  <button class="nav-item side-nav-link" data-page="page-history"><i class="bi bi-journal-text"></i> History</button>
+  <button class="nav-item side-nav-link" data-page="page-add"><i class="bi bi-plus-circle"></i> Add Entry</button>
+  <button class="nav-item side-nav-link" data-page="page-graph"><i class="bi bi-graph-up"></i> Graph</button>
+  <button class="nav-item side-nav-link" data-page="page-user"><i class="bi bi-person-circle"></i> Account</button>
+</nav>
+
+<div class="app-shell">
+
 <!-- ═══════════ HEADER ═══════════ -->
 <header class="app-header">
   <div class="app-header-brand">
-    <a href="../blackroad-dashboard.html" class="app-header-back" title="Back to BlackRoad" target="_blank" rel="noopener">
-      <i class="bi bi-arrow-left-circle"></i><span>BlackRoad</span>
-    </a>
+    <a class="header-back-btn" href="../blackroad-dashboard.html" title="Back to Dashboard"><i class="bi bi-arrow-left"></i></a>
   <!--  <div class="brand-logo">
      <i class="bi bi-graph-up-arrow"></i> 
     </div>-->
@@ -60,27 +87,50 @@
     </div>
     <div class="donut-legend">
     <div class="donut-leg-item">
-    <span class="donut-leg-dot" style="background:var(--indigo)"></span>
+    <span class="donut-leg-dot" style="background:#6366f1"></span>
     <div>
     <div class="donut-leg-label">Invested</div>
     <div class="donut-leg-val" id="donut-invested">₹0</div>
     </div>
     </div>
     <div class="donut-leg-item">
-    <span class="donut-leg-dot" style="background:var(--green)"></span>
+    <span class="donut-leg-dot" style="background:#10b981"></span>
     <div>
     <div class="donut-leg-label">Profit</div>
     <div class="donut-leg-val" id="donut-profit">₹0</div>
     </div>
     </div>
     <div class="donut-leg-item">
-    <span class="donut-leg-dot" style="background:var(--red)"></span>
+    <span class="donut-leg-dot" style="background:#f43f5e"></span>
     <div>
     <div class="donut-leg-label">Loss</div>
     <div class="donut-leg-val" id="donut-loss">₹0</div>
     </div>
     </div>
     </div>
+    </div>
+
+    <!-- Quick Access — the app's core Step-Up/Step-Down feature and the
+         Account page live one tap away from Home on both mobile and
+         desktop, instead of only being reachable by opening Account and
+         scrolling down. -->
+    <div class="quick-access-row">
+      <div class="quick-access-card" data-goto="stepup">
+        <div class="quick-access-icon"><i class="bi bi-arrow-down-up"></i></div>
+        <div class="quick-access-body">
+          <div class="quick-access-title">Step-Up / Step-Down SIP</div>
+          <div class="quick-access-sub">Change your SIP amount from a future date</div>
+        </div>
+        <i class="bi bi-chevron-right quick-access-arrow"></i>
+      </div>
+      <div class="quick-access-card" data-goto-page="page-user">
+        <div class="quick-access-icon" style="background:var(--blue-dim);color:var(--blue);"><i class="bi bi-person-circle"></i></div>
+        <div class="quick-access-body">
+          <div class="quick-access-title">Account</div>
+          <div class="quick-access-sub">SIPs, goal, appearance &amp; data</div>
+        </div>
+        <i class="bi bi-chevron-right quick-access-arrow"></i>
+      </div>
     </div>
 
     <!-- Statement Hero — single lead panel replaces the old row of hero cards -->
@@ -109,6 +159,24 @@
             <span class="card-sub" id="c-today-pnl-sub"></span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Goal Progress -->
+    <div class="section" id="goal-section" style="display:none;">
+      <div class="section-head">
+        <h2><i class="bi bi-flag-fill section-icon"></i>Goal Progress</h2>
+        <span class="card-value" id="goal-pct">0%</span>
+      </div>
+      <div class="section-body">
+        <div class="goal-progress-track">
+          <div class="goal-progress-fill" id="goal-progress-fill" style="width:0%;"></div>
+        </div>
+        <div class="goal-progress-labels">
+          <span id="goal-current">₹0</span>
+          <span id="goal-target">of ₹0</span>
+        </div>
+        <p class="goal-projection-text" id="goal-projection-text"></p>
       </div>
     </div>
 
@@ -262,11 +330,11 @@
           <thead>
             <tr>
               <th>#</th><th>Date</th><th>% Chg</th><th>SIP</th>
-              <th>Portfolio</th><th>Invested</th><th style="text-align:right;">Act</th>
+              <th>Portfolio</th><th>Invested</th><th>P&amp;L</th><th style="text-align:right;">Act</th>
             </tr>
           </thead>
           <tbody id="history-body">
-            <tr><td colspan="7"><div class="empty"><i class="bi bi-inbox"></i><span>No entries yet.</span></div></td></tr>
+            <tr><td colspan="8"><div class="empty"><i class="bi bi-inbox"></i><span>No entries yet.</span></div></td></tr>
           </tbody>
         </table>
       </div>
@@ -439,6 +507,28 @@
       </div>
     </div>
 
+    <div class="section">
+      <div class="chart-panel active" style="padding:14px 16px;">
+        <div class="chart-header">
+          <h2 style="font-size:.95rem;margin:0;"><i class="bi bi-graph-up-arrow section-icon"></i> Profit / Loss</h2>
+          <button class="btn btn-secondary btn-sm" id="btn-reset-pnl-zoom">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
+          </button>
+        </div>
+        <span class="chart-subtitle"><i class="bi bi-info-circle"></i> scroll/pinch to zoom, drag to pan</span>
+        <div class="range-pills" id="range-pills-pnl" style="margin:10px 0;">
+          <button class="range-pill" data-range="7d">1W</button>
+          <button class="range-pill" data-range="1">1M</button>
+          <button class="range-pill" data-range="6">6M</button>
+          <button class="range-pill" data-range="12">1Y</button>
+          <button class="range-pill" data-range="36">3Y</button>
+          <button class="range-pill" data-range="60">5Y</button>
+          <button class="range-pill active" data-range="all">Max</button>
+        </div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="chart-pnl"></canvas></div>
+      </div>
+    </div>
+
     <div class="section" id="fund-history-section">
       <div class="chart-panel active" style="padding:14px 16px;">
         <div class="chart-header">
@@ -502,6 +592,19 @@
       </div>
     </div>
 
+    <div class="section" id="goal-projection-section" style="display:none;">
+      <div class="chart-panel active" style="padding:14px 16px;">
+        <div class="chart-header">
+          <h2 style="font-size:.95rem;margin:0;"><i class="bi bi-flag-fill section-icon"></i> Path to Target Corpus</h2>
+        </div>
+        <span class="chart-subtitle"><i class="bi bi-info-circle"></i> continues from today's value + your SIP, three scenarios</span>
+        <div class="chart-wrap" style="height:260px;"><canvas id="chart-goal-projection"></canvas></div>
+        <div class="fund-proj-legend" id="goal-proj-legend"></div>
+        <p class="goal-projection-text" id="goal-proj-reach-text" style="padding:0 2px;"></p>
+        <div class="fund-proj-note"><i class="bi bi-info-circle"></i> Based on this fund's own best, worst and average calendar-year returns, plus your current SIP — not a guarantee.</div>
+      </div>
+    </div>
+
     <div class="section">
       <div class="chart-panel active" style="padding:14px 16px;">
         <div class="chart-header">
@@ -562,7 +665,7 @@
     <!-- SIP Settings -->
     <div class="user-section">
       <div class="user-section-title"><i class="bi bi-sliders"></i> SIP Settings</div>
-      <div class="user-subblock user-subblock-lg">
+      <div class="user-subblock user-subblock-lg user-subblock-last">
         <div class="form-row">
           <div class="form-group">
             <label><i class="bi bi-currency-rupee"></i> Monthly SIP (₹)</label>
@@ -580,13 +683,16 @@
         </div>
         <p id="settings-info" class="settings-info-text"></p>
       </div>
+    </div>
 
-      <!-- Step-Up / Step-Down SIP -->
-      <div class="user-subblock">
-        <div class="stepup-divider">
-          <i class="bi bi-arrow-down-up" style="color:var(--indigo)"></i>
-          <span>Step-Up / Step-Down SIP</span>
-        </div>
+    <!-- Step-Up / Step-Down SIP — the app's namesake feature gets its own
+         top-level section (was previously nested inside SIP Settings)
+         so it's a first-class, easy-to-find destination in its own
+         right, and can be jumped to directly via #section-stepup from
+         the Home quick-access card and the desktop side nav. -->
+    <div class="user-section" id="section-stepup">
+      <div class="user-section-title"><i class="bi bi-arrow-down-up"></i> Step-Up / Step-Down SIP</div>
+      <div class="user-subblock user-subblock-lg user-subblock-last">
         <p class="subblock-hint">Increase or decrease your SIP amount from a future date — old entries keep their original amounts.</p>
         <div class="form-row">
           <div class="form-group">
@@ -603,13 +709,12 @@
         </button>
         <div id="stepup-schedule-list" class="schedule-list"></div>
       </div>
+    </div>
 
-      <!-- Skip a SIP month -->
-      <div class="user-subblock user-subblock-last">
-        <div class="stepup-divider">
-          <i class="bi bi-skip-forward-fill" style="color:var(--amber)"></i>
-          <span>Skip a Month</span>
-        </div>
+    <!-- Skip a SIP month -->
+    <div class="user-section">
+      <div class="user-section-title"><i class="bi bi-skip-forward-fill"></i> Skip a Month</div>
+      <div class="user-subblock user-subblock-lg user-subblock-last">
         <p class="subblock-hint">Skip one SIP instalment — that month's investment won't be counted.</p>
         <div class="skip-row">
           <div class="form-group">
@@ -622,6 +727,32 @@
         </div>
         <div id="skip-list" class="schedule-list">
           <span class="muted-note">No skipped months.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Investment Goal -->
+    <div class="user-section">
+      <div class="user-section-title"><i class="bi bi-flag-fill"></i> Investment Goal</div>
+      <div class="user-subblock user-subblock-last">
+        <p class="subblock-hint">Set a target corpus and date to track progress on the dashboard.</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label><i class="bi bi-currency-rupee"></i> Target Corpus (₹)</label>
+            <input type="text" inputmode="decimal" id="goal-amount" placeholder="e.g. 1000000" />
+          </div>
+          <div class="form-group">
+            <label><i class="bi bi-calendar-event"></i> Target Date</label>
+            <input type="date" id="goal-date" />
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" id="btn-save-goal">
+            <i class="bi bi-check2-circle"></i> Save Goal
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-clear-goal">
+            <i class="bi bi-x-circle"></i> Clear
+          </button>
         </div>
       </div>
     </div>
@@ -796,10 +927,6 @@
     <i class="bi bi-person nav-icon-outline"></i>
     <span>Account</span>
   </button>
-  <a class="nav-item nav-item-external" href="../blackroad-dashboard.html" target="_blank" rel="noopener">
-    <i class="bi bi-grid-1x2"></i>
-    <span>BlackRoad</span>
-  </a>
 </nav>
 
 <!-- Edit Modal -->
@@ -831,6 +958,34 @@
 
 <footer class="app-footer">Developed by <span>Microintel</span></footer>
 
+</div><!-- /.app-shell -->
+
+<script>
+/* Desktop side-nav ↔ bottom-nav stay in sync (both share .nav-item),
+   and any element marked data-goto="stepup" jumps straight to the
+   Step-Up / Step-Down SIP section on the Account page — from the
+   sidebar on desktop, or the Home quick-access card on mobile. */
+(function(){
+  function goToStepUp(){
+    var acctBtn = document.querySelector('.nav-item[data-page="page-user"]');
+    if (acctBtn) acctBtn.click();
+    setTimeout(function(){
+      var el = document.getElementById('section-stepup');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 180);
+  }
+  document.querySelectorAll('[data-goto="stepup"]').forEach(function(el){
+    el.addEventListener('click', goToStepUp);
+  });
+  document.querySelectorAll('[data-goto-page]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var btn = document.querySelector('.nav-item[data-page="' + el.dataset.gotoPage + '"]');
+      if (btn) btn.click();
+    });
+  });
+})();
+</script>
+
 <script>
 (function() {
   const canvas = document.getElementById('particle-canvas');
@@ -860,7 +1015,7 @@
   function drawParticles() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    const color = isDark ? '91,157,255' : '91,157,255';
+    const color = isDark ? '99,102,241' : '99,102,241';
 
     particles.forEach(p => {
       p.x += p.vx; p.y += p.vy;

@@ -1,90 +1,70 @@
 /* ══════════════════════════════════════════════════════
    CSS Variables — Dark (default)
-   Palette matches the Lending (LendLedger) app's "Soft" theme —
-   calm graphite surfaces, one considered accent per role.
 ══════════════════════════════════════════════════════ */
 :root {
-  /* Lending palette — graphite dark, soft-azure accent */
-  --gold:        #e3ac54;
-  --gold-dim:    #b8862a;
-  --paleGold:    #f0d48a;
+  --bg:          #000;
+  --bg2:         #000;
+  --surface:     #0f1424;
+  --surface2:    #141a2e;
+  --surface3:    #1a2240;
+  --border:      #1e2a45;
+  --border2:     #273554;
+  --text:        #e8eeff;
+  --text2:       #9aabcf;
+  --muted:       #4d6080;
 
-  --bg:          #010409;
-  --bg2:         #010409;
-  --surface:     #0d1017;
-  --surface2:    #0d1017;
-  --surface3:    #383d47;
-  --border:      rgba(255,255,255,.09);
-  --border2:     rgba(255,255,255,.14);
-  --text:        #f2f3f5;
-  --text2:       #9297a1;
-  --muted:       #5a5f68;
+  --indigo:      #e03030;
+  --indigo-soft: #b52222;
+  --indigo-dim:  #2a0808;
+  --green:       #22c55e;
+  --green-dim:   #052210;
+  --red:         #f43f5e;
+  --red-dim:     #2a0613;
+  --amber:       #f59e0b;
+  --amber-dim:   #2a1900;
+  --purple:      #a855f7;
+  --purple-dim:  #1e0a38;
+  --blue:        #38bdf8;
+  --blue-dim:    #061828;
 
-  --indigo:      #5b9dff;   /* accent — Lending's soft azure */
-  --indigo-soft: #4a80d1;
-  --indigo-dim:  #16223a;
-  --green:       #3ecf8e;
-  --green-dim:   #0f2a20;
-  --red:         #f27a8a;
-  --red-dim:     #301419;
-  --amber:       #e3ac54;
-  --amber-dim:   #2b2011;
-  --purple:      #a78bfa;
-  --purple-dim:  #201a38;
-  --blue:        #5b9dff;
-  --blue-dim:    #101f33;
-
-  --mono:        'IBM Plex Mono', 'Fira Mono', monospace;
+  --mono:        'JetBrains Mono', 'Fira Mono', monospace;
   --sans:        'Inter', system-ui, sans-serif;
-  --display:     'Inter', system-ui, sans-serif;
-  --radius:      20px;
-  --radius-sm:   14px;
-  --radius-xs:   10px;
+  --radius:      16px;
+  --radius-sm:   10px;
+  --radius-xs:   7px;
   --nav-h:       70px;
   --safe-b:      env(safe-area-inset-bottom, 0px);
   --ease:        cubic-bezier(.4,0,.2,1);
   --spring:      cubic-bezier(.34,1.56,.64,1);
 }
 
-h1, h2, h3, h4, .display { font-family: var(--display); }
-
 /* ══════════════════════════════════════════════════════
-   Light Theme — matches the Lending app's "Paper" theme
+   Light Theme — warm off-white, easy on the eyes
 ══════════════════════════════════════════════════════ */
 html[data-theme="light"] {
-  /* Lending "Paper" palette — warm parchment light theme */
-  --bg:          #EDE6D6;
-  --bg2:         #EDE6D6;
-  --surface:     #F7FCFE;
-  --surface2:    #F7FCFE;
-  --surface3:    #e2dfd6;
+  /* Backgrounds — warm creamy tones, never pure white */
+  --bg:          #f5f0eb;   /* warm parchment base */
+  --bg2:         #ede8e1;   /* slightly deeper parchment */
+  --surface:     #faf7f3;   /* card face — warm off-white */
+  --surface2:    #f0ece5;   /* subtle inset */
+  --surface3:    #e8e2d9;   /* deeper inset / hover */
 
   /* Borders */
-  --border:      rgba(20,20,20,.11);
-  --border2:     rgba(20,20,20,.16);
+  --border:      #ddd6cb;
+  --border2:     #c9c0b2;
 
   /* Text */
-  --text:        #17181a;
-  --text2:       #62666e;
-  --muted:       #9a9ea5;
-
-  /* Accent — Lending's Paper-theme blue */
-  --indigo:      #2f6fe0;
-  --indigo-soft: #2558b0;
-
-  /* Role colors, deepened for light backgrounds */
-  --green:       #1c9a5b;
-  --red:         #d54b5a;
-  --amber:       #a97a1c;
-  --blue:        #2f6fe0;
+  --text:        #1a1410;   /* warm near-black */
+  --text2:       #5a4e43;   /* warm mid-tone */
+  --muted:       #9e9082;   /* warm muted */
 
   /* Accent dim backgrounds */
-  --indigo-dim:  #e7f0fd;
+  --indigo-dim:  #fbeae8;
   --green-dim:   #e4f5eb;
-  --red-dim:     #fce8ea;
-  --amber-dim:   #fbf2dc;
-  --purple-dim:  #f0ecfc;
-  --blue-dim:    #e7f1fe;
+  --red-dim:     #fce8ed;
+  --amber-dim:   #fef4da;
+  --purple-dim:  #f4ecff;
+  --blue-dim:    #e5f5ff;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -138,7 +118,7 @@ html[data-theme="light"] #particle-canvas { opacity: .35; }
   padding: 0 16px;
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 100;
-  background: rgba(13,16,23,.88);
+  background: rgba(7,9,15,.88);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -146,35 +126,21 @@ html[data-theme="light"] #particle-canvas { opacity: .35; }
 }
 
 html[data-theme="light"] .app-header {
-  background: rgba(247,252,254,.88);
+  background: rgba(255,255,255,.88);
 }
 
 .app-header-brand {
   display: flex; align-items: center; gap: 10px;
 }
 
-.app-header-back {
-  display: none; /* shown on desktop only, see @media below */
-  align-items: center; gap: 6px;
-  padding: 6px 10px 6px 8px;
-  border-radius: var(--radius-xs);
-  color: var(--text2);
-  text-decoration: none;
-  font-size: .78rem; font-weight: 600;
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  transition: color .15s var(--ease), background .15s var(--ease), border-color .15s var(--ease);
+.header-back-btn {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text2); font-size: .95rem;
+  transition: background .2s var(--ease), color .2s var(--ease);
 }
-.app-header-back .bi { font-size: 1rem; }
-.app-header-back:hover {
-  color: var(--indigo);
-  border-color: var(--indigo);
-  background: var(--indigo-dim);
-}
-
-@media (min-width: 769px) {
-  .app-header-back { display: flex; }
-}
+.header-back-btn:hover { color: var(--text); background: var(--surface3); }
 
 .brand-logo {
   width: 34px; height: 34px;
@@ -182,7 +148,7 @@ html[data-theme="light"] .app-header {
   border-radius: 10px;
   display: grid; place-items: center;
   color: #fff; font-size: 1rem;
-  box-shadow: 0 2px 6px rgba(232,184,75,.2);
+  box-shadow: 0 2px 6px rgba(224,48,48,.2);
   flex-shrink: 0;
 }
 
@@ -205,7 +171,7 @@ html[data-theme="light"] .app-header {
   position: fixed; bottom: 0; left: 0; right: 0;
   height: calc(var(--nav-h) + var(--safe-b));
   padding-bottom: var(--safe-b);
-  background: rgba(13,16,23,.92);
+  background: rgba(7,9,15,.92);
   border-top: 1px solid var(--border);
   display: flex; z-index: 200;
   backdrop-filter: blur(24px) saturate(180%);
@@ -213,7 +179,7 @@ html[data-theme="light"] .app-header {
 }
 
 html[data-theme="light"] .bottom-nav {
-  background: rgba(247,252,254,.92);
+  background: rgba(255,255,255,.92);
 }
 
 .nav-item {
@@ -225,7 +191,6 @@ html[data-theme="light"] .bottom-nav {
   letter-spacing: .05em; text-transform: uppercase;
   transition: color .2s var(--ease); padding: 6px 4px;
   position: relative;
-  text-decoration: none;
 }
 
 .nav-item .bi { font-size: 1.25rem; display: block; }
@@ -256,20 +221,20 @@ html[data-theme="light"] .bottom-nav {
   border-radius: 14px;
   display: grid; place-items: center;
   color: #fff; font-size: 1.2rem;
-  box-shadow: 0 2px 8px rgba(232,184,75,.25);
+  box-shadow: 0 2px 8px rgba(224,48,48,.25);
   transition: transform .2s var(--spring), box-shadow .2s;
   margin-bottom: 2px;
 }
 .nav-item-add:active .nav-add-btn {
   transform: scale(.9);
-  box-shadow: 0 1px 5px rgba(232,184,75,.18);
+  box-shadow: 0 1px 5px rgba(224,48,48,.18);
 }
 .nav-item-add > .bi { display: none; }
 .nav-item-add .nav-icon-fill,
 .nav-item-add .nav-icon-outline { display: none; }
 .nav-add-btn .bi { display: block !important; color: #fff; }
 .nav-item-add.active .nav-add-btn {
-  box-shadow: 0 3px 12px rgba(232,184,75,.3);
+  box-shadow: 0 3px 12px rgba(224,48,48,.3);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -325,7 +290,7 @@ html[data-theme="light"] .bottom-nav {
 .form-group input:focus {
   outline: none;
   border-color: var(--indigo);
-  box-shadow: 0 0 0 3px rgba(232,184,75,.18);
+  box-shadow: 0 0 0 3px rgba(224,48,48,.18);
   background: var(--surface3);
 }
 
@@ -353,11 +318,11 @@ html[data-theme="light"] .bottom-nav {
 .btn-primary {
   background: var(--indigo);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(232,184,75,.2);
+  box-shadow: 0 2px 8px rgba(224,48,48,.2);
 }
 .btn-primary:hover {
   background: var(--indigo-soft);
-  box-shadow: 0 4px 12px rgba(232,184,75,.3);
+  box-shadow: 0 4px 12px rgba(224,48,48,.3);
   transform: translateY(-1px);
 }
 
@@ -391,7 +356,7 @@ html[data-theme="light"] .bottom-nav {
   animation: cardIn .4s var(--ease) both;
 }
 html[data-theme="light"] .statement-hero {
-  background: #F7FCFE;
+  background: #fff;
   box-shadow: 0 8px 18px rgba(0,0,0,.06);
 }
 
@@ -554,13 +519,13 @@ html[data-theme="light"] .statement-hero {
    Section
 ══════════════════════════════════════════════════════ */
 .section {
-  background: rgba(13,16,23,.75);
+  background: rgba(15,20,36,.75);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 14px; overflow: hidden;
 }
 
-html[data-theme="light"] .section { background: rgba(247,252,254,.8); }
+html[data-theme="light"] .section { background: rgba(255,255,255,.8); }
 
 .section-head {
   padding: 14px 18px;
@@ -580,7 +545,7 @@ html[data-theme="light"] .section { background: rgba(247,252,254,.8); }
 .entry-count-badge {
   background: var(--indigo-dim);
   color: var(--indigo);
-  border: 1px solid rgba(232,184,75,.3);
+  border: 1px solid rgba(224,48,48,.3);
   border-radius: 20px;
   padding: 2px 9px;
   font-size: .67rem; font-weight: 700;
@@ -588,6 +553,32 @@ html[data-theme="light"] .section { background: rgba(247,252,254,.8); }
 }
 
 .section-body { padding: 16px; }
+
+/* ══════════════════════════════════════════════════════
+   Goal Progress
+══════════════════════════════════════════════════════ */
+.goal-progress-track {
+  height: 10px; border-radius: 20px;
+  background: var(--surface3); overflow: hidden;
+  border: 1px solid var(--border);
+}
+.goal-progress-fill {
+  height: 100%; border-radius: 20px;
+  background: linear-gradient(90deg, var(--blue), var(--green));
+  transition: width .6s ease;
+}
+.goal-progress-fill.behind { background: linear-gradient(90deg, var(--amber), var(--red)); }
+.goal-progress-labels {
+  display: flex; justify-content: space-between;
+  margin-top: 8px; font-size: .78rem; color: var(--muted);
+  font-family: var(--mono);
+}
+.goal-projection-text {
+  margin-top: 12px; font-size: .82rem; color: var(--text2);
+  line-height: 1.5;
+}
+.goal-projection-text.on-track { color: var(--green); }
+.goal-projection-text.behind   { color: var(--red); }
 
 /* ══════════════════════════════════════════════════════
    Entry Form
@@ -615,7 +606,7 @@ html[data-theme="light"] .section { background: rgba(247,252,254,.8); }
 .card-form-icon {
   width: 42px; height: 42px; flex-shrink: 0;
   background: var(--indigo-dim);
-  border: 1px solid rgba(232,184,75,.25);
+  border: 1px solid rgba(224,48,48,.25);
   border-radius: 12px;
   display: grid; place-items: center;
   color: var(--indigo); font-size: 1.2rem;
@@ -680,7 +671,7 @@ html[data-theme="light"] .section { background: rgba(247,252,254,.8); }
 
 .selection-box {
   position: absolute; top: 0; bottom: 0; left: 0; width: 40px;
-  background: rgba(232,184,75,.1);
+  background: rgba(224,48,48,.1);
   border-left: 2px solid var(--indigo);
   border-right: 2px solid var(--indigo);
   cursor: grab; touch-action: none;
@@ -714,7 +705,7 @@ html[data-theme="light"] .section { background: rgba(247,252,254,.8); }
 .range-pill.active {
   background: var(--indigo); color: #fff;
   border-color: var(--indigo);
-  box-shadow: 0 1px 5px rgba(232,184,75,.18);
+  box-shadow: 0 1px 5px rgba(224,48,48,.18);
 }
 
 .year-select {
@@ -749,7 +740,7 @@ tbody tr {
   transition: background .12s;
 }
 tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: rgba(232,184,75,.05); }
+tbody tr:hover { background: rgba(224,48,48,.05); }
 tbody td { padding: 11px 14px; white-space: nowrap; }
 
 .mono { font-family: var(--mono); }
@@ -800,7 +791,7 @@ tbody td { padding: 11px 14px; white-space: nowrap; }
 }
 .history-search:focus {
   outline: none; border-color: var(--indigo);
-  box-shadow: 0 0 0 3px rgba(232,184,75,.14);
+  box-shadow: 0 0 0 3px rgba(224,48,48,.14);
 }
 
 .sort-btn {
@@ -844,7 +835,7 @@ tbody td { padding: 11px 14px; white-space: nowrap; }
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
-html[data-theme="light"] .user-section { background: rgba(247,252,254,.9); }
+html[data-theme="light"] .user-section { background: rgba(255,255,255,.9); }
 
 .user-section-title {
   padding: 12px 16px;
@@ -955,7 +946,7 @@ html[data-theme="light"] .user-section { background: rgba(247,252,254,.9); }
 .theme-btn.active {
   background: var(--indigo);
   color: #fff; border-color: transparent;
-  box-shadow: 0 2px 8px rgba(232,184,75,.2);
+  box-shadow: 0 2px 8px rgba(224,48,48,.2);
 }
 
 /* Light theme gets a warm sun tint when active */
@@ -991,7 +982,7 @@ html[data-theme="light"] #theme-btn-light.active {
   box-shadow: 0 8px 24px rgba(0,0,0,.2), 0 0 0 1px var(--border);
 }
 
-html[data-theme="light"] .modal { background: #F7FCFE; }
+html[data-theme="light"] .modal { background: #fff; }
 
 @keyframes modalIn {
   from { transform: translateY(20px) scale(.96); opacity: 0; }
@@ -1067,7 +1058,7 @@ html[data-theme="light"] .modal { background: #F7FCFE; }
   -webkit-backdrop-filter: none !important;
   transition: border-color .2s;
 }
-html[data-theme="light"] .add-entry-card { background: #F7FCFE !important; }
+html[data-theme="light"] .add-entry-card { background: #fff !important; }
 .add-entry-card:focus-within { border-color: var(--border2); }
 
 .add-entry-card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 3px; letter-spacing: -.01em; }
@@ -1084,7 +1075,7 @@ html[data-theme="light"] .add-entry-card { background: #F7FCFE !important; }
   margin-bottom: 14px; position: relative; overflow: hidden;
 }
 
-html[data-theme="light"] .donut-section { background: rgba(247,252,254,.8); }
+html[data-theme="light"] .donut-section { background: rgba(255,255,255,.8); }
 
 .donut-section::before {
   content: '';
@@ -1198,7 +1189,7 @@ html[data-theme="light"] .donut-section { background: rgba(247,252,254,.8); }
 }
 .helper-field .pct-input-wrap input:focus {
   outline: none; border-color: var(--indigo);
-  box-shadow: 0 0 0 3px rgba(232,184,75,.16);
+  box-shadow: 0 0 0 3px rgba(224,48,48,.16);
 }
 
 .helper-hint { font-size: .66rem; color: var(--blue); font-family: var(--mono); min-height: 1em; }
@@ -1462,7 +1453,7 @@ html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .inline-add-input:focus {
   outline: none; border-color: var(--indigo);
-  box-shadow: 0 0 0 3px rgba(232,184,75,.16);
+  box-shadow: 0 0 0 3px rgba(224,48,48,.16);
 }
 
 .skip-row { display: flex; gap: 10px; align-items: flex-end; }
@@ -1564,16 +1555,9 @@ html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
     background: var(--indigo);
     transform: scale(1.4);
   }
-
-  /* Six tabs now share the bar (incl. BlackRoad) — trim icon/button
-     size a touch so it doesn't feel packed edge-to-edge. */
-  .nav-item { padding: 6px 2px; }
-  .nav-item .bi { font-size: 1.08rem; }
-  .nav-add-btn { width: 38px; height: 38px; font-size: 1.05rem; }
 }
 @media (min-width: 769px) {
   .swipe-dots { display: none; }
-  .nav-item-external { display: none; } /* desktop has the header link instead */
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1610,4 +1594,113 @@ html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
 
 @media (min-width: 1300px) {
   .user-page { max-width: 1280px; }
+}
+
+/* ══════════════════════════════════════════════════════
+   Home — Quick Access card
+   Surfaces the app's core Step-Up / Step-Down feature (and
+   Account) right on the Home page instead of leaving them only
+   reachable by tapping into Account and scrolling. Shows on both
+   mobile and desktop.
+══════════════════════════════════════════════════════ */
+.quick-access-row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.quick-access-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease);
+}
+.quick-access-card:hover { border-color: var(--indigo-soft); transform: translateY(-1px); }
+.quick-access-card:active { transform: translateY(0); }
+.quick-access-icon {
+  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem; background: var(--indigo-dim); color: var(--indigo);
+}
+.quick-access-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.quick-access-title { font-size: .86rem; font-weight: 700; color: var(--text); }
+.quick-access-sub { font-size: .72rem; color: var(--muted); }
+.quick-access-arrow { margin-left: auto; color: var(--muted); flex-shrink: 0; }
+
+@media (min-width: 600px) {
+  .quick-access-row { flex-direction: row; }
+  .quick-access-card { flex: 1; }
+}
+
+/* ══════════════════════════════════════════════════════
+   Desktop Side Navigation (≥900px)
+   A persistent left rail replaces the fixed bottom tab bar on
+   wide screens, so the app reads as a real desktop layout instead
+   of a phone screen stretched into the middle of the page. It
+   duplicates the 5 primary pages (same .nav-item/data-page click
+   binding as the bottom nav) plus a dedicated Step-Up shortcut.
+══════════════════════════════════════════════════════ */
+.side-nav { display: none; }
+
+@media (min-width: 900px) {
+  body { padding-bottom: 0; }
+  .bottom-nav, .swipe-dots { display: none !important; }
+
+  .side-nav {
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; bottom: 0; width: 232px;
+    background: rgba(7,9,15,.92);
+    border-right: 1px solid var(--border);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    z-index: 250; padding: 18px 14px; overflow-y: auto;
+  }
+  html[data-theme="light"] .side-nav { background: rgba(255,255,255,.92); }
+
+  .side-nav-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 20px; }
+  .side-nav-brand h1 { font-size: 1.08rem; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+
+  .side-nav-back {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; margin-bottom: 12px;
+    border-radius: var(--radius-sm);
+    color: var(--muted); font-size: .8rem; font-weight: 600;
+    transition: background .2s var(--ease), color .2s var(--ease);
+  }
+  .side-nav-back .bi { font-size: .95rem; }
+  .side-nav-back:hover { background: var(--surface2); color: var(--text); }
+
+  .side-nav-stepup {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 12px; margin-bottom: 14px;
+    border-radius: var(--radius-sm);
+    background: var(--indigo-dim); color: var(--indigo);
+    font-size: .82rem; font-weight: 700; cursor: pointer;
+    transition: filter .2s var(--ease);
+  }
+  .side-nav-stepup .bi { font-size: 1.05rem; }
+  .side-nav-stepup:hover { filter: brightness(1.15); }
+
+  .side-nav-label {
+    font-size: .62rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); padding: 10px 12px 6px; font-weight: 700;
+  }
+
+  .side-nav-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    color: var(--text2); font-size: .84rem; font-weight: 600;
+    margin-bottom: 2px; text-align: left; width: 100%;
+    transition: background .2s var(--ease), color .2s var(--ease);
+  }
+  .side-nav-link .bi { font-size: 1.05rem; width: 18px; text-align: center; color: var(--muted); }
+  .side-nav-link:hover { background: var(--surface2); color: var(--text); }
+  .side-nav-link.active { background: var(--surface2); color: var(--text); }
+  .side-nav-link.active .bi { color: var(--indigo); }
+
+  .app-shell { margin-left: 232px; }
+  .app-header-brand { display: none; }
+
+  /* Toast + modal recenter within the visible content area rather
+     than the full window (which now includes the side-nav strip). */
+  #toast { left: calc(50% + 116px); bottom: 24px; }
+  .modal-overlay { padding-left: 248px; }
 }
