@@ -1157,7 +1157,7 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b>₹0</b><small>No instruments yet</small></div>
-            <a class="btn-secondary" href="pages/fixed-deposits.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="fd/fixed-deposits.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <div class="bars" data-bars>
@@ -1619,6 +1619,174 @@ footer{
 })(window);
 </script>
 <script>
+/* ===== Inlined DepositsStore (IndexedDB) — no external file dependency ===== */
+/* ============================================================
+   BlackRoad — Fixed Deposits IndexedDB Store
+   Shared, dependency-free CRUD layer over IndexedDB.
+   Used by both /blackroad-dashboard.html and /fd/fixed-deposits.html
+   (via pages/js/deposits-store.js) so both read/write the exact
+   same data — mirrors the StocksStore pattern above.
+
+   Record shape:
+     { id, bankName, principal, interestRate, compounding,
+       startDate, tenureMonths, notes,
+       status: 'active' | 'closed', closedDate, closedAmount,
+       createdAt, updatedAt }
+   ============================================================ */
+(function (global) {
+  "use strict";
+
+  const DB_NAME = "BlackRoadFD";
+  const DB_VERSION = 1;
+  const STORE = "deposits";
+  const CHANNEL_NAME = "blackroad-deposits-sync";
+
+  let dbPromise = null;
+  let channel = null;
+  try {
+    channel = ("BroadcastChannel" in global) ? new BroadcastChannel(CHANNEL_NAME) : null;
+  } catch (e) { channel = null; }
+
+  function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+    return dbPromise;
+  }
+
+  function store(mode) {
+    return openDB().then((db) => db.transaction(STORE, mode).objectStore(STORE));
+  }
+
+  function notify(type, payload) {
+    if (channel) { try { channel.postMessage({ type, payload, at: Date.now() }); } catch (e) {} }
+    try { global.dispatchEvent(new CustomEvent("deposits:changed", { detail: { type, payload } })); } catch (e) {}
+  }
+
+  function onChange(handler) {
+    if (channel) channel.onmessage = (e) => handler(e.data);
+    global.addEventListener("deposits:changed", (e) => handler(e.detail));
+  }
+
+  async function getAll() {
+    const s = await store("readonly");
+    return new Promise((resolve, reject) => {
+      const req = s.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function remove(id) {
+    const s = await store("readwrite");
+    await new Promise((resolve, reject) => {
+      const req = s.delete(id);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+    notify("remove", { id });
+    return true;
+  }
+
+  const COMPOUNDS_PER_YEAR = { quarterly: 4, monthly: 12, yearly: 1, simple: 0 };
+
+  function addMonthsISO(dateStr, months) {
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d)) return null;
+    d.setMonth(d.getMonth() + Number(months || 0));
+    return d.toISOString().slice(0, 10);
+  }
+
+  function yearsBetween(fromISO, toISO) {
+    const a = new Date(fromISO + "T00:00:00");
+    const b = new Date(toISO + "T00:00:00");
+    if (isNaN(a) || isNaN(b)) return 0;
+    return Math.max(0, (b - a) / (365.25 * 86400000));
+  }
+
+  function growAmount(principal, ratePct, years, compounding) {
+    const P = Number(principal) || 0;
+    const r = Number(ratePct) || 0;
+    if (P <= 0 || years <= 0) return P;
+    const n = COMPOUNDS_PER_YEAR[compounding] ?? 4;
+    if (n === 0) return P * (1 + (r * years) / 100);
+    return P * Math.pow(1 + r / (100 * n), n * years);
+  }
+
+  function computeMetrics(row, asOfISO) {
+    const asOf = asOfISO || new Date().toISOString().slice(0, 10);
+    const principal = Number(row.principal) || 0;
+    const tenureMonths = Number(row.tenureMonths) || 0;
+    const compounding = row.compounding || "quarterly";
+    const maturityDate = row.startDate ? addMonthsISO(row.startDate, tenureMonths) : null;
+    const tenureYears = tenureMonths / 12;
+    const maturityAmount = maturityDate
+      ? growAmount(principal, row.interestRate, tenureYears, compounding)
+      : principal;
+
+    let currentValue;
+    let daysToMaturity = null;
+    let derivedStatus;
+
+    if (row.status === "closed") {
+      currentValue = Number(row.closedAmount) || principal;
+      derivedStatus = "closed";
+    } else if (maturityDate && asOf >= maturityDate) {
+      currentValue = maturityAmount;
+      derivedStatus = "matured";
+    } else {
+      const elapsedYears = row.startDate ? yearsBetween(row.startDate, asOf) : 0;
+      currentValue = growAmount(principal, row.interestRate, Math.min(elapsedYears, tenureYears), compounding);
+      if (maturityDate) {
+        const a = new Date(asOf + "T00:00:00");
+        const b = new Date(maturityDate + "T00:00:00");
+        daysToMaturity = Math.round((b - a) / 86400000);
+      }
+      derivedStatus = daysToMaturity !== null && daysToMaturity <= 30 ? "maturing-soon" : "active";
+    }
+
+    const interestEarned = currentValue - principal;
+    return { maturityDate, maturityAmount, currentValue, interestEarned, daysToMaturity, status: derivedStatus };
+  }
+
+  async function getSummary(asOfISO) {
+    const rows = await getAll();
+    let totalInvested = 0, totalCurrentValue = 0, totalMaturityValue = 0, activeCount = 0;
+    let nextMaturity = null;
+    rows.forEach((r) => {
+      const m = computeMetrics(r, asOfISO);
+      if (r.status !== "closed") {
+        totalInvested += Number(r.principal) || 0;
+        totalCurrentValue += m.currentValue;
+        totalMaturityValue += m.maturityAmount;
+        activeCount += 1;
+        if (m.maturityDate && (!nextMaturity || m.maturityDate < nextMaturity.date)) {
+          nextMaturity = { date: m.maturityDate, bankName: r.bankName || "Fixed Deposit" };
+        }
+      }
+    });
+    return { count: rows.length, activeCount, totalInvested, totalCurrentValue, totalMaturityValue, nextMaturity, rows };
+  }
+
+  function formatINR(n) {
+    const sign = n < 0 ? "-" : "";
+    const abs = Math.abs(Math.round(n));
+    return sign + "₹" + abs.toLocaleString("en-IN");
+  }
+
+  global.DepositsStore = { getAll, remove, computeMetrics, getSummary, formatINR, onChange };
+})(window);
+</script>
+<script>
 /* ============ DATA ============ */
 const categories = [
   { id:'income',       name:'Income & Expenses',   icon:'bi-cash-coin',        value:'₹0', trend:'Loading…', trendUp:true,  color:'green', page:'incomeStatement/statement.html' },
@@ -1626,7 +1794,7 @@ const categories = [
   { id:'stocks',       name:'Stocks',                icon:'bi-graph-up-arrow',   value:'₹0',  trend:'No holdings yet',      trendUp:true,  color:'green', page:'pages/stocks.html' },
   { id:'gold',         name:'Gold',                  icon:'bi-gem',              value:'₹0',   trend:'No holdings yet',   trendUp:true,  color:'paleGold', page:'pages/gold.html' },
   { id:'realestate',   name:'Real Estate',           icon:'bi-building',         value:'₹0',   trend:'No properties yet',       trendUp:true,  color:'blue',  page:'pages/real-estate.html' },
-  { id:'deposits',     name:'Fixed Deposits',        icon:'bi-bank2',            value:'₹0',  trend:'No instruments yet',   trendUp:true,  color:'violet', page:'pages/fixed-deposits.html' },
+  { id:'deposits',     name:'Fixed Deposits',        icon:'bi-bank2',            value:'₹0',  trend:'No instruments yet',   trendUp:true,  color:'violet', page:'fd/fixed-deposits.html' },
   { id:'insurance',    name:'Insurance',             icon:'bi-shield-check',     value:'₹0',    trend:'No policies yet',trendUp:true,  color:'green', page:'pages/insurance.html' },
   { id:'loans',        name:'Loans & Liabilities',   icon:'bi-file-earmark-minus', value:'₹0', trend:'No liabilities yet', trendUp:true, color:'red', page:'lending/loans.html' },
   { id:'calculators',  name:'Financial Calculators', icon:'bi-calculator-fill',   value:'Tools', trend:'SIP, EMI, retirement & more', trendUp:true, color:'blue', page:'https://microintel.github.io/vision/', external:true },
@@ -1905,11 +2073,12 @@ function formatINR(n){
 }
 const GOLD_VALUE       = 0;
 const REALESTATE_VALUE = 0;
-const DEPOSITS_VALUE   = 0;
 const INSURANCE_VALUE  = 0; // cover amount — shown in the footrow, not counted toward net worth
 // LOANS_VALUE used to be hardcoded; it's now read live from LendingStore
 // (the same "LendLedger" IndexedDB the /lending app writes to) inside
-// recalcNetWorth() below.
+// recalcNetWorth() below. DEPOSITS_VALUE is likewise now read live
+// from DepositsStore (the "BlackRoadFD" IndexedDB fd/fixed-deposits.html
+// writes to) inside recalcNetWorth() below.
 
 const nwEl = document.getElementById('netWorthValue');
 let nwCurrent = 0;
@@ -1988,6 +2157,58 @@ function renderLoansPanel(lending){
   }
 }
 
+/* Fills the Fixed Deposits panel (and its tile) from DepositsStore:
+   current accrued value across all active FDs, plus a per-instrument
+   bar breakdown — mirrors renderLoansPanel() above. */
+function renderDepositsPanel(deposits){
+  const total = deposits.totalCurrentValue;
+  const panelTotalEl = document.querySelector('#deposits .panel-total b');
+  const panelSubEl = document.querySelector('#deposits .panel-total small');
+  if(panelTotalEl) panelTotalEl.textContent = formatINR(total);
+  if(panelSubEl) panelSubEl.textContent = deposits.activeCount > 0 ? 'Live from BlackRoad FD' : 'No instruments yet';
+
+  const countEl = document.querySelector('#deposits .panel-title span');
+  if(countEl) countEl.textContent = `${deposits.activeCount} instrument${deposits.activeCount===1?'':'s'}`;
+
+  const barsWrap = document.querySelector('#deposits .bars[data-bars]');
+  if(barsWrap){
+    const palette = ['var(--violet)','var(--blue)','var(--gold)','var(--green)','var(--red)'];
+    const rows = (deposits.rows || [])
+      .filter(r => r.status !== 'closed')
+      .map(r => ({ label: r.bankName || 'Fixed Deposit', amount: DepositsStore.computeMetrics(r).currentValue }))
+      .sort((a,b)=> b.amount - a.amount)
+      .slice(0, 6);
+    if(rows.length === 0){
+      barsWrap.innerHTML = `<div class="bar-row"><span class="label" style="color:var(--text-faint)">No instruments yet — <a href="fd/fixed-deposits.html" style="color:var(--accent);">add your first FD</a>.</span></div>`;
+    } else {
+      const maxAmt = Math.max(1, ...rows.map(r => r.amount));
+      barsWrap.innerHTML = rows.map((r, i) => `
+        <div class="bar-row">
+          <span class="label">${escapeHtmlDash(r.label)}</span>
+          <div class="bar-track"><div class="bar-fill in-view" data-w="${Math.round(r.amount / maxAmt * 100)}" style="background:${palette[i % palette.length]};width:${Math.round(r.amount / maxAmt * 100)}%"></div></div>
+          <span class="amt">${formatINR(r.amount)}</span>
+        </div>`).join('');
+    }
+  }
+
+  // Tile on the overview grid + nav card value
+  const depositsCategory = categories.find(c => c.id === 'deposits');
+  if(depositsCategory){
+    depositsCategory.value = formatINR(total);
+    depositsCategory.trend = deposits.nextMaturity
+      ? `${deposits.activeCount} active · next matures ${deposits.nextMaturity.date}`
+      : (total > 0 ? `${deposits.activeCount} active instrument${deposits.activeCount===1?'':'s'}` : 'No instruments yet');
+    depositsCategory.trendUp = true;
+    const tile = document.querySelector('.tile[data-target="deposits"]');
+    if(tile){
+      const valEl = tile.querySelector('.tile-value');
+      const trendEl = tile.querySelector('.tile-trend');
+      if(valEl) valEl.textContent = depositsCategory.value;
+      if(trendEl) trendEl.innerHTML = `<i class="bi bi-graph-up-arrow"></i> ${depositsCategory.trend}`;
+    }
+  }
+}
+
 // Stocks, Mutual Funds, and Income each call recalcNetWorth() after
 // refreshing their own numbers, and all three can fire back-to-back
 // (e.g. on a single tab focus/visibilitychange). Routing those calls
@@ -2008,10 +2229,12 @@ function queueRecalc(){
 async function recalcNetWorth(){
   let stocksVal = 0, mfVal = 0, incomeNet = 0;
   let lending = { peopleReceivable: 0, peoplePayable: 0, loansOutstanding: 0, monthlyEmi: 0, activeLoanCount: 0, liabilities: 0 };
+  let deposits = { totalCurrentValue: 0, totalInvested: 0, activeCount: 0, nextMaturity: null, rows: [] };
   try{ if(typeof StocksStore !== 'undefined') stocksVal = (await StocksStore.getSummary()).currentValue; }catch(e){ console.error(e); }
   try{ if(typeof MutualFundStore !== 'undefined') mfVal = (await MutualFundStore.getSummary()).currentValue; }catch(e){ console.error(e); }
   try{ if(typeof IncomeStore !== 'undefined') incomeNet = (await IncomeStore.getSummary()).net; }catch(e){ console.error(e); }
   try{ if(typeof LendingStore !== 'undefined') lending = await LendingStore.getSummary(); }catch(e){ console.error(e); }
+  try{ if(typeof DepositsStore !== 'undefined') deposits = await DepositsStore.getSummary(); }catch(e){ console.error(e); }
 
   const LOANS_VALUE = lending.liabilities; // live: bank-loan outstanding + money you owe people
   // Cash & Bank = incomeNet (all-time income minus expenses). This is
@@ -2030,7 +2253,7 @@ async function recalcNetWorth(){
     { label:'Real Estate',           amount:REALESTATE_VALUE,        color:'var(--blue)'    },
     { label:'Mutual Funds',          amount:mfVal,                    color:'var(--gold)'   },
     { label:'Stocks',                amount:stocksVal,                color:'var(--green)'  },
-    { label:'Fixed Deposits',        amount:DEPOSITS_VALUE,           color:'var(--violet)' },
+    { label:'Fixed Deposits',        amount:deposits.totalCurrentValue, color:'var(--violet)' },
     { label:'Gold',                  amount:GOLD_VALUE,               color:'var(--paleGold)'},
     { label:'Lending Receivables',   amount:lending.peopleReceivable, color:'var(--red)'    },
   ];
@@ -2038,15 +2261,18 @@ async function recalcNetWorth(){
   const netWorth = rawTotalAssets - LOANS_VALUE;
   setNetWorth(netWorth);
   renderLoansPanel(lending);
+  renderDepositsPanel(deposits);
 
-  // Live asset-allocation donut — by request, this only includes
-  // Lending Receivables (what you'll get back from loans/liabilities)
-  // and Mutual Funds current value. Everything else (Cash & Bank, Real
-  // Estate, Stocks, Fixed Deposits, Gold) is left out of this chart,
-  // and any amount at or below 0 is skipped entirely rather than
-  // being summed in. Note: this only affects the donut/bar/legend —
-  // rawTotalAssets and Net Worth above still use the full items list.
-  const ALLOCATION_LABELS = ['Lending Receivables', 'Mutual Funds'];
+  // Live asset-allocation donut — includes Lending Receivables (what
+  // you'll get back from loans/liabilities), Mutual Funds and Fixed
+  // Deposits current value, so FDs actually add up into the asset
+  // breakdown instead of only counting toward the hero Net Worth.
+  // Everything else (Cash & Bank, Real Estate, Stocks, Gold) is left
+  // out of this chart, and any amount at or below 0 is skipped
+  // entirely rather than being summed in. Note: this only affects the
+  // donut/bar/legend — rawTotalAssets and Net Worth above still use
+  // the full items list.
+  const ALLOCATION_LABELS = ['Lending Receivables', 'Mutual Funds', 'Fixed Deposits'];
   const chartItems = items.filter(i => ALLOCATION_LABELS.includes(i.label) && i.amount > 0);
   const totalAssets = chartItems.reduce((s,i)=> s + i.amount, 0) || 1; // avoid /0 in percentages
   renderAllocation(chartItems.map(i => ({ ...i, pct: +(i.amount / totalAssets * 100).toFixed(1) })));
@@ -2288,12 +2514,13 @@ swatches.forEach(s=>{
    BACKUP & RESTORE — full cross-database IndexedDB export/import
    Every store, in every IndexedDB database this dashboard reads
    (main BlackRoadDB + the sub-apps' own LendLedger, sip-compounder,
-   BlackRoad2 databases), is dumped with its exact keys/values and
-   restored the same way — no reshaping, no re-deriving. Import
-   clears each store and put()s the records straight back, so ids
-   and structure survive round-trip exactly. This dashboard is
-   normally read-only for those sub-app databases; import is the
-   one path where it writes to them, on explicit user action only.
+   BlackRoad2, and BlackRoadFD databases), is dumped with its exact
+   keys/values and restored the same way — no reshaping, no
+   re-deriving. Import clears each store and put()s the records
+   straight back, so ids and structure survive round-trip exactly.
+   This dashboard is normally read-only for those sub-app databases;
+   import is the one path where it writes to them, on explicit user
+   action only.
    ============================================================ */
 // Same schema each sub-app itself creates on first open (name -> version +
 // store definitions). Import needs this because if the databases were wiped
@@ -2332,6 +2559,11 @@ const BACKUP_DB_SCHEMAS = {
     stores: {
       entries: { keyPath:'id', autoIncrement:true },
       meta:    { keyPath:'key' },
+    }
+  },
+  BlackRoadFD: {
+    stores: {
+      deposits: { keyPath:'id', autoIncrement:true },
     }
   }
 };
@@ -2629,6 +2861,8 @@ async function refreshStocksSummary(){
 refreshStocksSummary();
 // Re-sync instantly if pages/stocks.html (another tab) makes a change
 if(typeof StocksStore !== 'undefined') StocksStore.onChange(()=> refreshStocksSummary());
+// Re-sync instantly if fd/fixed-deposits.html (another tab) makes a change
+if(typeof DepositsStore !== 'undefined') DepositsStore.onChange(()=> queueRecalc());
 // Also re-sync whenever the user comes back to this tab
 window.addEventListener('focus', refreshStocksSummary);
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshStocksSummary(); });
