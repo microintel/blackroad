@@ -288,81 +288,9 @@ document.querySelectorAll('.nav-item').forEach(btn => {
 });
 
 /* ══════════════════════════════════════════════════════
-   Swipe Navigation (mobile only)
+   Swipe Navigation — removed. Pages now switch only via the
+   bottom nav / side nav taps, not left-right swipe gestures.
 ══════════════════════════════════════════════════════ */
-(function initSwipe() {
-  // Tab order matches bottom nav order
-  const PAGE_ORDER = ['page-home', 'page-history', 'page-add', 'page-graph', 'page-user'];
-
-  function getActivePage() {
-    return PAGE_ORDER.find(id => document.getElementById(id)?.classList.contains('active')) || PAGE_ORDER[0];
-  }
-
-  function navigateToPage(pageId) {
-    const btn = document.querySelector(`.nav-item[data-page="${pageId}"]`);
-    if (btn) btn.click();
-  }
-
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let touchStartTime = 0;
-  let isSwiping = false;
-
-  // Only activate on touch devices / mobile widths
-  function isMobile() { return window.innerWidth <= 768; }
-
-  document.addEventListener('touchstart', (e) => {
-    if (!isMobile()) return;
-    const t = e.touches[0];
-    touchStartX = t.clientX;
-    touchStartY = t.clientY;
-    touchStartTime = Date.now();
-    isSwiping = false;
-  }, { passive: true });
-
-  document.addEventListener('touchmove', (e) => {
-    if (!isMobile()) return;
-    const t = e.touches[0];
-    const dx = t.clientX - touchStartX;
-    const dy = t.clientY - touchStartY;
-    // Mark as a horizontal swipe candidate early
-    if (!isSwiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
-      isSwiping = true;
-    }
-  }, { passive: true });
-
-  document.addEventListener('touchend', (e) => {
-    if (!isMobile() || !isSwiping) return;
-
-    const t = e.changedTouches[0];
-    const dx       = t.clientX - touchStartX;
-    const dy       = t.clientY - touchStartY;
-    const elapsed  = Date.now() - touchStartTime;
-
-    // Ignore vertical-dominant swipes, very slow gestures, and tiny movements
-    if (Math.abs(dy) > Math.abs(dx)) return;
-    if (Math.abs(dx) < 50)           return;   // min distance threshold
-    if (elapsed > 500)               return;   // max duration threshold
-
-    // Ignore swipes that originate inside a horizontally-scrollable element
-    // (e.g. the history table-scroll, chart canvas)
-    const originEl = document.elementFromPoint(touchStartX, touchStartY);
-    const scrollParent = originEl?.closest('.table-scroll, canvas, .chart-area, [data-no-swipe]');
-    if (scrollParent) return;
-
-    const currentId  = getActivePage();
-    const currentIdx = PAGE_ORDER.indexOf(currentId);
-
-    // Swipe LEFT → go to next tab; swipe RIGHT → go to previous tab
-    if (dx < 0 && currentIdx < PAGE_ORDER.length - 1) {
-      navigateToPage(PAGE_ORDER[currentIdx + 1]);
-    } else if (dx > 0 && currentIdx > 0) {
-      navigateToPage(PAGE_ORDER[currentIdx - 1]);
-    }
-
-    isSwiping = false;
-  }, { passive: true });
-})();
 
 /* ══════════════════════════════════════════════════════
    Settings — helpers

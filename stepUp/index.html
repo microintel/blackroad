@@ -642,10 +642,25 @@
     <div class="user-name"></div>
     <div class="user-sub" id="user-sub-line">No settings configured yet</div>
 
+    <!-- Quick-jump chips — every settings section is one tap away, so
+         nothing on this page is "hard to find" behind scrolling. -->
+    <nav class="account-quicknav" aria-label="Jump to section">
+      <a class="account-quicknav-chip" href="#sec-my-sips"><i class="bi bi-layers"></i>My SIPs</a>
+      <a class="account-quicknav-chip" href="#sec-sip-settings"><i class="bi bi-sliders"></i>SIP Settings</a>
+      <a class="account-quicknav-chip" href="#section-stepup"><i class="bi bi-arrow-down-up"></i>Step-Up</a>
+      <a class="account-quicknav-chip" href="#sec-skip-month"><i class="bi bi-skip-forward-fill"></i>Skip Month</a>
+      <a class="account-quicknav-chip" href="#sec-goal"><i class="bi bi-flag-fill"></i>Goal</a>
+      <a class="account-quicknav-chip" href="#sec-stats"><i class="bi bi-bar-chart-line"></i>Stats</a>
+      <a class="account-quicknav-chip" href="#sec-appearance"><i class="bi bi-palette"></i>Appearance</a>
+      <a class="account-quicknav-chip" href="#sec-data"><i class="bi bi-database"></i>Data</a>
+      <a class="account-quicknav-chip" href="#sec-danger"><i class="bi bi-exclamation-triangle-fill"></i>Danger Zone</a>
+      <a class="account-quicknav-chip" href="#sec-howto"><i class="bi bi-question-circle"></i>How to Use</a>
+    </nav>
+
     <div class="user-sections-grid">
 
     <!-- Manage SIPs -->
-    <div class="user-section">
+    <div class="user-section" id="sec-my-sips">
       <div class="user-section-title"><i class="bi bi-layers"></i> My SIPs</div>
       <div id="manage-sips-list" class="manage-sips-list"></div>
       <div class="user-subblock">
@@ -663,7 +678,7 @@
     </div>
 
     <!-- SIP Settings -->
-    <div class="user-section">
+    <div class="user-section" id="sec-sip-settings">
       <div class="user-section-title"><i class="bi bi-sliders"></i> SIP Settings</div>
       <div class="user-subblock user-subblock-lg user-subblock-last">
         <div class="form-row">
@@ -712,7 +727,7 @@
     </div>
 
     <!-- Skip a SIP month -->
-    <div class="user-section">
+    <div class="user-section" id="sec-skip-month">
       <div class="user-section-title"><i class="bi bi-skip-forward-fill"></i> Skip a Month</div>
       <div class="user-subblock user-subblock-lg user-subblock-last">
         <p class="subblock-hint">Skip one SIP instalment — that month's investment won't be counted.</p>
@@ -732,7 +747,7 @@
     </div>
 
     <!-- Investment Goal -->
-    <div class="user-section">
+    <div class="user-section" id="sec-goal">
       <div class="user-section-title"><i class="bi bi-flag-fill"></i> Investment Goal</div>
       <div class="user-subblock user-subblock-last">
         <p class="subblock-hint">Set a target corpus and date to track progress on the dashboard.</p>
@@ -758,7 +773,7 @@
     </div>
 
     <!-- Stats -->
-    <div class="user-section">
+    <div class="user-section" id="sec-stats">
       <div class="user-section-title"><i class="bi bi-bar-chart-line"></i> Portfolio Stats</div>
       <div class="stat-grid">
         <div class="stat-cell">
@@ -781,7 +796,7 @@
     </div>
 
     <!-- Appearance -->
-    <div class="user-section">
+    <div class="user-section" id="sec-appearance">
       <div class="user-section-title"><i class="bi bi-palette"></i> Appearance</div>
       <div class="theme-toggle">
         <button class="theme-btn" id="theme-btn-light" data-theme="light">
@@ -796,7 +811,7 @@
     </div>
 
     <!-- Data actions -->
-    <div class="user-section">
+    <div class="user-section" id="sec-data">
       <div class="user-section-title"><i class="bi bi-database"></i> Data</div>
       <div class="data-group-label">Current SIP — “<span id="data-current-sip-name"></span>”</div>
       <div class="user-row" id="btn-pdf-report-row">
@@ -843,7 +858,7 @@
     </div>
 
     <!-- Danger zone -->
-    <div class="user-section">
+    <div class="user-section" id="sec-danger">
       <div class="user-section-title danger-title"><i class="bi bi-exclamation-triangle-fill"></i> Danger Zone</div>
       <div class="user-row" id="btn-reset-row">
         <div class="user-row-icon icon-red"><i class="bi bi-trash3-fill"></i></div>
@@ -856,7 +871,7 @@
     </div>
 
     <!-- How to Use -->
-    <div class="user-section">
+    <div class="user-section" id="sec-howto">
       <div class="user-section-title"><i class="bi bi-question-circle"></i> How to Use</div>
 
       <div class="howto-method">
@@ -888,15 +903,6 @@
     <input type="file" id="import-all-file" accept=".json" style="display:none" />
 
   </div>
-</div>
-
-<!-- ═══════════ SWIPE DOTS (mobile position indicator) ═══════════ -->
-<div class="swipe-dots" id="swipe-dots" aria-hidden="true">
-  <span class="swipe-dot active" data-page="page-home"></span>
-  <span class="swipe-dot" data-page="page-history"></span>
-  <span class="swipe-dot" data-page="page-add"></span>
-  <span class="swipe-dot" data-page="page-graph"></span>
-  <span class="swipe-dot" data-page="page-user"></span>
 </div>
 
 <!-- ═══════════ BOTTOM NAV ═══════════ -->
