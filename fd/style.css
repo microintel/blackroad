@@ -158,6 +158,8 @@ body{ padding-left: var(--rail-w); }
   gap:10px;
   margin-bottom:22px;
   padding:4px 4px 14px;
+  text-decoration:none;
+  cursor:pointer;
 }
 .side-nav-brand .mark{
   width:30px; height:30px;
@@ -298,8 +300,6 @@ body{ padding-left: var(--rail-w); }
 }
 .ico-paper{ background:rgba(47,111,224,0.13); color:#3f7de8; }
 .ico-soft{ background:rgba(91,157,255,0.14); color:#5b9dff; }
-.ico-dusk{ background:rgba(124,147,255,0.16); color:#8ea0ff; }
-.ico-brass{ background:rgba(217,167,90,0.16); color:#d9a75a; }
 .swatch-check{
   margin-left:auto;
   color:var(--accent);
@@ -1479,4 +1479,37 @@ button:focus-visible, .entry-head:focus-visible, input:focus-visible, select:foc
 @media (max-width: 899px){
   .filter-row{ display:none !important; }
   .top-add-income-btn{ display:none !important; }
+}
+
+/* ---------- Mobile Fixed Deposits page: the "Add deposit" button has
+   no bottom-tab equivalent on this page (unlike Income & Expenses),
+   so it must stay visible in the toolbar on phones — otherwise once
+   the first FD exists (and the empty-state's own Add button is gone)
+   there's no way to add another one. Also give the ledger a touch
+   more breathing room on small screens. */
+@media (max-width: 899px){
+  body[data-page="deposits"] .top-add-income-btn{
+    display:inline-flex !important;
+  }
+  body[data-page="deposits"] #ledger{
+    padding-left:18px;
+    padding-right:18px;
+    padding-top:18px;
+  }
+  body[data-page="deposits"] .ledger-head{
+    gap:10px;
+  }
+  body[data-page="deposits"] .ledger-head h2{
+    font-size:1.18rem;
+  }
+  body[data-page="deposits"] .top-add-income-btn{
+    padding:9px 14px;
+    font-size:0.78rem;
+  }
+  body[data-page="deposits"] .entry-head{
+    padding:16px 16px;
+  }
+  body[data-page="deposits"] .spine{
+    gap:12px;
+  }
 }
