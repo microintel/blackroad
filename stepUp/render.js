@@ -461,7 +461,7 @@ export function renderTable(calc, settings) {
   else                          sorted.sort((a, b) => b.date.localeCompare(a.date));
 
   if (!sorted.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty">${
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty">${
       historySearchDate ? 'No entry found for this date.' : 'No entries yet — add your first daily % change.'
     }</div></td></tr>`;
     return;
@@ -470,6 +470,7 @@ export function renderTable(calc, settings) {
   tbody.innerHTML = sorted.map((e, i) => {
     const pct      = e.percentChange;
     const pnl      = e.portfolioValue - e.investedAmount;
+    const retAmt   = e.dailyReturnAmount ?? 0;
     const sipBadge = e.sipAdded
       ? `<span class="sip-badge sip-yes">+₹${(e.sipTotal || e.sipCount * settings.sipAmount).toLocaleString('en-IN')}</span>`
       : `<span class="sip-badge sip-no">—</span>`;
@@ -477,6 +478,7 @@ export function renderTable(calc, settings) {
       <td class="mono" style="color:var(--muted)">${i + 1}</td>
       <td>${e.date}</td>
       <td class="mono ${pct >= 0 ? 'pct-up' : 'pct-down'}">${(pct >= 0 ? '+' : '') + pct.toFixed(2)}%</td>
+      <td class="mono ${retAmt >= 0 ? 'pct-up' : 'pct-down'}">${(retAmt >= 0 ? '+' : '') + fmtK(retAmt)}</td>
       <td>${sipBadge}</td>
       <td class="mono">${fmtK(e.portfolioValue)}</td>
       <td class="mono" style="color:var(--blue)">${fmtK(e.investedAmount)}</td>

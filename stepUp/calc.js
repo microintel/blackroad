@@ -111,17 +111,20 @@ export function recalcAll(raw, cfg) {
       sipTotal       += s.amount;
     }
 
+    const baseBeforeGrowth = portfolioValue; // after SIP added, before this day's % change applied
     portfolioValue = portfolioValue * (1 + entry.percentChange / 100);
+    const dailyReturnAmount = portfolioValue - baseBeforeGrowth;
 
     prevDate = entry.date;
     return {
       ...entry,
-      sipAdded:       sips.length > 0,
-      sipCount:       sips.length,
+      sipAdded:          sips.length > 0,
+      sipCount:          sips.length,
       sipTotal,
-      sipDetails:     sips,
-      portfolioValue: +portfolioValue.toFixed(4),
-      investedAmount: +investedAmount.toFixed(4),
+      sipDetails:        sips,
+      portfolioValue:    +portfolioValue.toFixed(4),
+      investedAmount:    +investedAmount.toFixed(4),
+      dailyReturnAmount: +dailyReturnAmount.toFixed(4),
     };
   });
 }

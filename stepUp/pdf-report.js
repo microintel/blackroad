@@ -18,6 +18,7 @@ import { recalcAll, periodGrowth } from './calc.js';
 import { fmt, todayStr, toast } from './helpers.js';
 
 const PROJECT_NAME = 'StepUP';
+const REPORT_TITLE = "Blackboard's Mutual Fund Report";
 const FOOTER_TEXT  = 'Developed by Microintel';
 
 /* Noto Sans includes the Currency Symbols Unicode block (incl. ₹),
@@ -148,6 +149,69 @@ async function renderOverallChartImage(calc) {
 }
 
 /**
+ * Render the pure Profit/Loss (portfolioValue - investedAmount) history as
+ * an off-screen Chart.js line chart and return { dataUrl, width, height }
+ * for embedding as an image — the "Profit Growth Chart".
+ */
+async function renderProfitGrowthChartImage(calc) {
+  if (!window.Chart || !calc.length) return null;
+
+  const canvas = document.createElement('canvas');
+  const W = 1200, H = 480;
+  canvas.width = W;
+  canvas.height = H;
+  canvas.style.position = 'fixed';
+  canvas.style.left = '-99999px';
+  canvas.style.top  = '0';
+  document.body.appendChild(canvas);
+
+  const labels = calc.map(e => e.date);
+  const pnl    = calc.map(e => +(e.portfolioValue - e.investedAmount).toFixed(2));
+  const positive = pnl.length ? pnl[pnl.length - 1] >= 0 : true;
+
+  const chart = new window.Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Profit / Loss',
+          data: pnl,
+          borderColor: positive ? '#16a34a' : '#dc2626',
+          backgroundColor: positive ? 'rgba(22,163,74,0.15)' : 'rgba(220,38,38,0.15)',
+          borderWidth: 3,
+          tension: 0.35,
+          pointRadius: 0,
+          fill: true,
+        },
+      ],
+    },
+    options: {
+      responsive: false,
+      animation: false,
+      devicePixelRatio: 2,
+      layout: { padding: 12 },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#334155', font: { size: 16 } } },
+        tooltip: { enabled: false },
+      },
+      scales: {
+        x: { display: true, ticks: { color: '#64748b', maxTicksLimit: 8, font: { size: 12 } }, grid: { color: '#e2e8f0' } },
+        y: { display: true, ticks: { color: '#64748b', font: { size: 12 } }, grid: { color: '#e2e8f0' } },
+      },
+    },
+  });
+
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  const dataUrl = chart.toBase64Image('image/png', 1.0);
+  chart.destroy();
+  canvas.remove();
+
+  return { dataUrl, width: W, height: H };
+}
+
+/**
  * Hand-drawn table with automatic pagination + repeating header row.
  * @returns {number} the Y position after the table.
  */
@@ -250,7 +314,7 @@ export async function generatePdfReport(entries, settings, fundName) {
   doc.setFont('NotoSans', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(20, 20, 20);
-  doc.text(PROJECT_NAME, margin, 50);
+  doc.text(REPORT_TITLE, margin, 50);
 
   doc.setFont('NotoSans', 'normal');
   doc.setFontSize(10);
@@ -311,6 +375,22 @@ export async function generatePdfReport(entries, settings, fundName) {
     doc.text('Overall Portfolio Growth', margin, y);
     y += 8;
     doc.addImage(chartImg.dataUrl, 'PNG', margin, y, imgW, imgH);
+    y += imgH + 22;
+  }
+
+  /* ── Profit Growth chart ── */
+  toast('Generating chart…');
+  const profitChartImg = await renderProfitGrowthChartImage(calc);
+  if (profitChartImg) {
+    const imgW = pageW - margin * 2;
+    const imgH = imgW * (profitChartImg.height / profitChartImg.width);
+    if (y + imgH > pageH - 60) { doc.addPage(); y = 50; }
+    doc.setFont('NotoSans', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(20, 20, 20);
+    doc.text('Profit Growth Chart', margin, y);
+    y += 8;
+    doc.addImage(profitChartImg.dataUrl, 'PNG', margin, y, imgW, imgH);
     y += imgH + 22;
   }
 
