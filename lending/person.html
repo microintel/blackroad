@@ -6,8 +6,8 @@
 <title>LendLedger — Person</title>
 <script>
   (function(){ try{
-    var t = localStorage.getItem('ll-theme');
-    if (t && t !== 'soft') document.documentElement.setAttribute('data-theme', t);
+    var t = localStorage.getItem('br-theme');
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'paper');
   }catch(e){} })();
 </script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -16,6 +16,9 @@
 <body data-page="people">
 
 <!-- ============ LEFT NAVIGATION (persistent, same on every page) ============ -->
+<a href="../blackroad-dashboard.html" class="mobile-back-btn" aria-label="Back to BlackRoad">
+  <i class="bi bi-arrow-left"></i>
+</a>
 <nav class="side-nav" aria-label="Main menu">
   <div class="side-nav-brand">
     <span class="mark"></span>
@@ -52,36 +55,9 @@
   <input type="file" id="importFileInput" accept="application/json" hidden>
 
   <div class="side-nav-section" id="accountSheet">
-    <div class="side-nav-label-hdr">Appearance</div>
-    <div class="side-nav-themes">
-      <button class="swatch" data-theme="paper" title="White">
-        <span class="swatch-ico ico-paper"><i class="bi bi-sun-fill"></i></span>
-        <span class="side-nav-label">White</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="soft" title="Noir">
-        <span class="swatch-ico ico-soft"><i class="bi bi-moon-stars-fill"></i></span>
-        <span class="side-nav-label">Noir</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="dusk" title="Dusk">
-        <span class="swatch-ico ico-dusk"><i class="bi bi-cloud-moon-fill"></i></span>
-        <span class="side-nav-label">Dusk</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="brass" title="Brass Ledger">
-        <span class="swatch-ico ico-brass"><i class="bi bi-gem"></i></span>
-        <span class="side-nav-label">Brass Ledger</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-    </div>
-
     <div class="mobile-only-section">
       <div class="side-nav-label-hdr">Data</div>
       <div class="side-nav-tools-list">
-        <a href="../blackroad-dashboard.html" class="tool-item">
-          <span class="side-nav-ico"><i class="bi bi-arrow-left-circle"></i></span><span>Back to BlackRoad</span>
-        </a>
         <button type="button" class="tool-item js-export-data">
           <span class="side-nav-ico"><i class="bi bi-download"></i></span><span>Export data</span>
         </button>

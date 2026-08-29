@@ -219,24 +219,29 @@ function showToast(msg) {
   showToast._t = setTimeout(() => el.classList.remove("show"), 2200);
 }
 
-/* ---------------- Theme system (persisted across every page) ---------------- */
+/* ---------------- Theme system ----------------
+   There is no in-app theme switcher. LendLedger follows BlackRoad's
+   shared "br-theme" value in localStorage ("light" | "dark") and
+   applies it on load — plus stays in sync if it changes in another
+   tab/page via the storage event. */
 
-const THEME_KEY = "ll-theme";
+const BR_THEME_KEY = "br-theme";
 
-function getStoredTheme() {
-  try { return localStorage.getItem(THEME_KEY) || "soft"; }
-  catch (e) { return "soft"; }
+function getBrTheme() {
+  try { return localStorage.getItem(BR_THEME_KEY) || "dark"; }
+  catch (e) { return "dark"; }
 }
 
-function applyTheme(theme) {
-  if (theme === "soft") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", theme);
-  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
-  document.querySelectorAll(".swatch").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.theme === theme);
-  });
+function applyBrTheme() {
+  const theme = getBrTheme();
+  if (theme === "light") document.documentElement.setAttribute("data-theme", "paper");
+  else document.documentElement.removeAttribute("data-theme");
   document.dispatchEvent(new CustomEvent("ll-theme-changed", { detail: { theme } }));
 }
+
+window.addEventListener("storage", (e) => {
+  if (e.key === BR_THEME_KEY) applyBrTheme();
+});
 
 /* ---------------- Left navigation wiring ---------------- */
 
@@ -244,10 +249,6 @@ function initSideNav() {
   const page = document.body.dataset.page;
   document.querySelectorAll(".side-nav-item").forEach((a) => {
     if (a.dataset.page === page) a.classList.add("active");
-  });
-  document.querySelectorAll(".swatch").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.theme === getStoredTheme());
-    btn.addEventListener("click", () => applyTheme(btn.dataset.theme));
   });
 }
 
@@ -280,7 +281,7 @@ function initMobileSheets() {
     });
   });
   backdrop.addEventListener("click", closeAll);
-  document.querySelectorAll(".swatch, .tool-item").forEach((btn) => {
+  document.querySelectorAll(".tool-item").forEach((btn) => {
     btn.addEventListener("click", closeAll);
   });
   window.addEventListener("resize", () => {
@@ -403,6 +404,7 @@ function initMobileAddPersonTab() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  applyBrTheme();
   initSideNav();
   initMobileSheets();
   initMobileAddPersonTab();

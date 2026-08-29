@@ -10,13 +10,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root{
-  /* surfaces — two-tone palette pulled directly from the reference:
-     a near-black app background with sidebar/cards/panels one shade
-     up, so sections read as distinct "cut" surfaces against the base. */
-  --base:        #010409;   /* app background */
-  --base-raised: #0d1017;   /* sidebar / nav background */
-  --card:        #0d1017;   /* entry cards, panels, dialogs */
-  --card-2:      #191c23;   /* inputs, chips, hovered rows */
+  /* surfaces — dark mode is the default (no [data-theme] attribute),
+     driven externally by BlackRoad's shared "br-theme" localStorage
+     value rather than an in-app switcher. */
+  --base:        #292a2f;   /* app background */
+  --base-raised: #1a1b20;   /* sidebar / nav background */
+  --card:        #1a1b20;   /* entry cards, panels, dialogs */
+  --card-2:      #232429;   /* inputs, chips, hovered rows */
   --line:        rgba(255,255,255,0.09);
   --line-soft:   rgba(255,255,255,0.06);
 
@@ -50,28 +50,11 @@
   --font-mono:'IBM Plex Mono', ui-monospace, monospace;
 }
 
-/* ---------- Themes ----------
-   Applied via [data-theme] on <html>. Each theme only shifts the
-   background tint and accent — surfaces, type, and layout stay fixed
-   so the app never feels like a different product between themes. */
-html[data-theme="dusk"]{
-  --base:#20242e;
-  --base-raised:#262b37;
-  --card:#2d3340;
-  --card-2:#363d4c;
-  --accent:#7c93ff;
-  --accent-bg: rgba(124,147,255,0.14);
-}
-html[data-theme="brass"]{
-  --base:#26221a;
-  --base-raised:#2d2820;
-  --card:#352f25;
-  --card-2:#3f382b;
-  --accent2:#d9a75a;
-  --accent:#d9a75a;
-  --accent-bg: rgba(217,167,90,0.14);
-  --accent2-bg: rgba(217,167,90,0.14);
-}
+/* ---------- Theme ----------
+   Applied via [data-theme="paper"] on <html> for light mode. There is
+   no in-app switcher — shared.js reads BlackRoad's "br-theme" value
+   from localStorage ("light" | "dark") and sets this attribute to
+   match, so the ledger always follows the parent site's preference. */
 html[data-theme="paper"]{
   --base:        #EDE6D6;
   --base-raised: #F7FCFE;
@@ -238,12 +221,6 @@ body{ padding-left: var(--rail-w); }
   color:var(--text-faint);
   margin:0 8px 9px;
 }
-.side-nav-themes{
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-  align-items:center;
-}
 .side-nav-footer{
   margin-top:14px;
   padding:0 6px;
@@ -262,62 +239,49 @@ body{ padding-left: var(--rail-w); }
   .side-nav-item{ justify-content:flex-start; }
   .side-nav-label{ display:inline; }
   .side-nav-label-hdr{ display:block; }
-  .side-nav-themes{ align-items:stretch; }
   .side-nav-footer{ display:block; }
 }
 
-.swatch{
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-  gap:11px;
-  background:transparent;
-  border:1px solid transparent;
-  color:var(--text-dim);
-  font-size:0.82rem;
-  padding:8px 9px;
-  border-radius:10px;
-  transition:0.12s;
-  position:relative;
-  width:100%;
+/* ---------- Mobile: floating "back to BlackRoad" button ----------
+   Fixed to the top-left corner on phones only; the equivalent link
+   in the rail (.side-nav-back) is desktop-only and already hidden
+   below 900px via .nav-desktop-only. */
+.mobile-back-btn{
+  display:none;
 }
-.swatch:active{ background:var(--card-2); }
-.swatch.active{
-  color:var(--text);
-  border-color:var(--line);
-  background:var(--card-2);
-  font-weight:600;
+@media (max-width: 899px){
+  .mobile-back-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    left:12px;
+    width:40px; height:40px;
+    border-radius:12px;
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:1.1rem;
+    box-shadow:var(--shadow-card);
+    z-index:170;
+    text-decoration:none;
+  }
+  .mobile-back-btn:active{ background:var(--card-2); }
 }
-.swatch-ico{
-  width:30px; height:30px;
-  border-radius:9px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:0.94rem;
-  flex-shrink:0;
-  box-shadow: 0 0 0 1px var(--line-soft) inset;
-}
-.ico-paper{ background:rgba(47,111,224,0.13); color:#3f7de8; }
-.ico-soft{ background:rgba(91,157,255,0.14); color:#5b9dff; }
-.ico-dusk{ background:rgba(124,147,255,0.16); color:#8ea0ff; }
-.ico-brass{ background:rgba(217,167,90,0.16); color:#d9a75a; }
-.swatch-check{
-  margin-left:auto;
-  color:var(--accent);
-  font-size:0.9rem;
-  opacity:0;
-  flex-shrink:0;
-}
-.swatch.active .swatch-check{ opacity:1; }
 
 /* ---------- Mobile: bottom tab bar navigation ----------
    Below 900px the left rail becomes a fixed bottom tab bar with 5
-   compact tabs: Dashboard, People, Loans, Add person and More.
-   More opens a floating sheet above the bar with theme switching
-   plus a Data section (Back to BlackRoad, Export data, Import
-   data) — those three stay as regular rail links on desktop,
-   where .nav-desktop-only is ignored. */
+   tabs: Dashboard, People, Loans, Add person and More. More opens a
+   floating sheet above the bar with the Data tools (Export data,
+   Import data) — those stay as regular rail links on desktop, where
+   .nav-desktop-only is ignored. */
 @media (max-width: 899px){
-  body{ padding-left:0; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body{
+    padding-left:0;
+    padding-top: calc(54px + env(safe-area-inset-top));
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
 
   .side-nav{
     top:auto;
@@ -328,7 +292,7 @@ body{ padding-left: var(--rail-w); }
     height:auto;
     flex-direction:row;
     align-items:stretch;
-    padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+    padding:10px 10px calc(10px + env(safe-area-inset-bottom));
     border-right:none;
     border-top:1px solid var(--line-soft);
     box-shadow:0 -8px 24px rgba(0,0,0,0.25);
@@ -344,26 +308,26 @@ body{ padding-left: var(--rail-w); }
   .side-nav-item{
     flex:0 1 auto;
     flex-direction:column;
-    gap:2px;
-    padding:6px 10px;
-    font-size:0.56rem;
-    border-radius:12px;
+    gap:4px;
+    padding:9px 12px;
+    font-size:0.62rem;
+    border-radius:14px;
     min-width:0;
   }
-  .side-nav-ico{ width:auto; height:auto; font-size:0.98rem; }
-  .side-nav-label{ display:block; font-size:0.56rem; white-space:nowrap; }
+  .side-nav-ico{ width:auto; height:auto; font-size:1.18rem; }
+  .side-nav-label{ display:block; font-size:0.62rem; white-space:nowrap; }
 
   /* Search / Jump to / Import & Export live inside the Tools sheet
      on mobile instead of as standalone tabs */
   .nav-desktop-only{ display:none; }
 
-  /* Tools + Account collapse into floating sheets triggered by
-     their tab buttons, instead of living inline in the rail */
+  /* Account collapses into a floating sheet triggered by its tab
+     button, instead of living inline in the rail */
   .side-nav-section{
     position:fixed;
     left:12px;
     right:12px;
-    bottom: calc(76px + env(safe-area-inset-bottom));
+    bottom: calc(88px + env(safe-area-inset-bottom));
     margin:0;
     padding:12px;
     border-top:none;
@@ -376,31 +340,6 @@ body{ padding-left: var(--rail-w); }
   }
   .side-nav-section.mobile-open{ display:block; }
   .side-nav-label-hdr{ display:block; margin:0 4px 10px; }
-  .side-nav-themes{
-    display:grid;
-    grid-template-columns:repeat(2, 1fr);
-    gap:10px;
-    align-items:stretch;
-  }
-  .swatch{
-    flex-direction:column;
-    justify-content:center;
-    gap:9px;
-    padding:16px 10px;
-    border:1px solid var(--line-soft);
-    background:var(--card-2);
-    border-radius:14px;
-    text-align:center;
-  }
-  .swatch.active{ border-color:var(--accent); }
-  .swatch-ico{ width:38px; height:38px; border-radius:11px; font-size:1.1rem; }
-  .side-nav-themes .side-nav-label{ font-size:0.76rem; }
-  .swatch-check{
-    margin-left:0;
-    position:absolute;
-    top:8px; right:8px;
-    font-size:0.8rem;
-  }
   .side-nav-footer{ display:none; }
   /* ...but the Tools sheet always shows its "more on the way" note */
   .side-nav-tools .side-nav-footer{ display:block; }
@@ -451,7 +390,7 @@ body{ padding-left: var(--rail-w); }
 
 /* keep the toast clear of the bottom tab bar on mobile */
 @media (max-width: 899px){
-  #toast{ bottom: calc(76px + env(safe-area-inset-bottom)); }
+  #toast{ bottom: calc(88px + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- App shell ---------- */
