@@ -14,7 +14,7 @@
 <!-- Anti-flash: apply saved theme before first paint -->
 <script>
   (function(){
-    var t = localStorage.getItem('sip-theme') || 'dark';
+    var t = localStorage.getItem('br-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', t);
   })();
 </script>
@@ -651,7 +651,6 @@
       <a class="account-quicknav-chip" href="#sec-skip-month"><i class="bi bi-skip-forward-fill"></i>Skip Month</a>
       <a class="account-quicknav-chip" href="#sec-goal"><i class="bi bi-flag-fill"></i>Goal</a>
       <a class="account-quicknav-chip" href="#sec-stats"><i class="bi bi-bar-chart-line"></i>Stats</a>
-      <a class="account-quicknav-chip" href="#sec-appearance"><i class="bi bi-palette"></i>Appearance</a>
       <a class="account-quicknav-chip" href="#sec-data"><i class="bi bi-database"></i>Data</a>
       <a class="account-quicknav-chip" href="#sec-danger"><i class="bi bi-exclamation-triangle-fill"></i>Danger Zone</a>
       <a class="account-quicknav-chip" href="#sec-howto"><i class="bi bi-question-circle"></i>How to Use</a>
@@ -792,21 +791,6 @@
           <div class="stat-cell-label">Worst Day</div>
           <div class="stat-cell-value red" id="us-worst">—</div>
         </div>
-      </div>
-    </div>
-
-    <!-- Appearance -->
-    <div class="user-section" id="sec-appearance">
-      <div class="user-section-title"><i class="bi bi-palette"></i> Appearance</div>
-      <div class="theme-toggle">
-        <button class="theme-btn" id="theme-btn-light" data-theme="light">
-          <i class="bi bi-sun-fill"></i>
-          <span>Light</span>
-        </button>
-        <button class="theme-btn" id="theme-btn-dark" data-theme="dark">
-          <i class="bi bi-moon-stars-fill"></i>
-          <span>Dark</span>
-        </button>
       </div>
     </div>
 

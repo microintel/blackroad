@@ -271,6 +271,10 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     // duplicate the same 5 pages) always stay in sync with each other.
     document.querySelectorAll(`.nav-item[data-page="${btn.dataset.page}"]`).forEach(b => b.classList.add('active'));
     document.getElementById(btn.dataset.page).classList.add('active');
+    // Pages share the same scrolling body element, so switching pages
+    // must reset scroll — otherwise a new page opens already scrolled
+    // down to wherever the previous page was left.
+    window.scrollTo(0, 0);
     syncSwipeDots(btn.dataset.page);
     if (btn.dataset.page === 'page-graph')   {
       setTimeout(() => renderAll(entries, settings), 50);
@@ -1239,25 +1243,28 @@ document.getElementById('trend-year-to')?.addEventListener('change', onTrendYear
 
 /* ══════════════════════════════════════════════════════
    Theme
+   Theme is controlled externally via the shared 'br-theme'
+   localStorage key ('dark' or 'white') — there is no in-app
+   selector. We just apply whatever is currently set, and stay
+   in sync if another BlackRoad app changes it while this tab
+   is open.
 ══════════════════════════════════════════════════════ */
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('sip-theme', theme);
-  document.querySelectorAll('.theme-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.theme === theme));
   if (document.getElementById('page-graph').classList.contains('active')) {
     renderAll(entries, settings);
   }
 }
-document.querySelectorAll('.theme-btn').forEach(btn =>
-  btn.addEventListener('click', () => applyTheme(btn.dataset.theme)));
+window.addEventListener('storage', (e) => {
+  if (e.key === 'br-theme' && e.newValue) applyTheme(e.newValue);
+});
 
 /* ══════════════════════════════════════════════════════
    Boot
 ══════════════════════════════════════════════════════ */
 (async () => {
   if (window.Chart && window.ChartZoom) Chart.register(ChartZoom);
-  applyTheme(localStorage.getItem('sip-theme') || 'dark');
+  applyTheme(localStorage.getItem('br-theme') || 'dark');
   await openDB();
 
   // Load profiles and determine active one
