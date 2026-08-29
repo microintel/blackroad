@@ -86,11 +86,12 @@
 </head>
 <body data-page="search">
 
+<a href="../blackroad-dashboard.html" class="dashboard-back-btn" title="Back to BlackRoad" aria-label="Back to BlackRoad">
+  <i class="bi bi-arrow-left"></i>
+</a>
+
 <!-- ============ LEFT NAVIGATION ============ -->
 <nav class="side-nav" aria-label="Main menu">
-  <a href="../blackroad-dashboard.html" class="side-nav-back" title="Back to BlackRoad">
-    <i class="bi bi-arrow-left"></i><span>Back to BlackRoad</span>
-  </a>
   <div class="side-nav-brand">
     <span class="mark"></span>
     <h1>BlackRoad</h1>
@@ -121,9 +122,6 @@
     <button type="button" class="side-nav-item mobile-tab-btn" id="mobileToolsToggle">
       <span class="side-nav-ico"><i class="bi bi-tools"></i></span><span class="side-nav-label">Tools</span>
     </button>
-    <a href="../blackroad-dashboard.html" class="side-nav-item mobile-tab-btn" id="mobileHomeLink">
-      <span class="side-nav-ico"><i class="bi bi-house-door-fill"></i></span><span class="side-nav-label">Home</span>
-    </a>
   </div>
 
   <!-- ---- Tools sheet: mobile only, opened from the "Tools" tab ---- -->
@@ -135,37 +133,7 @@
       <a href="jumpto.html" class="tool-item"><span class="side-nav-ico"><i class="bi bi-calendar3"></i></span> Jump to</a>
       <a href="backup.html" class="tool-item"><span class="side-nav-ico"><i class="bi bi-cloud-arrow-down-fill"></i></span> Import / Export</a>
     </div>
-    <div class="side-nav-label-hdr" style="margin-top:14px;">Themes</div>
-    <div class="side-nav-themes">
-      <button class="swatch" data-theme="light" title="White">
-        <span class="swatch-ico ico-light"><i class="bi bi-sun-fill"></i></span>
-        <span class="side-nav-label">White</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="dark" title="Dark">
-        <span class="swatch-ico ico-dark"><i class="bi bi-moon-stars-fill"></i></span>
-        <span class="side-nav-label">Dark</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-    </div>
     <div class="side-nav-footer"><span class="side-nav-note">More tools are on the way</span></div>
-  </div>
-
-  <!-- ---- Account section: theme swatches. Shown inline on desktop ---- -->
-  <div class="side-nav-section" id="accountSheet">
-    <div class="side-nav-label-hdr">Account</div>
-    <div class="side-nav-themes">
-      <button class="swatch" data-theme="light" title="White">
-        <span class="swatch-ico ico-light"><i class="bi bi-sun-fill"></i></span>
-        <span class="side-nav-label">White</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="dark" title="Dark">
-        <span class="swatch-ico ico-dark"><i class="bi bi-moon-stars-fill"></i></span>
-        <span class="side-nav-label">Dark</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-    </div>
   </div>
 </nav>
 

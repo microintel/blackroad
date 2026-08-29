@@ -189,24 +189,19 @@ function matchesSearch(entry, term) {
 }
 
 /* ---------------- Theme system (persisted across every page) ----------------
-   The <head> of every page also carries a tiny inline script that applies
-   the stored theme immediately, before first paint — this handler keeps
-   the swatch buttons in sync and re-applies on click. */
+   There is no in-app theme picker — the theme is fixed by whatever is
+   stored under "br-theme" in localStorage ("dark" or "light"), the
+   same key/values written by the theme toggle on the root
+   blackroad-dashboard.html, so switching it there carries over here.
+   The <head> of every page carries a tiny inline script that applies
+   it immediately, before first paint; this just keeps it available
+   for any other code on the page that needs the current value. */
 
 const THEME_KEY = "br-theme";
 
 function getStoredTheme() {
   try { return localStorage.getItem(THEME_KEY) || "dark"; }
   catch (e) { return "dark"; }
-}
-
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
-  document.querySelectorAll(".swatch").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.theme === theme);
-  });
-  document.dispatchEvent(new CustomEvent("br-theme-changed", { detail: { theme } }));
 }
 
 /* ---------------- Left navigation wiring ---------------- */
@@ -216,18 +211,16 @@ function initSideNav() {
   document.querySelectorAll(".side-nav-item").forEach((a) => {
     if (a.dataset.page === page) a.classList.add("active");
   });
-  document.querySelectorAll(".swatch").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.theme === getStoredTheme());
-    btn.addEventListener("click", () => applyTheme(btn.dataset.theme));
-  });
 }
 
 /* ---------- Mobile bottom-tab-bar sheet (Tools) ----------
-   On phones, Search / Jump to / Import & Export — and the theme
-   swatches — live behind the "Tools" tab in the bottom bar, instead
-   of sitting inline in the rail. The old "Account" tab is now a
-   plain link back to the BlackRoad dashboard (see initMobileAddIncomeTab
-   area / mobileHomeLink in the markup), so it no longer opens a sheet. */
+   On phones, Search / Jump to / Import & Export live behind the
+   "Tools" tab in the bottom bar, instead of sitting inline in the
+   rail. There is no theme picker anywhere — the theme is fixed by
+   the stored "br-theme" value — and the bottom bar no longer carries
+   a Home tab; the fixed top-left back button (.dashboard-back-btn,
+   present on every page, every screen size) is the way back to the
+   BlackRoad dashboard. */
 function initMobileSheets() {
   const groups = [
     { toggle: document.getElementById("mobileToolsToggle"), sheet: document.getElementById("toolsSheet") },
@@ -256,7 +249,7 @@ function initMobileSheets() {
     });
   });
   backdrop.addEventListener("click", closeAll);
-  document.querySelectorAll(".swatch, .tool-item").forEach((btn) => {
+  document.querySelectorAll(".tool-item").forEach((btn) => {
     btn.addEventListener("click", closeAll);
   });
   window.addEventListener("resize", () => {

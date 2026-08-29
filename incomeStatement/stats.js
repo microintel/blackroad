@@ -52,7 +52,10 @@ async function refresh() {
 function renderStats() {
   const hasData = ENTRIES.length > 0;
   document.getElementById("statsEmpty").style.display = hasData ? "none" : "block";
-  document.getElementById("statsBody").style.display = hasData ? "block" : "none";
+  // Clear the inline override (rather than hardcoding "block") so the
+  // CSS grid/flex layout in stats.html's <style> block — the one that
+  // provides the gap between sections — takes over again.
+  document.getElementById("statsBody").style.display = hasData ? "" : "none";
   if (!hasData) return;
 
   /* ---- Aggregate totals ---- */

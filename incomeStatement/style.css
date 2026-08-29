@@ -13,9 +13,9 @@
   /* surfaces — one tonal ladder, low contrast steps.
      Kept off true black/white on purpose: a mid-tone graphite (dark)
      and a warm parchment (light) both read calmer than the extremes. */
-  --base:        #010409;   /* app background */
-  --base-raised: #0d1017;   /* sidebar / nav background */
-  --card:        #0d1017;   /* entry cards, panels, dialogs */
+  --base:        #292a2f;   /* app background */
+  --base-raised: #292a2f;   /* sidebar / nav background */
+  --card:        #1a1b20;   /* entry cards, panels, dialogs */
   --card-2:      #383d47;   /* inputs, chips, hovered rows */
   --line:        rgba(255,255,255,0.09);
   --line-soft:   rgba(255,255,255,0.06);
@@ -51,9 +51,14 @@
 }
 
 /* ---------- Themes ----------
-   Applied via [data-theme] on <html>. Each theme only shifts the
-   background tint and accent — surfaces, type, and layout stay fixed
-   so the app never feels like a different product between themes. */
+   Applied via [data-theme] on <html>, driven entirely by the same
+   "br-theme" localStorage value ("dark" or "light") that
+   blackroad-dashboard.html (root) reads and writes — there is no
+   in-app switcher on these pages; the value is just read once on
+   load, so toggling the theme on the main dashboard carries over
+   here automatically. Each theme only shifts the background tint
+   and accent — surfaces, type, and layout stay fixed so the app
+   never feels like a different product between themes. */
 html[data-theme="light"]{
   --base:        #EDE6D6;
   --base-raised: #F7FCFE;
@@ -131,10 +136,6 @@ body{ padding-left: var(--rail-w); }
   padding:18px 10px;
   overflow-y:auto;
   z-index:165;
-}
-
-.side-nav-back{
-  display:none;
 }
 
 .side-nav-brand{
@@ -234,22 +235,7 @@ body{ padding-left: var(--rail-w); }
 }
 
 @media (min-width: 900px){
-  .side-nav{ align-items:stretch; padding:26px 16px; }
-  .side-nav-back{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:9px 6px;
-    margin-bottom:8px;
-    font-size:0.78rem;
-    font-weight:600;
-    color:var(--text-dim);
-    text-decoration:none;
-    border-radius:10px;
-    transition:0.12s;
-  }
-  .side-nav-back:hover{ background:var(--card-2); color:var(--text); }
-  .side-nav-back i{ font-size:0.92rem; }
+  .side-nav{ align-items:stretch; padding:26px 16px; padding-top:70px; }
   .side-nav-brand{ justify-content:flex-start; padding-left:6px; }
   .side-nav-brand h1{ display:block; }
   .side-nav-item{ justify-content:flex-start; }
@@ -300,6 +286,36 @@ body{ padding-left: var(--rail-w); }
 }
 .swatch.active .swatch-check{ opacity:1; }
 
+/* ---------- Fixed top-left "back to BlackRoad" button ----------
+   A single small icon-only button pinned to the top-left corner of
+   the viewport on every page, at every screen size — replaces the
+   old in-rail "Back to BlackRoad" text link (which used to sit above
+   the Dashboard/Statement heading and only showed on desktop). On
+   desktop it floats over the side-nav rail, which reserves clearance
+   for it via extra top padding (see .side-nav rule above); on mobile,
+   where the rail becomes a bottom tab bar, it's the only way back. */
+.dashboard-back-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  left:14px;
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:var(--base-raised);
+  border:1px solid var(--line-soft);
+  color:var(--text);
+  box-shadow:var(--shadow-card);
+  font-size:1.05rem;
+  text-decoration:none;
+  z-index:170;
+  transition:0.12s;
+}
+.dashboard-back-btn:hover{ background:var(--card-2); color:var(--text); }
+.dashboard-back-btn:active{ background:var(--card-2); }
+
 /* ---------- Mobile: bottom tab bar navigation ----------
    Below 900px the left rail becomes a fixed bottom tab bar with 4
    tabs: Dashboard, Add income, Tools and Home. Tools opens as a
@@ -309,7 +325,9 @@ body{ padding-left: var(--rail-w); }
    .nav-desktop-only is ignored); Home links straight back to the
    BlackRoad dashboard. */
 @media (max-width: 899px){
-  body{ padding-left:0; padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+  /* top padding clears the fixed .dashboard-back-btn so it never sits
+     on top of the page heading (Statement / Dashboard / etc.) */
+  body{ padding-left:0; padding-top: calc(60px + env(safe-area-inset-top)); padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
 
   .side-nav{
     top:auto;
@@ -1060,7 +1078,7 @@ body{ padding-left: var(--rail-w); }
   display:flex;
   align-items:center;
   gap:11px;
-  background:var(--base-raised);
+  background:var(--card);
   padding:12px 14px;
   margin-top:26px;
   border:1px solid var(--line-soft);
