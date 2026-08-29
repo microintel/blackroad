@@ -269,11 +269,60 @@ document.getElementById("incomeForm").addEventListener("submit", async (ev) => {
 /* -- Transaction dialog -- */
 let txnContext = { entryId: null, txnId: null };
 
+const txnCategorySelect = document.getElementById("txnCategorySelect");
+const txnCategoryInput  = document.getElementById("txnCategory");
+
+// Populate the predefined category dropdown once at load time.
+DEFAULT_CATEGORIES.forEach((cat) => {
+  const opt = document.createElement("option");
+  opt.value = cat;
+  opt.textContent = cat;
+  txnCategorySelect.appendChild(opt);
+});
+const CUSTOM_OPTION_VALUE = "__custom__";
+(() => {
+  const opt = document.createElement("option");
+  opt.value = CUSTOM_OPTION_VALUE;
+  opt.textContent = "Other (type your own)…";
+  txnCategorySelect.appendChild(opt);
+})();
+
+function setCategoryPicker(value) {
+  const trimmed = (value || "").trim();
+  const isPreset = DEFAULT_CATEGORIES.some((c) => c.toLowerCase() === trimmed.toLowerCase());
+  if (!trimmed) {
+    txnCategorySelect.value = "";
+    txnCategoryInput.style.display = "none";
+    txnCategoryInput.value = "";
+  } else if (isPreset) {
+    const match = DEFAULT_CATEGORIES.find((c) => c.toLowerCase() === trimmed.toLowerCase());
+    txnCategorySelect.value = match;
+    txnCategoryInput.style.display = "none";
+    txnCategoryInput.value = match;
+  } else {
+    txnCategorySelect.value = CUSTOM_OPTION_VALUE;
+    txnCategoryInput.style.display = "block";
+    txnCategoryInput.value = trimmed;
+  }
+}
+
+txnCategorySelect.addEventListener("change", () => {
+  if (txnCategorySelect.value === CUSTOM_OPTION_VALUE) {
+    txnCategoryInput.style.display = "block";
+    txnCategoryInput.value = "";
+    txnCategoryInput.focus();
+  } else {
+    txnCategoryInput.style.display = "none";
+    txnCategoryInput.value = txnCategorySelect.value;
+  }
+});
+
 function openTxnDialog(entryId, txnId) {
   txnContext = { entryId, txnId: txnId || null };
   const form = document.getElementById("txnForm");
   form.reset();
   document.getElementById("txnDate").value = todayISO();
+  setCategoryPicker("");
   const title = document.getElementById("txnDialogTitle");
 
   if (txnId) {
@@ -282,8 +331,8 @@ function openTxnDialog(entryId, txnId) {
     title.textContent = "Edit expense";
     document.getElementById("txnAmount").value = t.amount;
     document.getElementById("txnDesc").value = t.description;
-    document.getElementById("txnCategory").value = t.category;
     document.getElementById("txnDate").value = t.date;
+    setCategoryPicker(t.category);
   } else {
     title.textContent = "Add expense";
   }
@@ -294,7 +343,9 @@ document.getElementById("txnForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const amount = parseFloat(document.getElementById("txnAmount").value) || 0;
   const description = document.getElementById("txnDesc").value.trim();
-  const category = document.getElementById("txnCategory").value.trim();
+  const category = txnCategorySelect.value === CUSTOM_OPTION_VALUE
+    ? txnCategoryInput.value.trim()
+    : txnCategorySelect.value;
   const date = document.getElementById("txnDate").value;
 
   const e = ENTRIES.find((x) => x.id === txnContext.entryId);

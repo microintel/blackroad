@@ -160,6 +160,26 @@ function recalcEntry(entry) {
   return entry;
 }
 
+/* ---------------- Predefined expense categories ----------------
+   Curated defaults offered in the category picker when adding an
+   expense. People can still type their own via "Others" — this list
+   isn't a restriction, just a fast start so most entries need zero
+   typing. Kept in shared.js so any future page can reuse the same set. */
+
+const DEFAULT_CATEGORIES = [
+  "Apparel", "Baby", "Bakery / Pups", "Bank", "Beauty", "Borrow", "Bigbasket",
+  "Biscuit", "Blinkit", "Brother / Sister", "Car", "Clothing", "Donate",
+  "Dividend", "Drink / Juices", "Education", "Egg", "Electronics",
+  "Entertainment", "Family", "FD", "Food", "Friends", "Gift", "Health",
+  "Help", "Home", "Housing", "Little Heart", "Milk / Bread / Curd", "Mobile",
+  "Mother / Dad", "Movie", "Mutual Fund", "Official Documents", "Party",
+  "Personal Care", "Pet", "Penalty", "Recharges", "Receivable", "Repair",
+  "Samosa / Outside Food", "Self", "Service", "Shopping", "Snacks", "SIP",
+  "Stock", "Social", "Sport", "Style / Fashion", "Swiggy", "Tax",
+  "Telephone", "Tiffin / Lunch / Parlour", "Tour", "Transportation",
+  "Travel", "Vehicle", "Wine / Cigarette", "Zomato", "Zepto", "Others",
+];
+
 function escapeHTML(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"

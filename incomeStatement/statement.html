@@ -138,8 +138,11 @@
       <input type="text" id="txnDesc" placeholder="e.g. Groceries" required>
     </div>
     <div class="field">
-      <label for="txnCategory">Category</label>
-      <input type="text" id="txnCategory" placeholder="e.g. food, rent, apparel">
+      <label for="txnCategorySelect">Category</label>
+      <select id="txnCategorySelect">
+        <option value="">Select a category…</option>
+      </select>
+      <input type="text" id="txnCategory" placeholder="Type a category name" style="display:none; margin-top:8px;">
     </div>
     <div class="field">
       <label for="txnDate">Date</label>

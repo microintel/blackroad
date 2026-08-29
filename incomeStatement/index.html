@@ -81,56 +81,78 @@
     </div>
   </div>
 
-  <!-- ---- 4 quick-stat cards: income, expenses, balance, transactions ---- -->
-  <div class="quick-stats" id="quickStats">
-    <div class="qs-item qs-in">
-      <span class="qs-ico"><i class="bi bi-arrow-down-left"></i></span>
-      <span class="qs-label">Income</span>
-      <span class="qs-val" id="qsIncome">₹0</span>
-    </div>
-    <div class="qs-item qs-out">
-      <span class="qs-ico"><i class="bi bi-arrow-up-right"></i></span>
-      <span class="qs-label">Expense</span>
-      <span class="qs-val" id="qsExpense">₹0</span>
-    </div>
-    <div class="qs-item qs-net">
-      <span class="qs-ico"><i class="bi bi-wallet2"></i></span>
-      <span class="qs-label">Balance</span>
-      <span class="qs-val" id="qsBalance">₹0</span>
-    </div>
-    <div class="qs-item qs-count">
-      <span class="qs-ico"><i class="bi bi-receipt"></i></span>
-      <span class="qs-label">Transactions</span>
-      <span class="qs-val" id="qsCount">0</span>
-    </div>
-  </div>
+  <!-- ============ OVERVIEW — all-time balance + this month, one hero ============ -->
+  <section class="overview-hero">
 
+    <div class="ov-top-row">
+      <span class="ov-eyebrow"><i class="bi bi-wallet2"></i> Net balance, all time</span>
+      <span class="ov-count"><span id="qsCount">0</span> txns</span>
+    </div>
+
+    <div class="ov-figure" id="statNet">₹0</div>
+
+    <div class="ov-split">
+      <div class="ov-split-item in">
+        <span class="ov-dot"></span>
+        <span class="ov-split-label">Income</span>
+        <span class="ov-split-val" id="qsIncome">₹0</span>
+      </div>
+      <div class="ov-split-item out">
+        <span class="ov-dot"></span>
+        <span class="ov-split-label">Expense</span>
+        <span class="ov-split-val" id="qsExpense">₹0</span>
+      </div>
+    </div>
+
+    <!-- kept in the DOM so app.js has somewhere to write these — the
+         values already appear above (statNet/qsIncome/qsExpense), so
+         these mirrors stay visually hidden to avoid showing every
+         number twice. -->
+    <span id="statIncome" class="sr-only">₹0</span>
+    <span id="statExpense" class="sr-only">₹0</span>
+    <span id="qsBalance" class="sr-only">₹0</span>
+
+    <div class="ov-divider"></div>
+
+    <div class="ov-month">
+      <div class="ov-month-head">
+        <div>
+          <span class="ov-eyebrow">This month</span>
+          <h3 class="ov-month-title" id="monthIndicator">—</h3>
+        </div>
+        <span class="health-badge" id="healthBadge">—</span>
+      </div>
+
+      <div class="ov-month-stats">
+        <div class="ov-month-stat">
+          <span class="ms-label">Income</span>
+          <span class="ms-val" id="mIncome">₹0</span>
+          <span class="delta-pill flat" id="mIncomeDelta">—</span>
+        </div>
+        <div class="ov-month-stat">
+          <span class="ms-label">Expenses</span>
+          <span class="ms-val" id="mExpense">₹0</span>
+          <span class="delta-pill flat" id="mExpenseDelta">—</span>
+        </div>
+        <div class="ov-month-stat">
+          <span class="ms-label">Net</span>
+          <span class="ms-val" id="mNet">₹0</span>
+          <span class="delta-pill flat" id="mNetDelta">—</span>
+        </div>
+        <div class="ov-month-stat">
+          <span class="ms-label">Savings rate</span>
+          <span class="ms-val" id="mSavingsRate">—</span>
+          <span class="delta-pill flat" id="mSavingsDelta">—</span>
+        </div>
+      </div>
+
+      <p class="health-summary" id="healthSummary">Log income and expenses this month to see your financial health here.</p>
+    </div>
+  </section>
+
+  <!-- ============ BREAKDOWN ============ -->
+  <div class="dash-section-label">Breakdown</div>
   <div class="dashboard-grid">
-
-    <!-- Hero net-balance card -->
-    <section class="hero-card">
-      <div class="hero-top">
-        <span class="hero-label">Net balance</span>
-        <span class="hero-badge"><i class="bi bi-wallet2"></i></span>
-      </div>
-      <div class="hero-figure" id="statNet">₹0</div>
-      <div class="hero-split">
-        <div class="hero-split-item in">
-          <span class="hero-split-ico"><i class="bi bi-arrow-down-left"></i></span>
-          <div class="hero-split-text">
-            <span class="hero-split-label">Income</span>
-            <span class="hero-split-val" id="statIncome">₹0</span>
-          </div>
-        </div>
-        <div class="hero-split-item out">
-          <span class="hero-split-ico"><i class="bi bi-arrow-up-right"></i></span>
-          <div class="hero-split-text">
-            <span class="hero-split-label">Expense</span>
-            <span class="hero-split-val" id="statExpense">₹0</span>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <section class="panel">
       <h2>Expense by category</h2>
@@ -146,6 +168,33 @@
       <h2>Income by source</h2>
       <div id="sourceList">
         <div class="chart-empty">No income logged yet</div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============ ACTIVITY ============ -->
+  <div class="dash-section-label">Activity</div>
+  <div class="dashboard-grid-2">
+
+    <section class="panel">
+      <h2>Recent transactions</h2>
+      <div id="recentTxnList">
+        <div class="chart-empty">No transactions yet</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Top expenses this month</h2>
+      <div id="topExpensesList">
+        <div class="chart-empty">No expenses logged this month</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Top income sources this month</h2>
+      <div id="topIncomeList">
+        <div class="chart-empty">No income logged this month</div>
       </div>
     </section>
 
