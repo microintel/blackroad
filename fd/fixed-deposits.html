@@ -6,14 +6,19 @@
 <title>BlackRoad — Fixed Deposits</title>
 <script>
   (function(){ try{
-    var t = localStorage.getItem('ll-theme');
-    if (t && t !== 'soft') document.documentElement.setAttribute('data-theme', t);
+    var t = localStorage.getItem('br-theme');
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
   }catch(e){} })();
 </script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="deposits">
+
+<!-- ============ MOBILE: fixed top-left back button ============ -->
+<a href="../blackroad-dashboard.html" class="mobile-back-btn" aria-label="Back to BlackRoad" title="Back to BlackRoad">
+  <i class="bi bi-arrow-left"></i>
+</a>
 
 <!-- ============ LEFT NAVIGATION (same look/feel as the lending app) ============ -->
 <nav class="side-nav" aria-label="Main menu">
@@ -43,26 +48,9 @@
   <input type="file" id="importFileInput" accept="application/json" hidden>
 
   <div class="side-nav-section" id="accountSheet">
-    <div class="side-nav-label-hdr">Appearance</div>
-    <div class="side-nav-themes">
-      <button class="swatch" data-theme="paper" title="White">
-        <span class="swatch-ico ico-paper"><i class="bi bi-sun-fill"></i></span>
-        <span class="side-nav-label">White</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-      <button class="swatch" data-theme="soft" title="Dark">
-        <span class="swatch-ico ico-soft"><i class="bi bi-moon-stars-fill"></i></span>
-        <span class="side-nav-label">Dark</span>
-        <span class="swatch-check"><i class="bi bi-check-circle-fill"></i></span>
-      </button>
-    </div>
-
     <div class="mobile-only-section">
       <div class="side-nav-label-hdr">Data</div>
       <div class="side-nav-tools-list">
-        <a href="../blackroad-dashboard.html" class="tool-item">
-          <span class="side-nav-ico"><i class="bi bi-arrow-left-circle"></i></span><span>Back to BlackRoad</span>
-        </a>
         <button type="button" class="tool-item js-export-data">
           <span class="side-nav-ico"><i class="bi bi-download"></i></span><span>Export data</span>
         </button>
@@ -227,25 +215,25 @@ function showToast(msg) {
   showToast._t = setTimeout(() => el.classList.remove("show"), 2200);
 }
 
-/* ---------------- Theme system (shared localStorage key with lending) ---------------- */
+/* ---------------- Theme system ----------------
+   No in-app switcher — theme is driven entirely by the shared
+   "br-theme" localStorage key ("light" or "dark"), set elsewhere
+   in BlackRoad (e.g. the dashboard). We just read and apply it,
+   and stay in sync if it changes in another tab/page. */
 
-const THEME_KEY = "ll-theme";
+const THEME_KEY = "br-theme";
 function getStoredTheme() {
-  try { return localStorage.getItem(THEME_KEY) || "soft"; }
-  catch (e) { return "soft"; }
+  try { return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"; }
+  catch (e) { return "dark"; }
 }
 function applyTheme(theme) {
-  if (theme === "soft") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", theme);
-  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
-  document.querySelectorAll(".swatch").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.theme === theme);
-  });
+  if (theme === "light") document.documentElement.setAttribute("data-theme", "light");
+  else document.documentElement.removeAttribute("data-theme");
 }
 function initSideNav() {
-  document.querySelectorAll(".swatch").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.theme === getStoredTheme());
-    btn.addEventListener("click", () => applyTheme(btn.dataset.theme));
+  applyTheme(getStoredTheme());
+  window.addEventListener("storage", (e) => {
+    if (e.key === THEME_KEY) applyTheme(e.newValue === "light" ? "light" : "dark");
   });
 }
 function initMobileSheets() {
@@ -273,7 +261,7 @@ function initMobileSheets() {
     });
   });
   backdrop.addEventListener("click", closeAll);
-  document.querySelectorAll(".swatch, .tool-item").forEach((btn) => {
+  document.querySelectorAll(".tool-item").forEach((btn) => {
     btn.addEventListener("click", closeAll);
   });
   window.addEventListener("resize", () => { if (window.innerWidth >= 900) closeAll(); });

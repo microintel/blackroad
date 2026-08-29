@@ -13,10 +13,10 @@
   /* surfaces — two-tone palette pulled directly from the reference:
      a near-black app background with sidebar/cards/panels one shade
      up, so sections read as distinct "cut" surfaces against the base. */
-  --base:        #010409;   /* app background */
-  --base-raised: #0d1017;   /* sidebar / nav background */
-  --card:        #0d1017;   /* entry cards, panels, dialogs */
-  --card-2:      #191c23;   /* inputs, chips, hovered rows */
+  --base:        #292a2f;   /* app background */
+  --base-raised: #1a1b20;   /* sidebar / nav background */
+  --card:        #1a1b20;   /* entry cards, panels, dialogs */
+  --card-2:      #232429;   /* inputs, chips, hovered rows */
   --line:        rgba(255,255,255,0.09);
   --line-soft:   rgba(255,255,255,0.06);
 
@@ -72,7 +72,7 @@ html[data-theme="brass"]{
   --accent-bg: rgba(217,167,90,0.14);
   --accent2-bg: rgba(217,167,90,0.14);
 }
-html[data-theme="paper"]{
+html[data-theme="light"]{
   --base:        #EDE6D6;
   --base-raised: #F7FCFE;
   --card:        #F7FCFE;
@@ -317,7 +317,11 @@ body{ padding-left: var(--rail-w); }
    data) — those three stay as regular rail links on desktop,
    where .nav-desktop-only is ignored. */
 @media (max-width: 899px){
-  body{ padding-left:0; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body{
+    padding-left:0;
+    padding-top: calc(62px + env(safe-area-inset-top));
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
 
   .side-nav{
     top:auto;
@@ -328,7 +332,7 @@ body{ padding-left: var(--rail-w); }
     height:auto;
     flex-direction:row;
     align-items:stretch;
-    padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+    padding:13px 8px calc(13px + env(safe-area-inset-bottom));
     border-right:none;
     border-top:1px solid var(--line-soft);
     box-shadow:0 -8px 24px rgba(0,0,0,0.25);
@@ -344,14 +348,43 @@ body{ padding-left: var(--rail-w); }
   .side-nav-item{
     flex:0 1 auto;
     flex-direction:column;
-    gap:2px;
-    padding:6px 10px;
-    font-size:0.56rem;
-    border-radius:12px;
+    gap:5px;
+    padding:11px 14px;
+    font-size:0.68rem;
+    border-radius:13px;
     min-width:0;
   }
-  .side-nav-ico{ width:auto; height:auto; font-size:0.98rem; }
-  .side-nav-label{ display:block; font-size:0.56rem; white-space:nowrap; }
+  .side-nav-ico{ width:auto; height:auto; font-size:1.32rem; }
+  .side-nav-label{ display:block; font-size:0.68rem; white-space:nowrap; }
+
+  /* Fixed top-left back button (replaces the "Back to BlackRoad" row
+     that used to live inside the More sheet on mobile) — mobile only */
+  .mobile-back-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    left:12px;
+    width:46px;
+    height:46px;
+    border-radius:13px;
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:1.55rem;
+    line-height:1;
+    text-decoration:none;
+    z-index:170;
+    box-shadow:var(--shadow-card);
+  }
+  .mobile-back-btn:active{ background:var(--card-2); }
+
+  .ledger-toolbar{ top: calc(62px + env(safe-area-inset-top)); }
+}
+@media (min-width: 900px){
+  .mobile-back-btn{ display:none; }
+}
 
   /* Search / Jump to / Import & Export live inside the Tools sheet
      on mobile instead of as standalone tabs */
@@ -363,7 +396,7 @@ body{ padding-left: var(--rail-w); }
     position:fixed;
     left:12px;
     right:12px;
-    bottom: calc(76px + env(safe-area-inset-bottom));
+    bottom: calc(92px + env(safe-area-inset-bottom));
     margin:0;
     padding:12px;
     border-top:none;
@@ -451,7 +484,7 @@ body{ padding-left: var(--rail-w); }
 
 /* keep the toast clear of the bottom tab bar on mobile */
 @media (max-width: 899px){
-  #toast{ bottom: calc(76px + env(safe-area-inset-bottom)); }
+  #toast{ bottom: calc(92px + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- App shell ---------- */
