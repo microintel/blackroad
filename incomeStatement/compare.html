@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
   /* ---- Sections stack with real gaps between them (mirrors #statsBody) ---- */
   #cmpBody{
@@ -110,6 +112,23 @@
   .cmp-verdict.flat i, .cmp-verdict.flat strong{ color:var(--text-dim); }
 
   .cmp-chart-wrap{ height:260px; margin-top:6px; }
+
+  /* ---- Monthly trend chart: range presets + zoom ---- */
+  .cmp-trend-toolbar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin-bottom:12px; flex-wrap:wrap;
+  }
+  .cmp-range-seg{
+    display:flex; background:var(--card-2); border-radius:var(--radius-sm);
+    padding:3px; gap:2px; flex-wrap:wrap;
+  }
+  .cmp-range-btn{
+    border:none; background:transparent; color:var(--text-dim);
+    font-size:0.72rem; font-weight:600; padding:6px 10px;
+    border-radius:8px; cursor:pointer; white-space:nowrap;
+  }
+  .cmp-range-btn.active{ background:var(--card); color:var(--text); box-shadow:var(--shadow-card); }
+  .cmp-trend-wrap{ height:280px; }
 
   /* ---- Category breakdown rows ---- */
   .cmp-legend-dot{
@@ -308,6 +327,28 @@
       </p>
       <div id="cmpCatList"></div>
       <div class="chart-empty" id="cmpCatEmpty" style="display:none;">No expenses logged for either period</div>
+    </section>
+
+    <!-- ---- Monthly trend: income / expense / balance, zoomable with range presets ---- -->
+    <section class="panel">
+      <h2>Monthly trend</h2>
+      <div class="cmp-trend-toolbar">
+        <div class="cmp-range-seg" id="cmpRangeSeg">
+          <button type="button" class="cmp-range-btn" data-range="1m">1M</button>
+          <button type="button" class="cmp-range-btn" data-range="6m">6M</button>
+          <button type="button" class="cmp-range-btn active" data-range="1y">1Y</button>
+          <button type="button" class="cmp-range-btn" data-range="3y">3Y</button>
+          <button type="button" class="cmp-range-btn" data-range="5y">5Y</button>
+          <button type="button" class="cmp-range-btn" data-range="10y">10Y</button>
+          <button type="button" class="cmp-range-btn" data-range="max">MAX</button>
+        </div>
+        <button type="button" class="chart-reset-btn" id="cmpTrendResetZoom"><i class="bi bi-arrow-counterclockwise"></i> Reset zoom</button>
+      </div>
+      <span class="chart-hint">Pinch or scroll to zoom in further, drag to pan</span>
+      <div class="cmp-trend-wrap" id="cmpTrendInner" style="margin-top:8px;">
+        <canvas id="cmpTrendChart"></canvas>
+      </div>
+      <div class="chart-empty" id="cmpTrendEmpty" style="display:none;">Not enough data yet</div>
     </section>
 
     <!-- ---- Chart ---- -->

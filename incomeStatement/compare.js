@@ -14,9 +14,11 @@
 let ENTRIES = [];
 let MODE = "month";       // "month" | "year"
 let cmpChart = null;
+let trendChart = null;
+let trendRange = "1y";    // "1m" | "6m" | "1y" | "3y" | "5y" | "10y" | "max"
 
 /* ---------------- Period-key helpers ----------------
-   month key: "YYYY-M"   (e.g. "2026-8")
+   month key: "YYYY-MM"  (e.g. "2026-08")
    year key:  "YYYY"     (e.g. "2026")               */
 
 function monthKeyOf(dateStr) {
@@ -306,6 +308,102 @@ function renderChart(keyA, keyB, a, b) {
   });
 }
 
+/* ---------------- Monthly trend (income / expense / balance) ----------------
+   Independent of the Month/Year mode toggle above — this always groups
+   by calendar month across every entry in the store, then the range
+   buttons (1M/6M/.../MAX) just slice how many of those months show. */
+
+function monthShortLabel(key) {
+  const [y, m] = key.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+function monthlySeries() {
+  const map = new Map(); // "YYYY-MM" -> { income, expense }
+  ENTRIES.forEach((e) => {
+    const mk = monthKeyOf(e.date);
+    if (!mk) return;
+    if (!map.has(mk)) map.set(mk, { income: 0, expense: 0 });
+    const m = map.get(mk);
+    m.income += Number(e.income) || 0;
+    m.expense += Number(e.expense) || 0;
+  });
+  return map;
+}
+
+const RANGE_MONTHS = { "1m": 1, "6m": 6, "1y": 12, "3y": 36, "5y": 60, "10y": 120 };
+
+function renderTrendChart() {
+  const inner = document.getElementById("cmpTrendInner");
+  const empty = document.getElementById("cmpTrendEmpty");
+  const canvas = document.getElementById("cmpTrendChart");
+
+  const series = monthlySeries();
+  let keys = [...series.keys()].sort(); // chronological (zero-padded months sort correctly)
+
+  if (trendRange !== "max") {
+    const n = RANGE_MONTHS[trendRange];
+    keys = keys.slice(-n);
+  }
+
+  if (keys.length === 0) {
+    inner.style.display = "none";
+    empty.style.display = "block";
+    if (trendChart) { trendChart.destroy(); trendChart = null; }
+    return;
+  }
+  inner.style.display = "block";
+  empty.style.display = "none";
+
+  const labels = keys.map(monthShortLabel);
+  const incomeData = keys.map((k) => series.get(k).income);
+  const expenseData = keys.map((k) => series.get(k).expense);
+  const balanceData = keys.map((k) => series.get(k).income - series.get(k).expense);
+
+  const cs = getComputedStyle(document.documentElement);
+  const dimColor = cs.getPropertyValue("--text-dim").trim() || "#8891a3";
+  const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(255,255,255,0.08)";
+  const inColor = cs.getPropertyValue("--ink-in").trim() || "#3ecf8e";
+  const outColor = cs.getPropertyValue("--ink-out").trim() || "#f27a8a";
+  const accentColor = cs.getPropertyValue("--accent").trim() || "#5b9dff";
+
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Income", data: incomeData, borderColor: inColor, backgroundColor: inColor, pointBackgroundColor: inColor, tension: 0.3, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 },
+        { label: "Expense", data: expenseData, borderColor: outColor, backgroundColor: outColor, pointBackgroundColor: outColor, tension: 0.3, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 },
+        { label: "Balance", data: balanceData, borderColor: accentColor, backgroundColor: accentColor, pointBackgroundColor: accentColor, tension: 0.3, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "top", labels: { color: dimColor, font: { size: 10.5, family: "Inter" }, boxWidth: 10, usePointStyle: true, pointStyle: "circle" } },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` } },
+        zoom: {
+          pan: { enabled: true, mode: "x", modifierKey: null },
+          zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            drag: { enabled: false },
+            mode: "x",
+          },
+          limits: { x: { min: "original", max: "original" } },
+        },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: dimColor, font: { size: 10, family: "Inter" } } },
+        y: { beginAtZero: true, grid: { color: lineColor }, ticks: { color: dimColor, font: { size: 9, family: "Inter" }, callback: (v) => fmtMoney(v) } },
+      },
+    },
+  });
+}
+
 /* ---------------- Wiring ---------------- */
 
 function setMode(mode) {
@@ -328,10 +426,11 @@ async function refresh() {
     return;
   }
   empty.style.display = "none";
-  body.style.display = "block";
+  body.style.display = "";
 
   populateSelects();
   renderCompare();
+  renderTrendChart();
 }
 
 document.getElementById("cmpModeSeg").addEventListener("click", (e) => {
@@ -350,6 +449,20 @@ document.getElementById("cmpSwapBtn").addEventListener("click", () => {
   selA.value = selB.value;
   selB.value = tmp;
   renderCompare();
+});
+
+document.getElementById("cmpRangeSeg").addEventListener("click", (e) => {
+  const btn = e.target.closest(".cmp-range-btn");
+  if (!btn) return;
+  trendRange = btn.dataset.range;
+  document.querySelectorAll("#cmpRangeSeg .cmp-range-btn").forEach((b) => {
+    b.classList.toggle("active", b === btn);
+  });
+  renderTrendChart();
+});
+
+document.getElementById("cmpTrendResetZoom").addEventListener("click", () => {
+  if (trendChart) trendChart.resetZoom();
 });
 
 /* ---------------- Boot ---------------- */
