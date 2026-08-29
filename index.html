@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
 <!-- Fallback for browsers/robots without JS: redirect after 8s (after the intro would have finished) -->
-<meta http-equiv="refresh" content="8; url=blackroad-dashboard.html">
+<meta http-equiv="refresh" content="4; url=blackroad-dashboard.html">
 <style>
   :root{
     --bg: #E5B851;
@@ -49,8 +49,8 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    animation: cineFade 0.84s ease-in forwards;
-    animation-delay: 6.16s;
+    animation: cineFade 0.36s ease-in forwards;
+    animation-delay: 2.64s;
   }
 
   @keyframes cineFade{
@@ -84,8 +84,8 @@
     background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, transparent 72%);
     opacity:0;
     filter: blur(14px);
-    animation: bloom 1.68s ease-out forwards;
-    animation-delay: 2.17s;
+    animation: bloom 0.72s ease-out forwards;
+    animation-delay: 0.93s;
   }
 
   @keyframes bloom{
@@ -138,8 +138,8 @@
     justify-content:center;
     box-shadow: 0 8px 18px rgba(23,19,8,0.22), inset 0 1px 0 rgba(255,255,255,0.35);
     opacity:0;
-    animation: iconIn 0.77s cubic-bezier(.34,1.56,.64,1) forwards, iconOut 0.7s cubic-bezier(.4,0,1,1) forwards;
-    animation-delay: var(--in-delay), 1.75s;
+    animation: iconIn 0.33s cubic-bezier(.34,1.56,.64,1) forwards, iconOut 0.3s cubic-bezier(.4,0,1,1) forwards;
+    animation-delay: var(--in-delay), 0.75s;
   }
 
   .icon-chip svg{
@@ -185,8 +185,8 @@
     z-index:2;
     opacity:0;
     transform: scale(0.82);
-    animation: stageIn 0.77s cubic-bezier(.2,.8,.2,1) forwards;
-    animation-delay: 2.24s;
+    animation: stageIn 0.33s cubic-bezier(.2,.8,.2,1) forwards;
+    animation-delay: 0.96s;
   }
 
   @keyframes stageIn{
@@ -198,8 +198,8 @@
     height:auto;
     overflow: visible;
     filter: drop-shadow(0 0 0 rgba(23,19,8,0));
-    animation: settleGlow 1.26s ease forwards;
-    animation-delay: 3.08s;
+    animation: settleGlow 0.54s ease forwards;
+    animation-delay: 1.32s;
   }
 
   @keyframes settleGlow{
@@ -210,8 +210,8 @@
 
   /* the light-edge that leads the reveal wipe */
   .lead-edge{
-    animation: leadMove 1.4s cubic-bezier(.4,0,.2,1) forwards;
-    animation-delay: 3.01s;
+    animation: leadMove 0.6s cubic-bezier(.4,0,.2,1) forwards;
+    animation-delay: 1.29s;
     opacity:0;
   }
 
@@ -225,8 +225,8 @@
   /* the reveal mask itself — starts fully covering the letters, then slides away to the right, revealing left→right */
   .wipe-rect{
     transform: translateX(0);
-    animation: wipeOpen 1.4s cubic-bezier(.4,0,.2,1) forwards;
-    animation-delay: 3.01s;
+    animation: wipeOpen 0.6s cubic-bezier(.4,0,.2,1) forwards;
+    animation-delay: 1.29s;
   }
 
   @keyframes wipeOpen{
@@ -240,8 +240,8 @@
     height: 1px;
     background: linear-gradient(to right, transparent, var(--ink) 50%, transparent);
     margin: 22px 0 16px;
-    animation: drawLine 0.84s ease forwards;
-    animation-delay: 4.41s;
+    animation: drawLine 0.36s ease forwards;
+    animation-delay: 1.89s;
   }
 
   @keyframes drawLine{
@@ -256,8 +256,8 @@
     text-transform: uppercase;
     color: var(--ink);
     opacity:0;
-    animation: taglineIn 1.12s ease forwards;
-    animation-delay: 4.69s;
+    animation: taglineIn 0.48s ease forwards;
+    animation-delay: 2.01s;
   }
 
   @keyframes taglineIn{
@@ -280,8 +280,8 @@
     letter-spacing: 0.08em;
     color: var(--ink);
     opacity:0;
-    animation: creditIn 0.84s ease forwards;
-    animation-delay: 5.18s;
+    animation: creditIn 0.36s ease forwards;
+    animation-delay: 2.22s;
     z-index:2;
   }
 
@@ -303,7 +303,7 @@
     .divider{ animation:none; width:62%; }
     .tagline{ animation:none; opacity:0.82; letter-spacing:0.5em; }
     .credit{ animation:none; opacity:0.55; }
-    .splash{ animation: cineFade 0.56s ease-in forwards; animation-delay: 5.95s; }
+    .splash{ animation: cineFade 0.24s ease-in forwards; animation-delay: 2.55s; }
   }
 </style>
 </head>
@@ -331,7 +331,7 @@
         </div>
 
         <!-- Cash -->
-        <div class="icon-chip" style="background:#2ECC71; --tx:90px; --ty:-52px; --fx:310px; --fy:-180px; --in-delay:0.07s;">
+        <div class="icon-chip" style="background:#2ECC71; --tx:90px; --ty:-52px; --fx:310px; --fy:-180px; --in-delay:0.03s;">
           <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2.5" y="6.5" width="19" height="11" rx="2"/>
             <circle cx="12" cy="12" r="3"/>
@@ -341,7 +341,7 @@
         </div>
 
         <!-- Stocks -->
-        <div class="icon-chip" style="background:#14B8B8; --tx:90px; --ty:52px; --fx:310px; --fy:180px; --in-delay:0.14s;">
+        <div class="icon-chip" style="background:#14B8B8; --tx:90px; --ty:52px; --fx:310px; --fy:180px; --in-delay:0.06s;">
           <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="14" width="3.2" height="7"/>
             <rect x="10.4" y="10" width="3.2" height="11"/>
@@ -351,7 +351,7 @@
         </div>
 
         <!-- Loans -->
-        <div class="icon-chip" style="background:#FF8A3D; --tx:0px; --ty:104px; --fx:0px; --fy:360px; --in-delay:0.21s;">
+        <div class="icon-chip" style="background:#FF8A3D; --tx:0px; --ty:104px; --fx:0px; --fy:360px; --in-delay:0.09s;">
           <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="7.5" cy="7.5" r="2.2"/>
             <circle cx="16.5" cy="16.5" r="2.2"/>
@@ -360,7 +360,7 @@
         </div>
 
         <!-- Mutual fund -->
-        <div class="icon-chip" style="background:#8B5CF6; --tx:-90px; --ty:52px; --fx:-310px; --fy:180px; --in-delay:0.28s;">
+        <div class="icon-chip" style="background:#8B5CF6; --tx:-90px; --ty:52px; --fx:-310px; --fy:180px; --in-delay:0.12s;">
           <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="9"/>
             <line x1="12" y1="12" x2="12" y2="3"/>
@@ -370,7 +370,7 @@
         </div>
 
         <!-- Savings -->
-        <div class="icon-chip" style="background:#FF3EA5; --tx:-90px; --ty:-52px; --fx:-310px; --fy:-180px; --in-delay:0.35s;">
+        <div class="icon-chip" style="background:#FF3EA5; --tx:-90px; --ty:-52px; --fx:-310px; --fy:-180px; --in-delay:0.15s;">
           <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 13c0-3.6 3.2-6.5 8-6.5 3 0 5 1 6.3 2.3.9-.2 1.7.1 2.2.8-.5.9-1.3 1.2-2 1.2.3.6.5 1.3.5 2.2 0 3.6-3.2 6-7 6-1 0-1.9-.1-2.7-.4L7.5 20H5l1.2-2.6C4.7 16.2 4 14.8 4 13z" fill="#ffffff" stroke="none"/>
             <circle cx="15.5" cy="11.3" r="0.6" fill="#FF3EA5" stroke="none"/>
@@ -422,7 +422,7 @@
   </div>
 
 <script>
-  const SPLASH_DURATION = 7000;
+  const SPLASH_DURATION = 3000;
   const REDIRECT_URL = "blackroad-dashboard.html";
 
   window.addEventListener('DOMContentLoaded', () => {
@@ -436,7 +436,7 @@
           document.body.style.background = '#E5B851';
         }
       });
-    }, SPLASH_DURATION - 1050);
+    }, SPLASH_DURATION - 450);
 
     // Hand off to the dashboard once the intro has fully played.
     setTimeout(() => {

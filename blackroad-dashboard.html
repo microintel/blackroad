@@ -27,6 +27,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon512_rounded.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="auth.js"></script>
 <style>
 /* ============ TOKENS ============ */
@@ -270,7 +271,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .brand-name{font-weight:700;font-size:18.5px;letter-spacing:.2px;}
 .brand-name span{color:var(--accent);}
 
-.nav-scroll{flex:1;overflow-y:auto;padding:10px 14px;}
+.nav-scroll{flex:1;overflow-y:auto;padding:10px 14px;overscroll-behavior:contain;}
 .nav-label{
   font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase;
   color:var(--text-faint); padding:16px 10px 8px;
@@ -576,6 +577,9 @@ footer{
     padding-bottom:env(safe-area-inset-bottom);
   }
   .sidebar.open{ transform:translateY(0); }
+  /* Locks the page behind the "More" bottom sheet so scrolling the
+     sheet's nav list never chains through to the dashboard behind it. */
+  body.br-sheet-lock{ position:fixed; left:0; right:0; overflow:hidden; }
   .sidebar::before{
     content:""; position:absolute; top:10px; left:50%; transform:translateX(-50%);
     width:38px; height:4px; border-radius:4px; background:var(--surface-2);
@@ -887,6 +891,104 @@ footer{
   transition:width .2s var(--ease);
 }
 @media (max-width:940px){ .toast{ bottom:calc(var(--bottom-nav-h) + 16px); } }
+
+/* ============================================================
+   BACKUP PROGRESS (SweetAlert2) — themed to match the dashboard
+   ============================================================ */
+.br-swal-popup{
+  background:var(--bg-elevated) !important; color:var(--text) !important;
+  border-radius:var(--radius-lg) !important; border:1px solid var(--border) !important;
+  box-shadow:var(--shadow) !important; padding-bottom:1.8em !important;
+}
+.br-swal-title{ color:var(--text) !important; font-family:'Outfit',sans-serif !important; font-size:19px !important; }
+.br-swal-popup .swal2-html-container{ margin-top:.6em !important; }
+.br-swal-popup .swal2-confirm{
+  background:var(--accent) !important; border-radius:999px !important;
+  box-shadow:none !important; font-family:'Outfit',sans-serif !important;
+}
+.br-swal-popup .swal2-timer-progress-bar{ background:var(--accent) !important; }
+
+@keyframes brSpin{ to{ transform:rotate(360deg); } }
+@keyframes brBreathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.08); } }
+@keyframes brDotPulse{ 0%,100%{ opacity:.4; transform:scale(.8); } 50%{ opacity:1; transform:scale(1.2); } }
+@keyframes brShimmer{ 0%{ transform:translateX(-120%); } 100%{ transform:translateX(320%); } }
+@keyframes brFillBump{ 0%{ filter:brightness(1); } 45%{ filter:brightness(1.4); } 100%{ filter:brightness(1); } }
+@keyframes brLabelSwap{ from{ opacity:0; transform:translateY(3px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes brRowIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes brCheckPop{ 0%{ transform:scale(.4); opacity:0; } 60%{ transform:scale(1.15); opacity:1; } 100%{ transform:scale(1); } }
+
+.br-progress-icon-wrap{
+  width:56px; height:56px; margin:0 auto 14px; position:relative;
+  display:flex; align-items:center; justify-content:center;
+}
+.br-progress-icon-wrap::before{
+  content:''; position:absolute; inset:0; border-radius:50%;
+  background:conic-gradient(from 0deg, var(--accent), transparent 65%, var(--accent));
+  animation:brSpin 1.5s linear infinite;
+  -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  transition:background .4s var(--ease);
+}
+.br-progress-icon-wrap.br-icon-done::before{ animation-play-state:paused; background:var(--green); }
+.br-progress-icon{
+  position:relative; z-index:1; width:42px; height:42px; border-radius:50%;
+  background:var(--surface-2); display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow-in-sm);
+  animation:brBreathe 1.8s ease-in-out infinite;
+}
+.br-progress-icon i{ font-size:19px; color:var(--accent); transition:color .3s var(--ease); }
+.br-progress-icon-wrap.br-icon-done .br-progress-icon i{ color:var(--green); animation:brCheckPop .4s var(--ease); }
+
+.br-current-row{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text-dim);
+  min-height:18px; margin-bottom:14px; text-align:center;
+}
+.br-current-dot{
+  width:6px; height:6px; border-radius:50%; background:var(--accent);
+  animation:brDotPulse 1s ease-in-out infinite; flex-shrink:0;
+}
+.br-current-label{ display:inline-block; }
+.br-current-label.br-fade-swap{ animation:brLabelSwap .3s var(--ease); }
+
+.br-progress-track{
+  position:relative; width:100%; height:9px; border-radius:999px;
+  background:var(--surface-2); box-shadow:var(--shadow-in-sm); overflow:hidden;
+}
+.br-progress-fill{
+  position:relative; height:100%; width:0%; border-radius:999px;
+  background:linear-gradient(90deg, var(--gold-dim), var(--gold), var(--accent));
+  transition:width .3s var(--ease), background .4s var(--ease);
+  overflow:hidden;
+}
+.br-progress-fill.br-bump{ animation:brFillBump .35s var(--ease); }
+.br-progress-fill.br-fill-done{
+  background:var(--green) !important;
+  box-shadow:0 0 12px 1px color-mix(in srgb, var(--green) 55%, transparent);
+}
+.br-shimmer{
+  position:absolute; top:0; left:0; height:100%; width:40%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation:brShimmer 1.4s linear infinite;
+}
+.br-progress-fill.br-fill-done .br-shimmer{ display:none; }
+
+.br-progress-meta{
+  display:flex; justify-content:space-between; margin-top:8px;
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-faint);
+}
+
+.br-progress-log{
+  margin-top:16px; display:flex; flex-direction:column; gap:6px;
+}
+.br-log-row{
+  display:flex; align-items:center; gap:8px;
+  font-size:11.5px; color:var(--text-dim);
+  background:var(--surface-2); border-radius:10px; padding:6px 10px;
+  animation:brRowIn .3s var(--ease);
+}
+.br-log-row i{ color:var(--green); font-size:13px; flex-shrink:0; }
+.br-log-row span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -913,6 +1015,7 @@ footer{
   <a class="bn-item" data-target="income"><i class="bi bi-cash-coin"></i>Income<span class="bn-dot"></span></a>
   <a class="bn-item" data-target="mutualfunds"><i class="bi bi-pie-chart-fill"></i>Invest<span class="bn-dot"></span></a>
   <a class="bn-item" data-target="realestate"><i class="bi bi-building"></i>Assets<span class="bn-dot"></span></a>
+  <a class="bn-item" data-target="loans"><i class="bi bi-file-earmark-minus"></i>Loans<span class="bn-dot"></span></a>
   <a class="bn-item" id="bnMore"><i class="bi bi-grid-3x3-gap-fill"></i>More<span class="bn-dot"></span></a>
 </nav>
 
@@ -942,7 +1045,7 @@ footer{
       <div class="nav-label">General</div>
       <a class="nav-link" data-target="account"><i class="bi bi-person-circle"></i>Account</a>
       <a class="nav-link" data-target="settings"><i class="bi bi-gear"></i>Settings</a>
-      <a class="nav-link" href="#"><i class="bi bi-question-circle"></i>Help &amp; Support</a>
+      <a class="nav-link" href="https://microintel.github.io/vision/" target="_blank" rel="noopener"><i class="bi bi-calculator-fill"></i>Financial Calculators</a>
       <a class="nav-link" id="installAppLink" style="display:none;"><i class="bi bi-download"></i>Install App</a>
     </nav>
 
@@ -1048,7 +1151,7 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b id="incomePanelTotal" style="color:var(--green)">₹0</b><small id="incomePanelSub">Net surplus</small></div>
-            <a class="btn-secondary" href="incomeStatement/statement.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="incomeStatement/statement.html">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
 
@@ -1077,13 +1180,13 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b id="mutualFundsPanelTotal">₹0</b><small class="pos" id="mutualFundsPanelPct">0.0% overall</small></div>
-            <a class="btn-secondary" href="stepUp/index.html" target="_blank" rel="noopener">Manage <i class="bi bi-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="stepUp/index.html">Manage <i class="bi bi-arrow-up-right"></i></a>
           </div>
         </div>
         <table>
           <thead><tr><th>SIP Name</th><th>Invested</th><th>Current Value</th><th>Profit</th><th>Return</th></tr></thead>
           <tbody id="mutualFundsTableBody">
-            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="stepUp/index.html" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="stepUp/index.html" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>
           </tbody>
         </table>
       </section>
@@ -1117,7 +1220,7 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b>₹0</b><small>No holdings yet</small></div>
-            <a class="btn-secondary" href="pages/gold.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="pages/gold.html">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <div class="bars" data-bars>
@@ -1136,7 +1239,7 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b>₹0</b><small>No properties yet</small></div>
-            <a class="btn-secondary" href="pages/real-estate.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="pages/real-estate.html">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <table>
@@ -1157,7 +1260,7 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b>₹0</b><small>No instruments yet</small></div>
-            <a class="btn-secondary" href="fd/fixed-deposits.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="fd/fixed-deposits.html">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <div class="bars" data-bars>
@@ -1177,7 +1280,7 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b>₹0</b><small>No policies yet</small></div>
-            <a class="btn-secondary" href="pages/insurance.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="pages/insurance.html">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <table>
@@ -1199,7 +1302,7 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b style="color:var(--red)">₹0</b><small>No liabilities yet</small></div>
-            <a class="btn-secondary" href="lending/loans.html" target="_blank" rel="noopener">Manage <i class="bi bi-box-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="lending/loans.html">Manage <i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
         <div class="bars" data-bars>
@@ -1324,12 +1427,6 @@ footer{
       <div class="lane" style="margin-bottom:22px;"></div>
       <div class="footer-inner">
         <div class="dev"><i class="bi bi-code-slash"></i> Developed by <b>Microintel</b></div>
-        <div class="footer-links">
-          <a href="#"><i class="bi bi-shield-lock"></i> Privacy</a>
-          <a href="#"><i class="bi bi-file-text"></i> Terms</a>
-          <a href="#"><i class="bi bi-envelope"></i> Contact</a>
-        </div>
-        <div>© 2026 BlackRoad. All rights reserved.</div>
       </div>
     </footer>
   </main>
@@ -1797,7 +1894,6 @@ const categories = [
   { id:'deposits',     name:'Fixed Deposits',        icon:'bi-bank2',            value:'₹0',  trend:'No instruments yet',   trendUp:true,  color:'violet', page:'fd/fixed-deposits.html' },
   { id:'insurance',    name:'Insurance',             icon:'bi-shield-check',     value:'₹0',    trend:'No policies yet',trendUp:true,  color:'green', page:'pages/insurance.html' },
   { id:'loans',        name:'Loans & Liabilities',   icon:'bi-file-earmark-minus', value:'₹0', trend:'No liabilities yet', trendUp:true, color:'red', page:'lending/loans.html' },
-  { id:'calculators',  name:'Financial Calculators', icon:'bi-calculator-fill',   value:'Tools', trend:'SIP, EMI, retirement & more', trendUp:true, color:'blue', page:'https://microintel.github.io/vision/', external:true },
 ];
 
 const allocation = [
@@ -1816,7 +1912,7 @@ categories.forEach(c=>{
   if(!c.external) el.dataset.target = c.id;
   el.innerHTML = `
     <div class="tile-icon" style="background:color-mix(in srgb, var(--${c.color}) 16%, transparent); color:var(--${c.color});"><i class="bi ${c.icon}"></i></div>
-    <a class="tile-arrow" href="${c.page}" ${(c.id === 'stocks') ? '' : 'target="_blank" rel="noopener"'} title="${c.external ? 'Open' : 'Manage'} ${c.name}" onclick="event.stopPropagation()"><i class="bi bi-arrow-up-right"></i></a>
+    <a class="tile-arrow" href="${c.page}" ${c.external ? 'target="_blank" rel="noopener"' : ''} title="${c.external ? 'Open' : 'Manage'} ${c.name}" onclick="event.stopPropagation()"><i class="bi bi-arrow-up-right"></i></a>
     <div class="tile-body">
       <div class="tile-name">${c.name}</div>
       <div class="tile-value">${c.value}</div>
@@ -1997,15 +2093,18 @@ function scrollToSection(id){
     el.classList.add('in-view');
     if(el.classList.contains('bar-fill') && el.dataset.w) el.style.width = el.dataset.w + '%';
   });
+  // Close (and unlock) the "More" sheet BEFORE scrolling — closing it
+  // restores whatever scroll position the page had before it opened,
+  // which would otherwise override/cancel the scrollIntoView below.
+  closeSidebarMobile();
   target.scrollIntoView({behavior:'smooth', block:'start'});
   setActiveNav(id);
-  closeSidebarMobile();
 }
 document.querySelectorAll('[data-target]').forEach(el=>{
   el.addEventListener('click', ()=> scrollToSection(el.dataset.target));
 });
 
-const bottomNavMap = ['overview','income','mutualfunds','realestate'];
+const bottomNavMap = ['overview','income','mutualfunds','realestate','loans'];
 function setActiveNav(id){
   document.querySelectorAll('.nav-link').forEach(l=>{
     l.classList.toggle('active', l.dataset.target === id);
@@ -2021,6 +2120,7 @@ function setActiveNav(id){
 document.getElementById('bnMore').addEventListener('click', ()=>{
   sidebar.classList.add('open');
   overlay.classList.add('show');
+  lockBodyScroll();
 });
 
 /* Highlight active nav link on scroll */
@@ -2351,9 +2451,24 @@ applyStyle(html.getAttribute('data-style') || 'neumo', false);
 /* ============ MOBILE SIDEBAR ============ */
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('overlay');
+/* Preserves and restores the page's scroll position while the "More"
+   bottom sheet is open, so the dashboard behind it can't scroll too. */
+let sheetLockScrollY = 0;
+function lockBodyScroll(){
+  sheetLockScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.style.top = `-${sheetLockScrollY}px`;
+  document.body.classList.add('br-sheet-lock');
+}
+function unlockBodyScroll(){
+  if(!document.body.classList.contains('br-sheet-lock')) return; // nothing to undo
+  document.body.classList.remove('br-sheet-lock');
+  document.body.style.top = '';
+  window.scrollTo(0, sheetLockScrollY);
+}
 function closeSidebarMobile(){
   sidebar.classList.remove('open');
   overlay.classList.remove('show');
+  unlockBodyScroll();
 }
 overlay.addEventListener('click', closeSidebarMobile);
 
@@ -2616,7 +2731,7 @@ async function exportAllIndexedDB(onProgress){
       const stores = {};
       for(const storeName of Object.keys(BACKUP_DB_SCHEMAS[name].stores)){
         step++;
-        if(onProgress) onProgress(step, totalSteps, `${name} / ${storeName}`);
+        if(onProgress) await onProgress(step, totalSteps, `${name} / ${storeName}`);
         stores[storeName] = db.objectStoreNames.contains(storeName)
           ? await new Promise((resolve, reject) => {
               const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
@@ -2650,7 +2765,7 @@ async function importAllIndexedDB(databases, onProgress){
     catch(err){ console.warn(`Restore: couldn't open "${dbName}"`, err); result.skipped.push(dbName); continue; }
     for(const [storeName, records] of Object.entries(dbData.stores || {})){
       step++;
-      if(onProgress) onProgress(step, totalSteps, `${dbName} / ${storeName}`);
+      if(onProgress) await onProgress(step, totalSteps, `${dbName} / ${storeName}`);
       if(!db.objectStoreNames.contains(storeName)){
         console.warn(`Restore: "${dbName}" has no store "${storeName}" — skipped`);
         result.skipped.push(`${dbName}.${storeName}`);
@@ -2682,11 +2797,121 @@ function snapshotData(){
   };
 }
 
+/* ============================================================
+   BACKUP PROGRESS DIALOG (SweetAlert2)
+   Shared by export + import: shows a themed modal with a spinning
+   status ring, a live-updating "now processing" line, an animated
+   progress bar, and a short scrolling log of completed items — so
+   the person can see exactly what's being backed up as it happens.
+   Each step is paced with a small delay so multi-store backups
+   read as a clean, gradual progression instead of an instant jump.
+   ============================================================ */
+function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+function backupProgressMarkup(icon){
+  return `
+    <div class="br-progress-icon-wrap" id="brIconWrap">
+      <div class="br-progress-icon"><i class="bi ${icon}" id="brProgressIcon"></i></div>
+    </div>
+    <div class="br-current-row">
+      <span class="br-current-dot"></span>
+      <span class="br-current-label" id="brCurrentLabel">Getting ready…</span>
+    </div>
+    <div class="br-progress-track"><div class="br-progress-fill" id="brProgressFill" style="width:0%"><span class="br-shimmer"></span></div></div>
+    <div class="br-progress-meta">
+      <span id="brProgressStep">Step 0 of 0</span>
+      <span id="brProgressPercent">0%</span>
+    </div>
+    <div class="br-progress-log" id="brProgressLog"></div>
+  `;
+}
+
+function openBackupProgress(title, icon){
+  Swal.fire({
+    title,
+    html: backupProgressMarkup(icon),
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    customClass: { popup: 'br-swal-popup', title: 'br-swal-title' }
+  });
+}
+
+/** Shows the item that's currently being read/written. */
+function markCurrentItem(label, step, total){
+  const cur = document.getElementById('brCurrentLabel');
+  const stepEl = document.getElementById('brProgressStep');
+  if(cur){
+    cur.classList.remove('br-fade-swap');
+    void cur.offsetWidth; // restart the fade animation on every step
+    cur.textContent = label;
+    cur.classList.add('br-fade-swap');
+  }
+  if(stepEl) stepEl.textContent = `Step ${step} of ${total}`;
+}
+
+/** Advances the bar, gives it a little "thump", and logs the finished item. */
+function completeCurrentItem(label, percent){
+  const fillEl = document.getElementById('brProgressFill');
+  const pctEl = document.getElementById('brProgressPercent');
+  const logEl = document.getElementById('brProgressLog');
+  if(fillEl){
+    fillEl.style.width = percent + '%';
+    fillEl.classList.remove('br-bump');
+    void fillEl.offsetWidth;
+    fillEl.classList.add('br-bump');
+  }
+  if(pctEl) pctEl.textContent = percent + '%';
+  if(logEl){
+    const row = document.createElement('div');
+    row.className = 'br-log-row';
+    row.innerHTML = `<i class="bi bi-check-circle-fill"></i><span>${label}</span>`;
+    logEl.prepend(row);
+    while(logEl.children.length > 3) logEl.removeChild(logEl.lastChild);
+  }
+}
+
+/** Advances the open progress dialog for one step and waits briefly
+ *  between "now processing" and "done" so the motion stays readable. */
+async function stepBackupProgress(step, total, label){
+  markCurrentItem(label, step, total);
+  await sleep(150 + Math.random() * 130);
+  completeCurrentItem(label, Math.round((step / total) * 100));
+  await sleep(70 + Math.random() * 60);
+}
+
+/** Settles the dialog into a calm "done" state — ring and bar turn
+ *  green, icon pops into a checkmark — right before the result alert. */
+async function finishBackupProgress(){
+  const iconWrap = document.getElementById('brIconWrap');
+  const icon = document.getElementById('brProgressIcon');
+  const fillEl = document.getElementById('brProgressFill');
+  const cur = document.getElementById('brCurrentLabel');
+  if(iconWrap) iconWrap.classList.add('br-icon-done');
+  if(icon) icon.className = 'bi bi-check-lg';
+  if(fillEl) fillEl.classList.add('br-fill-done');
+  if(cur) cur.textContent = 'All done';
+  await sleep(500);
+}
+
+function backupResultAlert(success, title, text){
+  Swal.fire({
+    icon: success ? 'success' : 'error',
+    title,
+    text,
+    customClass: { popup: 'br-swal-popup' },
+    timer: success ? 2200 : undefined,
+    timerProgressBar: success,
+    confirmButtonText: 'OK'
+  });
+}
+
 document.getElementById('exportBtn').addEventListener('click', async ()=>{
-  showToast('Preparing full backup…', 'bi-hourglass-split', 0);
+  openBackupProgress('Exporting backup', 'bi-download');
   try{
-    const databases = await exportAllIndexedDB((step, total, label) => {
-      showToast(`Exporting ${label}…`, 'bi-hourglass-split', Math.round((step / total) * 100));
+    await sleep(300); // let "Getting ready…" register before the real steps start
+    const databases = await exportAllIndexedDB(async (step, total, label) => {
+      await stepBackupProgress(step, total, `Exporting ${label}…`);
     });
     const data = Object.assign(snapshotData(), { databases });
     const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
@@ -2701,10 +2926,11 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
     const now = new Date().toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
     document.getElementById('lastBackupText').textContent = `Last backup: ${now}`;
     await safeSet('lastBackup', now, false);
-    showToast('Full backup downloaded', 'bi-download');
+    await finishBackupProgress();
+    backupResultAlert(true, 'Backup downloaded', 'Your full backup was exported successfully.');
   }catch(err){
     console.error('Export failed', err);
-    showToast('Export failed — see console', 'bi-exclamation-triangle-fill');
+    backupResultAlert(false, 'Export failed', 'See the console for details.');
   }
 });
 
@@ -2722,9 +2948,10 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
 
       let importResult = { restored: 0, skipped: [] };
       if(data.databases){
-        showToast('Restoring data…', 'bi-hourglass-split', 0);
-        importResult = await importAllIndexedDB(data.databases, (step, total, label) => {
-          showToast(`Restoring ${label}…`, 'bi-hourglass-split', Math.round((step / total) * 100));
+        openBackupProgress('Restoring backup', 'bi-upload');
+        await sleep(300);
+        importResult = await importAllIndexedDB(data.databases, async (step, total, label) => {
+          await stepBackupProgress(step, total, `Restoring ${label}…`);
         });
       }
       if(typeof data.netWorth === 'number') setNetWorth(data.netWorth);
@@ -2737,13 +2964,17 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
 
       if(importResult.restored === 0 && data.databases){
         console.warn('Restore: nothing was written', importResult.skipped);
-        showToast('Nothing to restore — backup had no records', 'bi-exclamation-triangle-fill');
+        backupResultAlert(false, 'Nothing to restore', 'The backup file had no records to restore.');
+      }else if(data.databases){
+        await finishBackupProgress();
+        backupResultAlert(true, 'Restore complete', `Restored ${importResult.restored} record${importResult.restored===1?'':'s'} from backup.`);
       }else{
-        showToast(`Restored ${importResult.restored} record${importResult.restored===1?'':'s'} from backup`, 'bi-check-circle-fill');
+        showToast('Backup applied', 'bi-check-circle-fill');
       }
     }catch(err){
       console.error('Restore failed', err);
-      showToast('Invalid backup file', 'bi-exclamation-triangle-fill');
+      if(Swal.isVisible()) Swal.close();
+      backupResultAlert(false, 'Invalid backup file', 'That file could not be read as a BlackRoad backup.');
     }
   };
   reader.readAsText(file);
@@ -3006,7 +3237,7 @@ async function refreshMutualFundsSummary(){
     if(tbody){
       const sips = summary.sips.slice().sort((a,b)=> b.currentValue - a.currentValue);
       if(sips.length === 0){
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="stepUp/index.html" target="_blank" rel="noopener" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No entries yet — <a href="stepUp/index.html" style="color:var(--accent);">add your first SIP entry</a>.</td></tr>`;
       } else {
         const frag = document.createDocumentFragment();
         sips.forEach((s)=>{
@@ -3187,7 +3418,7 @@ async function refreshIncomeSummary(){
     const barsWrap = document.getElementById('incomeCategoryBars');
     if(barsWrap){
       if(!summary.hasData){
-        barsWrap.innerHTML = `<div class="chart-empty">No entries yet — <a href="incomeStatement/statement.html" target="_blank" rel="noopener" style="color:var(--accent);">add your first income entry</a>.</div>`;
+        barsWrap.innerHTML = `<div class="chart-empty">No entries yet — <a href="incomeStatement/statement.html" style="color:var(--accent);">add your first income entry</a>.</div>`;
       } else if(summary.categories.length === 0){
         barsWrap.innerHTML = `<div class="chart-empty">Income logged, but no expenses categorized yet.</div>`;
       } else {
