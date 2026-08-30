@@ -151,11 +151,34 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+/* ---------------- Investment categories ----------------
+   These categories represent money moved into an asset (mutual funds,
+   SIPs, stocks, fixed deposits) rather than money spent. They are kept
+   out of "expense" totals/charts and out of "balance" entirely — they
+   get their own "investment" total instead. */
+
+const INVESTMENT_CATEGORIES = ["Mutual Fund", "SIP", "Stock", "FD"];
+
+function isInvestmentCategory(cat) {
+  return INVESTMENT_CATEGORIES.includes(cat);
+}
+
 function recalcEntry(entry) {
-  const totalExpense = (entry.transactions || []).reduce(
-    (sum, t) => sum + (Number(t.amount) || 0), 0
-  );
+  let totalExpense = 0, totalInvestment = 0;
+  (entry.transactions || []).forEach((t) => {
+    const amt = Number(t.amount) || 0;
+    if (isInvestmentCategory(t.category)) {
+      totalInvestment += amt;
+      t.type = "investment";
+    } else {
+      totalExpense += amt;
+      t.type = "expense";
+    }
+  });
   entry.expense = totalExpense;
+  entry.investment = totalInvestment;
+  // Investments don't reduce balance — the money moved into an asset,
+  // it wasn't spent.
   entry.balance = (Number(entry.income) || 0) - totalExpense;
   return entry;
 }

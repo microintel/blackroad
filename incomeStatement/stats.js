@@ -78,6 +78,7 @@ function renderStats() {
     }
 
     (e.transactions || []).forEach((t) => {
+      if (isInvestmentCategory(t.category)) return; // investments aren't spend — excluded from expense-category gauges
       txnCount++;
       const cat = t.category || "Uncategorized";
       const amt = Number(t.amount) || 0;

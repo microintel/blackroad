@@ -1120,10 +1120,14 @@ body{ padding-left: var(--rail-w); }
   font-size:0.72rem;
   color:var(--text-dim);
   display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  row-gap:4px;
   gap:10px;
 }
 .year-summary .yin{ color:var(--ink-in); }
 .year-summary .yout{ color:var(--ink-out); }
+.year-summary .yinv{ color:var(--accent2); }
 
 .year-body{ display:none; }
 .year-group.open .year-body{ display:block; }
@@ -1195,6 +1199,8 @@ body{ padding-left: var(--rail-w); }
 .entry-row-bottom{
   display:flex;
   align-items:center;
+  flex-wrap:wrap;
+  row-gap:6px;
   gap:8px;
 }
 .entry-date{
@@ -1207,8 +1213,10 @@ body{ padding-left: var(--rail-w); }
 .entry-meta-pills{
   display:flex;
   align-items:center;
+  flex-wrap:wrap;
   gap:6px;
   margin-left:auto;
+  justify-content:flex-end;
 }
 .entry-expense{
   font-family:var(--font-mono);
@@ -1233,6 +1241,17 @@ body{ padding-left: var(--rail-w); }
   white-space:nowrap;
 }
 .entry-balance.zero{ color:var(--ink-out); background:var(--ink-out-bg); }
+.entry-investment{
+  font-family:var(--font-mono);
+  font-size:0.72rem;
+  font-weight:600;
+  color:var(--accent2);
+  background:var(--accent2-bg);
+  padding:4px 9px;
+  border-radius:var(--radius-pill);
+  flex-shrink:0;
+  white-space:nowrap;
+}
 
 .entry-actions{
   display:flex;
@@ -1334,6 +1353,7 @@ body{ padding-left: var(--rail-w); }
   letter-spacing:0.05em;
   margin-top:2px;
 }
+.txn-desc .cat.inv{ color:var(--accent2); }
 
 .add-txn-btn{
   display:flex;
@@ -1775,15 +1795,17 @@ body[data-page="dashboard"] .overview-hero{
   margin:8px 0 14px;
   overflow-wrap:anywhere;
 }
-.ov-split{ display:flex; gap:22px; }
-.ov-split-item{ display:flex; align-items:center; gap:7px; font-size:0.84rem; }
+.ov-split{ display:flex; flex-wrap:wrap; gap:12px 22px; }
+.ov-split-item{ display:flex; align-items:center; gap:7px; font-size:0.84rem; flex:0 0 auto; }
 .ov-dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 .ov-split-item.in .ov-dot{ background:var(--ink-in); }
 .ov-split-item.out .ov-dot{ background:var(--ink-out); }
-.ov-split-label{ color:var(--text-faint); }
-.ov-split-val{ font-family:var(--font-mono); font-weight:600; color:var(--text); overflow-wrap:anywhere; }
+.ov-split-item.inv .ov-dot{ background:var(--accent2); }
+.ov-split-label{ color:var(--text-faint); flex-shrink:0; }
+.ov-split-val{ font-family:var(--font-mono); font-weight:600; color:var(--text); white-space:nowrap; }
 .ov-split-item.in .ov-split-val{ color:var(--ink-in); }
 .ov-split-item.out .ov-split-val{ color:var(--ink-out); }
+.ov-split-item.inv .ov-split-val{ color:var(--accent2); }
 
 .ov-divider{
   height:1px;

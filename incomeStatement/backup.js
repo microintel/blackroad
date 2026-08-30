@@ -25,6 +25,7 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
     date: e.date,
     from: e.from,
     expense: String(e.expense),
+    investment: String(e.investment || 0),
     balance: String(e.balance),
     transactions: (e.transactions || []).map((t) => ({
       amount: String(t.amount),

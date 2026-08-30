@@ -90,6 +90,7 @@ function periodTotals(key) {
     }
 
     (e.transactions || []).forEach((t) => {
+      if (isInvestmentCategory(t.category)) return; // investments aren't spend — excluded from the expense-category breakdown
       const amt = Number(t.amount) || 0;
       txnCount++;
       const cat = t.category || "uncategorized";

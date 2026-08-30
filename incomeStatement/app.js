@@ -25,16 +25,18 @@ async function renderUpdateDateBadge() {
 }
 
 function renderDashboard() {
-  let totalIncome = 0, totalExpense = 0, totalCount = 0;
+  let totalIncome = 0, totalExpense = 0, totalInvestment = 0, totalCount = 0;
   const catTotals = new Map();
   const sourceTotals = new Map();
 
   ENTRIES.forEach((e) => {
     totalIncome += Number(e.income) || 0;
     totalExpense += Number(e.expense) || 0;
+    totalInvestment += Number(e.investment) || 0;
     totalCount += (e.transactions || []).length;
     sourceTotals.set(e.from || "Other", (sourceTotals.get(e.from || "Other") || 0) + (Number(e.income) || 0));
     (e.transactions || []).forEach((t) => {
+      if (isInvestmentCategory(t.category)) return; // investments aren't spend — kept out of the expense chart
       const cat = t.category || "uncategorized";
       catTotals.set(cat, (catTotals.get(cat) || 0) + (Number(t.amount) || 0));
     });
@@ -45,6 +47,8 @@ function renderDashboard() {
   document.getElementById("qsExpense").textContent = fmtMoney(totalExpense);
   document.getElementById("qsBalance").textContent = fmtMoney(totalIncome - totalExpense);
   document.getElementById("qsCount").textContent = String(totalCount);
+  const qsInv = document.getElementById("qsInvestment");
+  if (qsInv) qsInv.textContent = fmtMoney(totalInvestment);
 
   // ---- Net balance hero card ----
   document.getElementById("statIncome").textContent = fmtMoney(totalIncome);
@@ -297,6 +301,7 @@ function renderTopExpenses() {
 
   ENTRIES.forEach((e) => {
     (e.transactions || []).forEach((t) => {
+      if (isInvestmentCategory(t.category)) return; // investments have their own list, not "expenses"
       const d = t.date || e.date;
       if (monthKeyOf(d) === nowKey) {
         expenses.push({ desc: t.description || "Expense", cat: t.category, date: d, amount: Number(t.amount) || 0 });

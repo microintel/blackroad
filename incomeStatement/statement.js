@@ -108,11 +108,12 @@ function renderLedger() {
 
   let html = "";
   for (const [year, monthMap] of years) {
-    let yIncome = 0, yExpense = 0, yCount = 0;
+    let yIncome = 0, yExpense = 0, yInvestment = 0, yCount = 0;
     monthMap.forEach((entries) => {
       entries.forEach((e) => {
         yIncome += Number(e.income) || 0;
         yExpense += Number(e.expense) || 0;
+        yInvestment += Number(e.investment) || 0;
         yCount += (e.transactions || []).length;
       });
     });
@@ -124,6 +125,7 @@ function renderLedger() {
         <span class="year-summary">
           <span class="yin">+${fmtMoney(yIncome)}</span>
           <span class="yout">-${fmtMoney(yExpense)}</span>
+          ${yInvestment > 0 ? `<span class="yinv">${fmtMoney(yInvestment)} inv</span>` : ""}
           <span>${yCount} txn${yCount === 1 ? "" : "s"}</span>
         </span>
       </div>
@@ -163,7 +165,7 @@ function renderEntry(e) {
           <div class="txn-date">${t.date || ""}</div>
           <div class="txn-desc">
             ${escapeHTML(t.description || "Expense")}
-            ${t.category ? `<span class="cat">${escapeHTML(t.category)}</span>` : ""}
+            ${t.category ? `<span class="cat${isInvestmentCategory(t.category) ? " inv" : ""}">${escapeHTML(t.category)}</span>` : ""}
           </div>
           <div class="entry-actions">
             <button class="icon-btn" title="Edit" onclick="event.stopPropagation(); openTxnDialog(${e.id}, '${t.id}')"><i class="bi bi-pencil"></i></button>
@@ -188,6 +190,7 @@ function renderEntry(e) {
             <div class="entry-date">${e.date || ""}</div>
             <div class="entry-meta-pills">
               <span class="entry-expense">-${fmtMoney(e.expense)}</span>
+              ${Number(e.investment) > 0 ? `<span class="entry-investment">${fmtMoney(e.investment)} inv</span>` : ""}
               <span class="entry-balance ${balanceClass}">${fmtMoney(e.balance)}</span>
             </div>
           </div>
@@ -351,13 +354,14 @@ document.getElementById("txnForm").addEventListener("submit", async (ev) => {
   const e = ENTRIES.find((x) => x.id === txnContext.entryId);
   if (!e.transactions) e.transactions = [];
 
+  const kind = isInvestmentCategory(category) ? "Investment" : "Expense";
   if (txnContext.txnId) {
     const t = e.transactions.find((x) => x.id === txnContext.txnId);
     Object.assign(t, { amount, description, category, date });
-    showToast("Expense updated");
+    showToast(kind + " updated");
   } else {
     e.transactions.push({ id: uid(), amount, description, category, date, type: "expense" });
-    showToast("Expense added");
+    showToast(kind + " added");
   }
   recalcEntry(e);
   await putEntry(e);
