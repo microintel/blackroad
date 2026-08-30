@@ -529,7 +529,7 @@ tr td:first-child, th:first-child{ padding-left:14px; }
 .tag{ font-size:11px; padding:3px 9px; border-radius:999px; background:var(--surface-2); color:var(--text-dim); box-shadow:var(--shadow-in-sm); }
 
 /* Income vs expense compare */
-.ie-compare{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:26px; }
+.ie-compare{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:26px; }
 @media (max-width:640px){ .ie-compare{ grid-template-columns:1fr; } }
 .ie-box{ padding:18px 20px; border-radius:var(--radius-md); background:var(--surface); box-shadow:var(--shadow-sm); }
 .ie-box .lbl{ font-size:12px; color:var(--text-faint); display:flex; align-items:center; gap:6px; }
@@ -1163,6 +1163,10 @@ footer{
           <div class="ie-box">
             <div class="lbl"><i class="bi bi-arrow-up-circle" style="color:var(--red)"></i> Total Expenses</div>
             <div class="val" id="expenseTotalVal">₹0</div>
+          </div>
+          <div class="ie-box">
+            <div class="lbl"><i class="bi bi-pie-chart" style="color:var(--gold)"></i> Total Invested</div>
+            <div class="val" id="investmentTotalVal">₹0</div>
           </div>
         </div>
 
@@ -3339,22 +3343,35 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
     }[c]));
   }
 
+  /* Same investment categories as incomeStatement/shared.js — money moved
+     into an asset (mutual funds, SIPs, stocks, fixed deposits), not spent.
+     Kept out of "expense" here for the same reason. */
+  const INC_INVESTMENT_CATEGORIES = ["Mutual Fund", "SIP", "Stock", "FD"];
+  function incIsInvestmentCategory(cat){ return INC_INVESTMENT_CATEGORIES.includes(cat); }
+
   /**
    * Roll every ledger entry + its linked expense transactions up
    * into totals: overall income / expense / net surplus, plus a
    * per-category breakdown of expenses (category = each
    * transaction's `category` field — the same one shown on the
-   * Statement ledger page).
+   * Statement ledger page). Investment-category transactions
+   * (Mutual Fund, SIP, Stock, FD) are tracked separately and kept
+   * out of "expense" and the category breakdown, same as the
+   * Income Statement app itself.
    */
   async function incGetSummary(){
     const entries = await incGetAllEntries();
-    let totalIncome = 0, totalExpense = 0;
+    let totalIncome = 0, totalExpense = 0, totalInvestment = 0;
     const catTotals = new Map();
 
     entries.forEach((e) => {
       totalIncome += Number(e.income) || 0;
       (e.transactions || []).forEach((t) => {
         const amt = Number(t.amount) || 0;
+        if(incIsInvestmentCategory(t.category)){
+          totalInvestment += amt;
+          return;
+        }
         totalExpense += amt;
         const cat = (t.category || "").trim() || "Uncategorized";
         catTotals.set(cat, (catTotals.get(cat) || 0) + amt);
@@ -3369,6 +3386,7 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       hasData: entries.length > 0,
       totalIncome,
       totalExpense,
+      totalInvestment,
       net: totalIncome - totalExpense,
       categories,
     };
@@ -3411,8 +3429,10 @@ async function refreshIncomeSummary(){
     // 3) Total Income / Total Expenses boxes
     const incVal = document.getElementById('incomeTotalVal');
     const expVal = document.getElementById('expenseTotalVal');
+    const invVal = document.getElementById('investmentTotalVal');
     if(incVal) incVal.textContent = IncomeStore.formatINR(summary.totalIncome);
     if(expVal) expVal.textContent = IncomeStore.formatINR(summary.totalExpense);
+    if(invVal) invVal.textContent = IncomeStore.formatINR(summary.totalInvestment);
 
     // 4) Expense-by-category bars (top 6 categories, scaled to the largest)
     const barsWrap = document.getElementById('incomeCategoryBars');
