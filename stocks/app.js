@@ -1,58 +1,31 @@
 // app.js — Ledger: modals, filters, demo data, toast, and app init
 
 /* ---------------------------------------------------------------
-   LIVE LTP FETCHING (Vercel endpoint)
+   LIVE LTP FETCHING (Vercel endpoint — CORS enabled)
    Fetches last-traded-price per symbol from the indian-stock-ltp
-   endpoint. Manual price entry (in the stock detail modal) always
-   remains available as a fallback/override — a successful fetch
-   just overwrites prices[symbol], same as typing a number does.
+   Vercel API (ltp.js), which proxies Yahoo Finance server-side and
+   now sends Access-Control-Allow-Origin so browser calls work.
+   Manual price entry (in the stock detail modal) always remains
+   available as a fallback/override — a successful fetch just
+   overwrites prices[symbol], same as typing a number does.
 ------------------------------------------------------------------*/
 const LTP_API_BASE = 'https://indian-stock-ltp.vercel.app/api/ltp';
 
-// Fetches the LTP for a single symbol. Returns a number, or null on
-// any failure (network error, bad symbol, non-numeric response).
-//
-// NOTE ON CORS: this endpoint lives on a different origin
-// (indian-stock-ltp.vercel.app) than this app. If that serverless
-// function doesn't send Access-Control-Allow-Origin, the browser
-// blocks the response before our code ever sees it — which looks
-// exactly like "failed to fetch" with no useful detail. The direct
-// call below still runs first (works immediately if/when the API
-// adds CORS headers); if it's blocked, we retry once through a
-// public CORS-forwarding proxy as a fallback so LTPs keep working
-// in the meantime. Errors are logged to the console so the real
-// cause is visible via DevTools if both attempts fail.
+// Sends the request, gets the JSON response, pulls out the LTP.
+// Matches ltp.js's response shape: { symbol, yahooSymbol, ltp } on
+// success, or { error } with a 4xx/5xx status on failure.
 async function fetchLTP(symbol){
-  const directUrl = `${LTP_API_BASE}?symbol=${encodeURIComponent(symbol)}`;
-
-  try{
-    const res = await fetch(directUrl);
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const val = Number(data && data.ltp);
-    if(Number.isFinite(val)) return val;
-    throw new Error('Unexpected response shape: ' + JSON.stringify(data));
-  }catch(directErr){
-    console.warn(`[LTP] direct fetch failed for ${symbol} (likely CORS) —`, directErr);
+  const res = await fetch(`${LTP_API_BASE}?symbol=${encodeURIComponent(symbol)}`);
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error || `HTTP ${res.status}`);
   }
-
-  // Fallback path via a public CORS proxy.
-  try{
-    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(directUrl)}`;
-    const res = await fetch(proxyUrl);
-    if(!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
-    const data = await res.json();
-    const val = Number(data && data.ltp);
-    if(Number.isFinite(val)) return val;
-    throw new Error('Unexpected proxy response shape: ' + JSON.stringify(data));
-  }catch(proxyErr){
-    console.warn(`[LTP] proxy fetch also failed for ${symbol} —`, proxyErr);
-    return null;
-  }
+  return data.ltp;
 }
 
-// Fetches LTP for every currently-held symbol in parallel and updates
-// `prices`. Pass silent=true to skip toasts (used for the on-load fetch).
+
+// Fetches LTP for every currently-held symbol and updates `prices`.
+// Pass silent=true to skip toasts (used for the on-load fetch).
 async function refreshAllPrices(silent){
   const symbols = getAllSymbols().filter(sym => calculateRemainingQuantity(sym) > 0);
   if(symbols.length === 0){
@@ -60,7 +33,10 @@ async function refreshAllPrices(silent){
     return;
   }
   if(!silent) showToast('Refreshing prices…');
-  const results = await Promise.all(symbols.map(async sym => ({ sym, ltp: await fetchLTP(sym) })));
+  const results = await Promise.all(symbols.map(async sym => {
+    try{ return { sym, ltp: await fetchLTP(sym) }; }
+    catch(err){ return { sym, ltp: null }; }
+  }));
   let updated = 0, failed = 0;
   results.forEach(({ sym, ltp }) => {
     if(ltp !== null){ prices[sym] = ltp; updated++; }
@@ -78,14 +54,14 @@ async function refreshAllPrices(silent){
 // stock detail modal). Falls back silently to manual entry on failure.
 async function refreshSinglePrice(symbol){
   showToast('Fetching LTP…');
-  const ltp = await fetchLTP(symbol);
-  if(ltp !== null){
+  try{
+    const ltp = await fetchLTP(symbol);
     prices[symbol] = ltp;
     saveState();
     renderDetailModal();
     renderAll();
     showToast(`LTP updated: ${fmtMoney(ltp)}`);
-  } else {
+  }catch(err){
     showToast('Could not fetch LTP — enter price manually');
   }
 }
