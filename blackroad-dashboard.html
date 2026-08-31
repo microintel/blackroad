@@ -386,6 +386,12 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 }
 .chip.up{ background:color-mix(in srgb, var(--green) 15%, transparent); color:var(--green); box-shadow:var(--shadow-in-sm); }
 .chip.down{ background:color-mix(in srgb, var(--red) 15%, transparent); color:var(--red); box-shadow:var(--shadow-in-sm); }
+/* Light mode's background is a pale cream, so the same faint 15%
+   tint used on dark backgrounds gets washed out and reads as low
+   contrast / low opacity. Bump the fill and darken the text a touch
+   so the chips stay legible without changing dark mode at all. */
+html[data-theme="light"] .chip.up{ background:color-mix(in srgb, var(--green) 28%, transparent); color:color-mix(in srgb, var(--green) 75%, black 25%); }
+html[data-theme="light"] .chip.down{ background:color-mix(in srgb, var(--red) 28%, transparent); color:color-mix(in srgb, var(--red) 75%, black 15%); }
 .stat-mini{ font-size:13px; color:var(--text-dim); }
 .stat-mini b{ color:var(--text); font-weight:600; }
 
