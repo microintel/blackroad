@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1A1B20" id="themeColorMeta">
+<title>Stocks — Stock Portfolio Tracker</title>
+<script>
+  /* Follow the same light/dark preference set by the Fixed Deposits
+     app (and anywhere else in BlackRoad). No in-app switch here —
+     this app simply mirrors whatever 'br-theme' says in localStorage. */
+  (function(){ try{
+    var t = localStorage.getItem('br-theme');
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  }catch(e){} })();
+</script>
+<script>
+  (function(){
+    var meta = document.getElementById('themeColorMeta');
+    function syncThemeColor(){
+      if (!meta) return;
+      var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      meta.setAttribute('content', isLight ? '#EDE6D6' : '#1A1B20');
+    }
+    syncThemeColor();
+
+    /* Live sync if this page is already open in one tab while the
+       theme is switched from the dashboard (or FD) in another tab —
+       the 'storage' event only fires in OTHER tabs on the same
+       origin, not the tab that made the change, which is exactly
+       what's needed here. */
+    window.addEventListener('storage', function(e){
+      if (e.key !== 'br-theme') return;
+      if (e.newValue === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+      syncThemeColor();
+    });
+  })();
+</script>
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Fixed top-left back button (mobile only) -->
+<a href="../blackroad-dashboard.html" class="mobile-back-btn" aria-label="Back to BlackRoad" title="Back to BlackRoad">
+  <i data-lucide="arrow-left"></i>
+</a>
+
+<div class="app">
+  <!-- Desktop sidebar -->
+  <nav class="rail">
+    <div class="rail-brand">Stocks<span>Portfolio Tracker</span></div>
+    <div class="rail-nav">
+      <a href="../blackroad-dashboard.html" class="rail-nav-back"><i data-lucide="arrow-left"></i>Back to BlackRoad</a>
+      <button class="nav-btn active" data-view="dashboard"><i data-lucide="layout-dashboard"></i>Dashboard</button>
+      <button class="nav-btn" data-view="holdings"><i data-lucide="briefcase"></i>Holdings</button>
+      <button class="nav-btn" data-view="transactions"><i data-lucide="arrow-left-right"></i>Transactions</button>
+      <button class="nav-btn" data-view="analytics"><i data-lucide="pie-chart"></i>Analytics</button>
+      <button class="nav-btn" data-view="settings"><i data-lucide="settings"></i>Settings</button>
+    </div>
+    <div class="rail-foot">
+      <button id="demoBtn"><i data-lucide="sparkles"></i>Load demo data</button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="viewTitle">Dashboard</h1>
+        <div class="sub" id="viewSub">Your holdings, calculated from transaction history</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn" id="refreshPricesBtn" title="Fetch live LTP for all holdings"><i data-lucide="refresh-cw"></i>Refresh prices</button>
+        <button class="btn btn-primary" id="addTxnBtn"><i data-lucide="plus"></i>Add transaction</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="statement" id="statementHero"></div>
+
+      <div class="section-heading">
+        <h2>Top holdings</h2>
+        <span class="count" id="dashHoldingsCount"></span>
+      </div>
+      <div class="cards-grid" id="dashHoldingsCards"></div>
+    </section>
+
+    <!-- HOLDINGS -->
+    <section class="view" id="view-holdings">
+      <div class="cards-grid" id="holdingsCards"></div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section class="view" id="view-transactions">
+      <div class="page-head">
+        <div class="page-head-icon"><i data-lucide="arrow-left-right"></i></div>
+        <div>
+          <h2 class="page-head-title">Transactions</h2>
+          <div class="page-head-sub">Track every buy and sell activity in your portfolio.</div>
+        </div>
+      </div>
+
+      <div class="metric-grid" id="txnSummaryGrid"></div>
+
+      <div class="filters-row filter-toolbar">
+        <div class="filter-search">
+          <i data-lucide="search"></i>
+          <input type="text" id="filterSearch" placeholder="Search stock or symbol" aria-label="Search transactions">
+        </div>
+        <div class="filter-select-wrap">
+          <i data-lucide="briefcase" class="fs-icon"></i>
+          <select id="filterStock" aria-label="Filter by stock"><option value="">All stocks</option></select>
+        </div>
+        <div class="filter-select-wrap">
+          <i data-lucide="filter" class="fs-icon"></i>
+          <select id="filterType" aria-label="Filter by transaction type">
+            <option value="">All types</option>
+            <option value="BUY">Buy only</option>
+            <option value="SELL">Sell only</option>
+          </select>
+        </div>
+        <div class="filter-select-wrap">
+          <i data-lucide="arrow-down-up" class="fs-icon"></i>
+          <select id="sortOrder" aria-label="Sort order">
+            <option value="desc">Newest first</option>
+            <option value="asc">Oldest first</option>
+          </select>
+        </div>
+      </div>
+      <div class="cards-grid" id="txnCards"></div>
+    </section>
+
+    <!-- ANALYTICS -->
+    <section class="view" id="view-analytics">
+      <div class="page-head">
+        <div class="page-head-icon"><i data-lucide="pie-chart"></i></div>
+        <div>
+          <h2 class="page-head-title">Analytics</h2>
+          <div class="page-head-sub">Understand your portfolio allocation and performance.</div>
+        </div>
+      </div>
+
+      <div class="analytics-panel an-panel">
+        <div class="an-panel-head"><i data-lucide="chart-no-axes-combined"></i><h2>Portfolio Performance</h2></div>
+        <div class="an-panel-body" id="perfHero"></div>
+      </div>
+
+      <div class="analytics-panel an-panel">
+        <div class="an-panel-head"><i data-lucide="pie-chart"></i><h2>Portfolio Allocation</h2></div>
+        <div class="an-panel-body alloc-panel-body">
+          <div class="alloc-donut-wrap" id="allocDonut"></div>
+          <div class="alloc-list" id="allocationList"></div>
+        </div>
+      </div>
+
+      <div class="analytics-panel an-panel">
+        <div class="an-panel-head"><i data-lucide="bar-chart-3"></i><h2>Holdings Performance</h2></div>
+        <div class="an-panel-body" id="perfBarChart"></div>
+      </div>
+
+      <div class="analytics-panel an-panel">
+        <div class="an-panel-head"><i data-lucide="activity"></i><h2>Performance Insights</h2></div>
+        <div class="an-panel-body insights-grid" id="perfStrip"></div>
+      </div>
+
+      <div class="analytics-panel an-panel">
+        <div class="an-panel-head"><i data-lucide="chart-column"></i><h2>Profit &amp; Loss Breakdown</h2></div>
+        <div class="an-panel-body">
+          <div class="stat-row"><span class="lbl">Realized P&amp;L</span><span id="anRealized"></span></div>
+          <div class="stat-row"><span class="lbl">Unrealized P&amp;L</span><span id="anUnrealized"></span></div>
+          <div class="stat-row"><span class="lbl">Total P&amp;L</span><span id="anTotal"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="page-head">
+        <div class="page-head-icon"><i data-lucide="settings"></i></div>
+        <div>
+          <h2 class="page-head-title">Settings</h2>
+          <div class="page-head-sub">Back up your data or start fresh.</div>
+        </div>
+      </div>
+
+      <div class="analytics-panel an-panel">
+        <div class="an-panel-head"><i data-lucide="database"></i><h2>Data</h2></div>
+        <div class="an-panel-body settings-body">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-title">Export data</div>
+              <div class="settings-row-sub">Download all transactions and current prices as a JSON backup file.</div>
+            </div>
+            <button class="btn" id="exportDataBtn"><i data-lucide="download"></i>Export</button>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-title">Import data</div>
+              <div class="settings-row-sub">Restore from a previously exported backup file. This replaces your current data.</div>
+            </div>
+            <button class="btn" id="importDataBtn"><i data-lucide="upload"></i>Import</button>
+            <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
+          </div>
+        </div>
+      </div>
+
+      <div class="analytics-panel an-panel">
+        <div class="an-panel-head"><i data-lucide="triangle-alert"></i><h2>Danger zone</h2></div>
+        <div class="an-panel-body settings-body">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-title">Clear all data</div>
+              <div class="settings-row-sub">Deletes every transaction and current price from this browser. This can't be undone.</div>
+            </div>
+            <button class="btn btn-danger" id="clearDataBtn"><i data-lucide="trash-2"></i>Clear data</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="app-footer">Developed by Microintel</div>
+  </div>
+</div>
+
+<!-- Bottom nav (mobile) -->
+<nav class="bottom-nav">
+  <button class="bnav-btn active" data-view="dashboard">
+    <i data-lucide="layout-dashboard" class="ic"></i>
+    <span>Dashboard</span>
+  </button>
+  <button class="bnav-btn" data-view="holdings">
+    <i data-lucide="briefcase" class="ic"></i>
+    <span>Holdings</span>
+  </button>
+  <button class="bnav-btn" data-view="transactions">
+    <i data-lucide="arrow-left-right" class="ic"></i>
+    <span>Txns</span>
+  </button>
+  <button class="bnav-btn" data-view="analytics">
+    <i data-lucide="pie-chart" class="ic"></i>
+    <span>Analytics</span>
+  </button>
+  <button class="bnav-btn" data-view="settings">
+    <i data-lucide="settings" class="ic"></i>
+    <span>Settings</span>
+  </button>
+</nav>
+
+<!-- Floating action button (mobile) -->
+<button class="fab" id="fabAddTxn" aria-label="Add transaction">
+  <i data-lucide="plus"></i>
+</button>
+
+<!-- Add/Edit transaction modal -->
+<div class="modal-overlay" id="txnModalOverlay">
+  <div class="modal">
+    <h3 id="txnModalTitle">Add transaction</h3>
+    <input type="hidden" id="txnId">
+    <div class="field-row">
+      <div class="field">
+        <label>Type</label>
+        <select id="txnType">
+          <option value="BUY">Buy</option>
+          <option value="SELL">Sell</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="txnDate">
+      </div>
+    </div>
+    <div class="field-row" id="buyStockRow">
+      <div class="field">
+        <label>Stock name</label>
+        <input type="text" id="txnName" placeholder="Reliance Industries">
+      </div>
+      <div class="field">
+        <label>Symbol</label>
+        <input type="text" id="txnSymbol" placeholder="RELIANCE">
+      </div>
+    </div>
+    <div class="field" id="sellStockRow" style="display:none;">
+      <label>Stock to sell</label>
+      <div class="stock-picker" id="stockPicker">
+        <div class="stock-picker-input">
+          <i data-lucide="search"></i>
+          <input type="text" id="sellStockSearch" placeholder="Search your holdings…" autocomplete="off">
+        </div>
+        <div class="stock-picker-list" id="sellStockList"></div>
+      </div>
+      <div class="sell-stock-hint" id="sellStockHint"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Quantity</label>
+        <input type="number" id="txnQty" min="0" step="1">
+      </div>
+      <div class="field">
+        <label>Price (₹)</label>
+        <input type="number" id="txnPrice" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="field">
+      <label>Notes (optional)</label>
+      <input type="text" id="txnNotes" placeholder="">
+    </div>
+    <div class="form-error" id="txnError"></div>
+    <div class="modal-actions">
+      <button class="btn" id="txnCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="txnSaveBtn">Save transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal-overlay" id="deleteModalOverlay">
+  <div class="modal" style="max-width:360px;">
+    <h3>Delete transaction?</h3>
+    <p style="font-size:13.5px; color:var(--muted); margin:0 0 18px 0;">This can't be undone. Holdings and P&amp;L will be recalculated.</p>
+    <div class="modal-actions">
+      <button class="btn" id="deleteCancelBtn">Cancel</button>
+      <button class="btn btn-danger" id="deleteConfirmBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clear all data confirm modal -->
+<div class="modal-overlay" id="clearModalOverlay">
+  <div class="modal" style="max-width:380px;">
+    <h3>Clear all data?</h3>
+    <p style="font-size:13.5px; color:var(--muted); margin:0 0 18px 0;">This deletes every transaction and current price from this browser. This can't be undone.</p>
+    <div class="modal-actions">
+      <button class="btn" id="clearCancelBtn">Cancel</button>
+      <button class="btn btn-danger" id="clearConfirmBtn">Clear everything</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import data confirm modal -->
+<div class="modal-overlay" id="importModalOverlay">
+  <div class="modal" style="max-width:380px;">
+    <h3>Import data?</h3>
+    <p style="font-size:13.5px; color:var(--muted); margin:0 0 18px 0;">This replaces all current transactions and prices with the contents of the selected file. This can't be undone.</p>
+    <div class="form-error" id="importError">Couldn't read that file. Make sure it's a valid backup exported from this app.</div>
+    <div class="modal-actions">
+      <button class="btn" id="importCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="importConfirmBtn">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock detail modal -->
+<div class="modal-overlay" id="detailModalOverlay">
+  <div class="modal modal-wide">
+    <h3 id="detailTitle">Stock detail</h3>
+    <div class="detail-grid" id="detailGrid"></div>
+    <div class="field-row" style="align-items:flex-end; margin-bottom:16px;">
+      <div class="field" style="max-width:180px; margin-bottom:0;">
+        <label>Current price (₹)</label>
+        <input type="number" id="detailPriceInput" min="0" step="0.01">
+      </div>
+      <button class="btn" id="detailFetchLtpBtn" type="button" title="Fetch live LTP" style="height:40px;"><i data-lucide="refresh-cw"></i>Fetch LTP</button>
+    </div>
+    <h3 style="font-size:14px; margin-bottom:10px;">Transaction history</h3>
+    <div class="panel" style="max-height:240px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;">
+      <table class="ledger-table" id="detailTxnTable">
+        <thead><tr><th>Date</th><th>Type</th><th class="num">Qty</th><th class="num">Price</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="detailCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="state.js"></script>
+<script src="render.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
