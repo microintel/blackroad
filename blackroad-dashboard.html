@@ -2439,15 +2439,21 @@ function closeSidebarMobile(){
 overlay.addEventListener('click', closeSidebarMobile);
 
 /* Tag table cells with their column header so the mobile CSS
-   can render each row as a native-style stacked card */
-document.querySelectorAll('table').forEach(table=>{
+   can render each row as a native-style stacked card. Reusable
+   (not just a one-off pass) since some tables — Mutual Funds and
+   Stocks — get their rows rebuilt dynamically after this first
+   runs, and those new rows need tagging too or they lose their
+   mobile labels entirely. */
+function tagTableLabels(table){
+  if(!table) return;
   const headers = [...table.querySelectorAll('thead th')].map(th=> th.textContent.trim());
   table.querySelectorAll('tbody tr').forEach(tr=>{
     [...tr.children].forEach((td,i)=>{
       if(headers[i]) td.setAttribute('data-label', headers[i]);
     });
   });
-});
+}
+document.querySelectorAll('table').forEach(tagTableLabels);
 
 /* ============================================================
    STORAGE HELPERS (personal, per-user — window.storage)
@@ -3063,6 +3069,7 @@ async function refreshStocksSummary(){
         tbody.innerHTML = '';
         tbody.appendChild(frag);
       }
+      tagTableLabels(tbody.closest('table'));
     }
     queueRecalc();
   }catch(e){
@@ -3243,6 +3250,7 @@ async function refreshMutualFundsSummary(){
         tbody.innerHTML = '';
         tbody.appendChild(frag);
       }
+      tagTableLabels(tbody.closest('table'));
     }
     queueRecalc();
   }catch(e){
