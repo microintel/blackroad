@@ -1096,7 +1096,8 @@ footer{
             <div class="hero-eyebrow"><i class="bi bi-graph-up"></i> Total Net Worth</div>
             <div class="hero-value mono" id="netWorthValue">₹0</div>
             <div class="hero-sub">
-              <span class="chip up" id="heroMonthChip"><i class="bi bi-arrow-up-right"></i> 0.0% this month</span>
+              <span class="chip up" id="heroMfChip" title="Mutual Funds growth"><i class="bi bi-pie-chart-fill"></i> 0.0%</span>
+              <span class="chip up" id="heroStocksChip" title="Stocks growth"><i class="bi bi-graph-up-arrow"></i> 0.0%</span>
               <span class="stat-mini">Updated <b>Today, 9:41 AM</b></span>
             </div>
             <div class="hero-lane lane"></div>
@@ -1204,13 +1205,13 @@ footer{
           </div>
           <div class="panel-head-right">
             <div class="panel-total"><b id="stocksPanelTotal">₹0</b><small class="pos" id="stocksPanelPct">0.0% overall</small></div>
-            <a class="btn-secondary" href="pages/stocks.html">Manage <i class="bi bi-arrow-up-right"></i></a>
+            <a class="btn-secondary" href="stocks/index.html">Manage <i class="bi bi-arrow-up-right"></i></a>
           </div>
         </div>
         <table>
           <thead><tr><th>Stock</th><th>Qty</th><th>Avg. Price</th><th>LTP</th><th>P&amp;L</th></tr></thead>
           <tbody id="stocksTableBody">
-            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No holdings yet — <a href="pages/stocks.html" style="color:var(--accent);">add your first stock</a>.</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No holdings yet — <a href="stocks/index.html" style="color:var(--accent);">add your first stock</a>.</td></tr>
           </tbody>
         </table>
       </section>
@@ -1437,159 +1438,119 @@ footer{
 </div>
 
 <script>
-/* ===== Inlined StocksStore (IndexedDB) — no external file dependency ===== */
-/* ============================================================
-   BlackRoad — Stocks IndexedDB Store
-   Shared, dependency-free CRUD layer over IndexedDB.
-   Used by both /blackroad-dashboard.html and /pages/stocks.html
-   so both pages read/write the exact same data.
-   ============================================================ */
+/* ============ StocksStore (read-only mirror of the Stocks app's IndexedDB) ============
+   Reads the SAME database /stocks/index.html writes to — IndexedDB
+   "blackStocks", store "state", holding two keys: 'transactions' and
+   'prices' (see /stocks/state.js). Transactions are the single source
+   of truth there — nothing derived (avg price, invested/current value,
+   P&L) is stored — so this mirrors that exact average-cost replay
+   engine rather than reading any pre-computed numbers. Read-only here;
+   all edits happen in /stocks. */
 (function (global) {
   "use strict";
 
-  const DB_NAME = "BlackRoadDB";
-  const DB_VERSION = 2;
-  const STORE = "stocks";
-  const CHANNEL_NAME = "blackroad-stocks-sync";
-
-  let dbPromise = null;
-  let channel = null;
-  try {
-    channel = ("BroadcastChannel" in global) ? new BroadcastChannel(CHANNEL_NAME) : null;
-  } catch (e) { channel = null; }
+  const DB_NAME = "blackStocks";
+  const DB_VERSION = 1;
+  const STORE = "state";
 
   function openDB() {
-    if (dbPromise) return dbPromise;
-    dbPromise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
-        if (!db.objectStoreNames.contains(STORE)) {
-          const store = db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
-          store.createIndex("symbol", "symbol", { unique: false });
-        }
-        /* Mutual Fund (pages/mutual-funds.html) stores — created here too so
-           whichever page performs the version upgrade first sets up the
-           full shared schema. */
-        if (!db.objectStoreNames.contains("settings")) db.createObjectStore("settings", { keyPath: "id" });
-        if (!db.objectStoreNames.contains("entries"))  db.createObjectStore("entries",  { keyPath: "id", autoIncrement: true });
-        if (!db.objectStoreNames.contains("profiles")) db.createObjectStore("profiles", { keyPath: "id", autoIncrement: true });
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
       };
       req.onsuccess = (e) => resolve(e.target.result);
       req.onerror = (e) => reject(e.target.error);
     });
-    return dbPromise;
   }
 
-  function store(mode) {
-    return openDB().then((db) => db.transaction(STORE, mode).objectStore(STORE));
-  }
-
-  function notify(type, payload) {
-    if (channel) { try { channel.postMessage({ type, payload, at: Date.now() }); } catch (e) {} }
-    try { global.dispatchEvent(new CustomEvent("stocks:changed", { detail: { type, payload } })); } catch (e) {}
-  }
-
-  function onChange(handler) {
-    if (channel) channel.onmessage = (e) => handler(e.data);
-    global.addEventListener("stocks:changed", (e) => handler(e.detail));
-  }
-
-  async function getAll() {
-    const s = await store("readonly");
+  function idbGet(db, key) {
     return new Promise((resolve, reject) => {
-      const req = s.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async function get(id) {
-    const s = await store("readonly");
-    return new Promise((resolve, reject) => {
-      const req = s.get(id);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async function add(stock) {
-    const s = await store("readwrite");
-    const now = new Date().toISOString();
-    const record = Object.assign({ createdAt: now, updatedAt: now }, stock);
-    const id = await new Promise((resolve, reject) => {
-      const req = s.add(record);
+      const req = db.transaction(STORE, "readonly").objectStore(STORE).get(key);
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
-    notify("add", Object.assign({ id }, record));
-    return id;
   }
 
-  async function update(id, changes) {
-    const s = await store("readwrite");
-    const updated = await new Promise((resolve, reject) => {
-      const getReq = s.get(id);
-      getReq.onsuccess = () => {
-        const existing = getReq.result;
-        if (!existing) return reject(new Error("Stock not found"));
-        const merged = Object.assign({}, existing, changes, { id, updatedAt: new Date().toISOString() });
-        const putReq = s.put(merged);
-        putReq.onsuccess = () => resolve(merged);
-        putReq.onerror = () => reject(putReq.error);
-      };
-      getReq.onerror = () => reject(getReq.error);
-    });
-    notify("update", updated);
-    return updated;
+  async function getRaw() {
+    try {
+      const db = await openDB();
+      const [transactions, prices] = await Promise.all([
+        idbGet(db, "transactions"),
+        idbGet(db, "prices"),
+      ]);
+      db.close();
+      return { transactions: transactions || [], prices: prices || {} };
+    } catch (e) {
+      console.error("StocksStore: couldn't open blackStocks DB", e);
+      return { transactions: [], prices: {} };
+    }
   }
 
-  async function remove(id) {
-    const s = await store("readwrite");
-    await new Promise((resolve, reject) => {
-      const req = s.delete(id);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-    notify("remove", { id });
-    return true;
+  /* ---- Same average-cost replay engine as /stocks/state.js ---- */
+  function getSymbolTxns(symbol, txns) {
+    return txns
+      .filter((t) => t.symbol === symbol)
+      .sort((a, b) => (a.date === b.date ? a.seq - b.seq : a.date < b.date ? -1 : 1));
   }
 
-  /** Seed the store with defaults, but only if it is completely empty. */
-  async function seedIfEmpty(defaults) {
-    const rows = await getAll();
-    if (rows.length > 0) return rows;
-    const s = await store("readwrite");
-    const now = new Date().toISOString();
-    await Promise.all(defaults.map((d) => new Promise((resolve, reject) => {
-      const req = s.add(Object.assign({ createdAt: now, updatedAt: now }, d));
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    })));
-    return getAll();
+  function replaySymbol(symbol, txns) {
+    const list = getSymbolTxns(symbol, txns);
+    let qty = 0, totalCost = 0, realizedPnL = 0;
+    for (const t of list) {
+      if (t.type === "BUY") {
+        totalCost += t.quantity * t.price;
+        qty += t.quantity;
+      } else {
+        if (t.quantity > qty) continue; // skip inconsistent data on this read-only mirror
+        const avgCostAtSale = qty > 0 ? totalCost / qty : 0;
+        const costBasis = avgCostAtSale * t.quantity;
+        realizedPnL += t.quantity * t.price - costBasis;
+        totalCost -= costBasis;
+        qty -= t.quantity;
+      }
+    }
+    return { quantity: qty, avgPrice: qty > 0 ? totalCost / qty : 0, investedValue: qty > 0 ? totalCost : 0, realizedPnL };
   }
 
-  function computeMetrics(row) {
-    const qty = Number(row.qty) || 0;
-    const avgPrice = Number(row.avgPrice) || 0;
-    const ltp = Number(row.ltp) || 0;
-    const invested = qty * avgPrice;
-    const currentValue = qty * ltp;
-    const pnl = currentValue - invested;
-    const pnlPct = invested ? (pnl / invested) * 100 : 0;
-    return { invested, currentValue, pnl, pnlPct };
+  function getPrice(symbol, txns, prices) {
+    if (prices[symbol] !== undefined && prices[symbol] !== null) return prices[symbol];
+    const list = getSymbolTxns(symbol, txns);
+    return list.length ? list[list.length - 1].price : 0;
+  }
+
+  function getName(symbol, txns) {
+    const list = getSymbolTxns(symbol, txns);
+    return list.length ? list[list.length - 1].name : symbol;
+  }
+
+  async function getHoldings() {
+    const { transactions, prices } = await getRaw();
+    const symbols = [...new Set(transactions.map((t) => t.symbol))];
+    return symbols
+      .map((symbol) => {
+        const r = replaySymbol(symbol, transactions);
+        const currentPrice = getPrice(symbol, transactions, prices);
+        const currentValue = r.quantity * currentPrice;
+        const pnl = currentValue - r.investedValue;
+        const pnlPct = r.investedValue > 0 ? (pnl / r.investedValue) * 100 : 0;
+        return {
+          symbol, name: getName(symbol, transactions),
+          quantity: r.quantity, avgPrice: r.avgPrice, currentPrice,
+          investedValue: r.investedValue, currentValue, pnl, pnlPct,
+          realizedPnL: r.realizedPnL,
+        };
+      })
+      .filter((h) => h.quantity > 0);
   }
 
   async function getSummary() {
-    const rows = await getAll();
-    let invested = 0, currentValue = 0;
-    rows.forEach((r) => {
-      const m = computeMetrics(r);
-      invested += m.invested;
-      currentValue += m.currentValue;
-    });
+    const rows = await getHoldings();
+    const invested = rows.reduce((s, h) => s + h.investedValue, 0);
+    const currentValue = rows.reduce((s, h) => s + h.currentValue, 0);
     const pnl = currentValue - invested;
-    const pnlPct = invested ? (pnl / invested) * 100 : 0;
+    const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
     return { holdings: rows.length, invested, currentValue, pnl, pnlPct, rows };
   }
 
@@ -1599,12 +1560,8 @@ footer{
     return sign + "₹" + abs.toLocaleString("en-IN");
   }
 
-  global.StocksStore = {
-    getAll, get, add, update, remove, seedIfEmpty,
-    computeMetrics, getSummary, formatINR, onChange
-  };
+  global.StocksStore = { getHoldings, getSummary, formatINR };
 })(window);
-
 </script>
 <script>
 /* ============ LendingStore ============
@@ -1892,7 +1849,7 @@ footer{
 const categories = [
   { id:'income',       name:'Income & Expenses',   icon:'bi-cash-coin',        value:'₹0', trend:'Loading…', trendUp:true,  color:'green', page:'incomeStatement/statement.html' },
   { id:'mutualfunds',  name:'Mutual Funds',         icon:'bi-pie-chart-fill',   value:'₹42,18,900',  trend:'+18.4% XIRR', trendUp:true,  color:'gold',  page:'stepUp/index.html' },
-  { id:'stocks',       name:'Stocks',                icon:'bi-graph-up-arrow',   value:'₹0',  trend:'No holdings yet',      trendUp:true,  color:'green', page:'pages/stocks.html' },
+  { id:'stocks',       name:'Stocks',                icon:'bi-graph-up-arrow',   value:'₹0',  trend:'No holdings yet',      trendUp:true,  color:'green', page:'stocks/index.html' },
   { id:'gold',         name:'Gold',                  icon:'bi-gem',              value:'₹0',   trend:'No holdings yet',   trendUp:true,  color:'paleGold', page:'pages/gold.html' },
   { id:'realestate',   name:'Real Estate',           icon:'bi-building',         value:'₹0',   trend:'No properties yet',       trendUp:true,  color:'blue',  page:'pages/real-estate.html' },
   { id:'deposits',     name:'Fixed Deposits',        icon:'bi-bank2',            value:'₹0',  trend:'No instruments yet',   trendUp:true,  color:'violet', page:'fd/fixed-deposits.html' },
@@ -2368,15 +2325,14 @@ async function recalcNetWorth(){
   renderDepositsPanel(deposits);
 
   // Live asset-allocation donut — includes Lending Receivables (what
-  // you'll get back from loans/liabilities), Mutual Funds and Fixed
-  // Deposits current value, so FDs actually add up into the asset
-  // breakdown instead of only counting toward the hero Net Worth.
-  // Everything else (Cash & Bank, Real Estate, Stocks, Gold) is left
-  // out of this chart, and any amount at or below 0 is skipped
-  // entirely rather than being summed in. Note: this only affects the
-  // donut/bar/legend — rawTotalAssets and Net Worth above still use
-  // the full items list.
-  const ALLOCATION_LABELS = ['Lending Receivables', 'Mutual Funds', 'Fixed Deposits'];
+  // you'll get back from loans/liabilities), Mutual Funds, Fixed
+  // Deposits, and Stocks current value, so they all add up into the
+  // asset breakdown instead of only counting toward the hero Net Worth.
+  // Cash & Bank, Real Estate, and Gold are still left out of this
+  // chart, and any amount at or below 0 is skipped entirely rather
+  // than being summed in. Note: this only affects the donut/bar/legend
+  // — rawTotalAssets and Net Worth above still use the full items list.
+  const ALLOCATION_LABELS = ['Lending Receivables', 'Mutual Funds', 'Fixed Deposits', 'Stocks'];
   const chartItems = items.filter(i => ALLOCATION_LABELS.includes(i.label) && i.amount > 0);
   const totalAssets = chartItems.reduce((s,i)=> s + i.amount, 0) || 1; // avoid /0 in percentages
   renderAllocation(chartItems.map(i => ({ ...i, pct: +(i.amount / totalAssets * 100).toFixed(1) })));
@@ -2652,12 +2608,13 @@ swatches.forEach(s=>{
 // version the DB is already at, and only bump +1 to add a store if it's
 // truly missing (e.g. after a full wipe).
 const BACKUP_DB_SCHEMAS = {
-  BlackRoadDB: {
+  blackStocks: {
+    // Key-value store (no keyPath) — the Stocks app (/stocks/state.js)
+    // puts 'transactions', 'prices', and 'seqCounter' in under explicit
+    // keys rather than as self-contained records, so this needs the
+    // keyless export/import path (see exportAllIndexedDB/importAllIndexedDB).
     stores: {
-      stocks:   { keyPath:'id', autoIncrement:true, indexes:[{ name:'symbol', keyPath:'symbol', unique:false }] },
-      settings: { keyPath:'id' },
-      entries:  { keyPath:'id', autoIncrement:true },
-      profiles: { keyPath:'id', autoIncrement:true },
+      state: { keyless:true },
     }
   },
   LendLedger: {
@@ -2689,6 +2646,9 @@ const BACKUP_DB_SCHEMAS = {
 const BACKUP_DBS = Object.keys(BACKUP_DB_SCHEMAS);
 
 function createStoreFromDef(db, storeName, def){
+  // Keyless stores (e.g. blackStocks/state) use explicit external keys —
+  // no keyPath/autoIncrement, matching how the Stocks app itself creates it.
+  if(def.keyless){ db.createObjectStore(storeName); return; }
   const store = db.createObjectStore(storeName, { keyPath: def.keyPath, autoIncrement: !!def.autoIncrement });
   (def.indexes || []).forEach((ix) => store.createIndex(ix.name, ix.keyPath, { unique: !!ix.unique }));
 }
@@ -2736,13 +2696,31 @@ async function exportAllIndexedDB(onProgress){
       for(const storeName of Object.keys(BACKUP_DB_SCHEMAS[name].stores)){
         step++;
         if(onProgress) await onProgress(step, totalSteps, `${name} / ${storeName}`);
-        stores[storeName] = db.objectStoreNames.contains(storeName)
-          ? await new Promise((resolve, reject) => {
+        if(!db.objectStoreNames.contains(storeName)){ stores[storeName] = []; continue; }
+        const def = BACKUP_DB_SCHEMAS[name].stores[storeName];
+        if(def.keyless){
+          // No keyPath — records don't carry their own key, so capture
+          // keys and values as pairs or the key is lost on restore.
+          const [keys, values] = await Promise.all([
+            new Promise((resolve, reject) => {
+              const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAllKeys();
+              req.onsuccess = () => resolve(req.result || []);
+              req.onerror = () => reject(req.error);
+            }),
+            new Promise((resolve, reject) => {
               const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
               req.onsuccess = () => resolve(req.result || []);
               req.onerror = () => reject(req.error);
-            })
-          : [];
+            }),
+          ]);
+          stores[storeName] = keys.map((k, i) => ({ key: k, value: values[i] }));
+        } else {
+          stores[storeName] = await new Promise((resolve, reject) => {
+            const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+          });
+        }
       }
       databases[name] = { version: db.version, stores };
       db.close();
@@ -2775,11 +2753,17 @@ async function importAllIndexedDB(databases, onProgress){
         result.skipped.push(`${dbName}.${storeName}`);
         continue;
       }
+      const def = (BACKUP_DB_SCHEMAS[dbName] && BACKUP_DB_SCHEMAS[dbName].stores[storeName]) || {};
       await new Promise((resolve, reject) => {
         const tx = db.transaction(storeName, 'readwrite');
         const os = tx.objectStore(storeName);
         os.clear();
-        (records || []).forEach((rec) => os.put(rec));
+        if(def.keyless){
+          // Pairs of { key, value } — put back under their original explicit key.
+          (records || []).forEach((pair) => os.put(pair.value, pair.key));
+        } else {
+          (records || []).forEach((rec) => os.put(rec));
+        }
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error);
@@ -3001,11 +2985,13 @@ autoBackupSwitch.addEventListener('click', async ()=>{
 
 /* ============================================================
    STOCKS — live summary pulled from IndexedDB (shared with
-   pages/stocks.html via pages/js/stocks-store.js). Keeps the
-   Dashboard tile, panel total, and holdings table in sync with
-   whatever CRUD changes were made on the Stocks page.
+   /stocks/index.html via /stocks/state.js). Keeps the Dashboard
+   tile, panel total, and holdings table in sync with whatever
+   transactions were added/edited on the Stocks page. The Stocks app
+   doesn't broadcast cross-tab (no BroadcastChannel), so — like
+   Income & Expenses — this re-syncs on focus/visibility instead of
+   an onChange event.
    ============================================================ */
-const STOCKS_SEED = [];
 const STOCK_PALETTE = ['blue','gold','violet','red','green'];
 
 function stockRowIcon(name, idx){
@@ -3016,27 +3002,9 @@ function escapeHtmlDash(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-/* One-time cleanup: earlier versions of this dashboard seeded 5 demo
-   stocks into IndexedDB. If a browser already has that old data
-   sitting in storage, seedIfEmpty() won't touch it (it only seeds an
-   empty store). This clears it out exactly once so Stocks genuinely
-   starts at ₹0 for everyone, without wiping anything a user adds
-   themselves afterward. */
-async function resetStocksOnce(){
-  const FLAG = 'brStocksResetV1';
-  if(localStorage.getItem(FLAG)) return;
-  try{
-    const rows = await StocksStore.getAll();
-    await Promise.all(rows.map(r => StocksStore.remove(r.id)));
-  }catch(e){ console.error('Could not reset existing stocks data', e); }
-  localStorage.setItem(FLAG, '1');
-}
-
 async function refreshStocksSummary(){
   if(typeof StocksStore === 'undefined') return; // storage unavailable (e.g. private browsing)
   try{
-    await resetStocksOnce();
-    await StocksStore.seedIfEmpty(STOCKS_SEED);
     const summary = await StocksStore.getSummary();
 
     // 1) Update the "Wealth Lanes" tile
@@ -3046,7 +3014,7 @@ async function refreshStocksSummary(){
       const trendEl = tile.querySelector('.tile-trend');
       const up = summary.pnl >= 0;
       trendEl.style.color = up ? 'var(--green)' : 'var(--red)';
-      trendEl.innerHTML = `<i class="bi ${up ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i> ${up?'+':''}${summary.pnlPct.toFixed(1)}%`;
+      trendEl.innerHTML = `<i class="bi ${up ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i> ${summary.holdings ? `${up?'+':''}${summary.pnlPct.toFixed(1)}%` : 'No holdings yet'}`;
     }
 
     // 2) Update the Stocks panel header + total
@@ -3060,26 +3028,30 @@ async function refreshStocksSummary(){
     }
     if(holdingsCount) holdingsCount.textContent = `Direct equity · ${summary.holdings} holding${summary.holdings===1?'':'s'}`;
 
-    // 3) Rebuild the holdings table (top 5 by value, matching original layout)
+    // 2b) Update the hero net-worth row's stocks growth chip
+    const heroStocksChip = document.getElementById('heroStocksChip');
+    if(heroStocksChip){
+      const up = summary.pnl >= 0;
+      heroStocksChip.className = 'chip ' + (up ? 'up' : 'down');
+      heroStocksChip.innerHTML = `<i class="bi bi-graph-up-arrow"></i> ${summary.holdings ? `${up?'+':''}${summary.pnlPct.toFixed(1)}%` : '0.0%'}`;
+    }
+
+    // 3) Rebuild the holdings table (top 8 by current value)
     const tbody = document.getElementById('stocksTableBody');
     if(tbody){
-      const rows = summary.rows
-        .slice()
-        .sort((a,b)=> StocksStore.computeMetrics(b).currentValue - StocksStore.computeMetrics(a).currentValue)
-        .slice(0, 8);
+      const rows = summary.rows.slice().sort((a,b)=> b.currentValue - a.currentValue).slice(0, 8);
       if(rows.length === 0){
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No holdings yet — <a href="pages/stocks.html" style="color:var(--accent);">add your first stock</a>.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">No holdings yet — <a href="stocks/index.html" style="color:var(--accent);">add your first stock</a>.</td></tr>`;
       } else {
         const frag = document.createDocumentFragment();
         rows.forEach((r, idx)=>{
-          const m = StocksStore.computeMetrics(r);
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="row-name">${stockRowIcon(r.name, idx)}${escapeHtmlDash(r.name)}</td>
-            <td class="mono-cell">${r.qty}</td>
+            <td class="mono-cell">${r.quantity}</td>
             <td class="mono-cell">${StocksStore.formatINR(r.avgPrice)}</td>
-            <td class="mono-cell">${StocksStore.formatINR(r.ltp)}</td>
-            <td class="mono-cell ${m.pnl>=0?'pos':'neg'}">${m.pnl>=0?'+':''}${m.pnlPct.toFixed(1)}%</td>`;
+            <td class="mono-cell">${StocksStore.formatINR(r.currentPrice)}</td>
+            <td class="mono-cell ${r.pnl>=0?'pos':'neg'}">${r.pnl>=0?'+':''}${r.pnlPct.toFixed(1)}%</td>`;
           frag.appendChild(tr);
         });
         tbody.innerHTML = '';
@@ -3094,11 +3066,11 @@ async function refreshStocksSummary(){
 
 // Initial load
 refreshStocksSummary();
-// Re-sync instantly if pages/stocks.html (another tab) makes a change
-if(typeof StocksStore !== 'undefined') StocksStore.onChange(()=> refreshStocksSummary());
 // Re-sync instantly if fd/fixed-deposits.html (another tab) makes a change
 if(typeof DepositsStore !== 'undefined') DepositsStore.onChange(()=> queueRecalc());
-// Also re-sync whenever the user comes back to this tab
+// Also re-sync whenever the user comes back to this tab (the Stocks app
+// lives in /stocks/ and, like Income & Expenses, doesn't broadcast a
+// change event across tabs)
 window.addEventListener('focus', refreshStocksSummary);
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshStocksSummary(); });
 
@@ -3235,6 +3207,14 @@ async function refreshMutualFundsSummary(){
       panelPct.className = summary.pnl >= 0 ? 'pos' : 'neg';
     }
     if(holdingsCount) holdingsCount.textContent = `Step-up SIP tracker · ${summary.sips.length} SIP${summary.sips.length===1?'':'s'}`;
+
+    // 2b) Update the hero net-worth row's mutual funds growth chip
+    const heroMfChip = document.getElementById('heroMfChip');
+    if(heroMfChip){
+      const up = summary.pnl >= 0;
+      heroMfChip.className = 'chip ' + (up ? 'up' : 'down');
+      heroMfChip.innerHTML = `<i class="bi bi-pie-chart-fill"></i> ${summary.sips.length ? `${up?'+':''}${summary.pnlPct.toFixed(1)}%` : '0.0%'}`;
+    }
 
     // 3) Rebuild the table — one row per SIP (name, invested, current value, profit, return)
     const tbody = document.getElementById('mutualFundsTableBody');
