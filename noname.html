@@ -1,0 +1,23 @@
+<html>
+
+
+<body>
+
+<script type="text/javascript">
+
+
+async function f(){
+
+let x = await fetch("https://indian-stock-ltp.vercel.app/api/ltp?symbol=suzlon");
+let c= await x.text();
+alert(c);
+}
+
+f();
+
+
+</script>
+
+</body>
+
+</html>
