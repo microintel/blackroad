@@ -11,14 +11,42 @@ const LTP_API_BASE = 'https://indian-stock-ltp.vercel.app/api/ltp';
 
 // Fetches the LTP for a single symbol. Returns a number, or null on
 // any failure (network error, bad symbol, non-numeric response).
+//
+// NOTE ON CORS: this endpoint lives on a different origin
+// (indian-stock-ltp.vercel.app) than this app. If that serverless
+// function doesn't send Access-Control-Allow-Origin, the browser
+// blocks the response before our code ever sees it — which looks
+// exactly like "failed to fetch" with no useful detail. The direct
+// call below still runs first (works immediately if/when the API
+// adds CORS headers); if it's blocked, we retry once through a
+// public CORS-forwarding proxy as a fallback so LTPs keep working
+// in the meantime. Errors are logged to the console so the real
+// cause is visible via DevTools if both attempts fail.
 async function fetchLTP(symbol){
+  const directUrl = `${LTP_API_BASE}?symbol=${encodeURIComponent(symbol)}`;
+
   try{
-    const res = await fetch(`${LTP_API_BASE}?symbol=${encodeURIComponent(symbol)}`);
-    if(!res.ok) return null;
+    const res = await fetch(directUrl);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const val = Number(data && data.ltp);
-    return Number.isFinite(val) ? val : null;
-  }catch(e){
+    if(Number.isFinite(val)) return val;
+    throw new Error('Unexpected response shape: ' + JSON.stringify(data));
+  }catch(directErr){
+    console.warn(`[LTP] direct fetch failed for ${symbol} (likely CORS) —`, directErr);
+  }
+
+  // Fallback path via a public CORS proxy.
+  try{
+    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(directUrl)}`;
+    const res = await fetch(proxyUrl);
+    if(!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+    const data = await res.json();
+    const val = Number(data && data.ltp);
+    if(Number.isFinite(val)) return val;
+    throw new Error('Unexpected proxy response shape: ' + JSON.stringify(data));
+  }catch(proxyErr){
+    console.warn(`[LTP] proxy fetch also failed for ${symbol} —`, proxyErr);
     return null;
   }
 }
