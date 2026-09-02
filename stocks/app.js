@@ -399,10 +399,11 @@ function openDetailModal(symbol){
   loadDetailChart(symbol);
 }
 
-// Loads and draws the "price chart since purchase" panel in the stock
-// detail modal: fetches the symbol's price history, clips it to the
-// user's earliest transaction date for that stock (their "start date"),
-// and hands it to buildPriceLineChart() for rendering.
+// Loads the "price chart since purchase" panel in the stock detail modal:
+// fetches the symbol's price history, clips it to the user's earliest
+// transaction date for that stock (their "start date"), computes actual
+// growth %/profit off the real holding (avg buy price vs LTP), and hands
+// everything to renderChartInteractive() for an interactive, zoomable draw.
 async function loadDetailChart(symbol){
   const body = document.getElementById('detailChartBody');
   const rangeEl = document.getElementById('detailChartRange');
@@ -427,15 +428,15 @@ async function loadDetailChart(symbol){
       body.innerHTML = `<div class="chart-empty">Not enough price history available yet for ${escHtml(symbol)}.</div>`;
       return;
     }
-    body.innerHTML = buildPriceLineChart(history, { buyDate });
-    if(window.lucide) lucide.createIcons();
-
-    const startPrice = history[0].close, endPrice = history[history.length-1].close;
-    const pct = startPrice ? ((endPrice - startPrice) / startPrice) * 100 : 0;
     const clippedToApiStart = buyDate && fullHistory.length && fullHistory[0].date > buyDate;
-    rangeEl.innerHTML = `${fmtDate(history[0].date)} → ${fmtDate(history[history.length-1].date)}
-      <span class="${pnlClass(pct)}">${fmtPct(pct)}</span>
-      ${clippedToApiStart ? `<span class="chart-range-note">· source data starts ${fmtDate(fullHistory[0].date)}</span>` : ''}`;
+    const sourceStartNote = clippedToApiStart
+      ? `<span class="chart-range-note">· source data starts ${fmtDate(fullHistory[0].date)}</span>`
+      : '';
+    renderChartInteractive(body, history, {
+      buyDate,
+      holding: calculateStockHolding(symbol),
+      sourceStartNote
+    });
   }catch(err){
     if(requestSymbol !== detailSymbol) return;
     body.innerHTML = `<div class="chart-empty">Couldn't load price chart.
@@ -443,6 +444,159 @@ async function loadDetailChart(symbol){
     const retryBtn = document.getElementById('chartRetryBtn');
     if(retryBtn) retryBtn.addEventListener('click', () => loadDetailChart(detailSymbol));
   }
+}
+
+// Draws the interactive chart: growth/profit stat chips (from the actual
+// holding — avg buy price vs current LTP, unaffected by zoom), the SVG
+// chart itself, and a drag-to-zoom + hover-tooltip interaction layer.
+// Drag horizontally across the chart to zoom into a date range; double-
+// click/tap or "Reset zoom" returns to the full view. Hovering (or
+// touching, when not dragging) shows a crosshair + price tooltip.
+function renderChartInteractive(container, fullHistory, meta){
+  const rangeEl = document.getElementById('detailChartRange');
+  let current = fullHistory;
+  let dragging = false;
+  let pointerDownClientX = null;
+
+  const h = meta.holding;
+  container.innerHTML = `
+    <div class="chart-stats-row">
+      <div class="chart-stat">
+        <span class="chart-stat-label">Growth since buy</span>
+        <span class="chart-stat-value ${pnlClass(h.unrealizedPnLPct)}">${fmtPct(h.unrealizedPnLPct)}</span>
+      </div>
+      <div class="chart-stat">
+        <span class="chart-stat-label">Profit</span>
+        <span class="chart-stat-value ${pnlClass(h.unrealizedPnL)}">${fmtSigned(h.unrealizedPnL, true)}</span>
+      </div>
+    </div>
+    <div class="price-chart-wrap" id="priceChartWrap">
+      <div id="priceChartSvgHolder"></div>
+      <div class="chart-crosshair-line" id="chartCrosshair"></div>
+      <div class="chart-tooltip" id="chartTooltip"></div>
+      <div class="chart-drag-band" id="chartDragBand"></div>
+    </div>
+    <div class="chart-zoom-row">
+      <span class="chart-zoom-hint" id="chartZoomHint">Drag across the chart to zoom in</span>
+      <button type="button" class="chart-reset-btn" id="chartResetZoomBtn" style="display:none;">Reset zoom</button>
+    </div>
+  `;
+
+  const wrap = document.getElementById('priceChartWrap');
+  const svgHolder = document.getElementById('priceChartSvgHolder');
+  const crosshair = document.getElementById('chartCrosshair');
+  const tooltip = document.getElementById('chartTooltip');
+  const dragBand = document.getElementById('chartDragBand');
+  const resetBtn = document.getElementById('chartResetZoomBtn');
+  const zoomHint = document.getElementById('chartZoomHint');
+
+  function draw(slice){
+    current = slice;
+    svgHolder.innerHTML = buildPriceLineChart(slice, { buyDate: meta.buyDate });
+    const startP = slice[0].close, endP = slice[slice.length-1].close;
+    const pct = startP ? ((endP - startP) / startP) * 100 : 0;
+    const isZoomed = slice.length < fullHistory.length;
+    rangeEl.innerHTML = `${fmtDate(slice[0].date)} → ${fmtDate(slice[slice.length-1].date)}
+      <span class="${pnlClass(pct)}">${fmtPct(pct)}</span>
+      ${isZoomed ? '<span class="chart-range-note">· zoomed</span>' : (meta.sourceStartNote || '')}`;
+    resetBtn.style.display = isZoomed ? '' : 'none';
+    zoomHint.style.display = isZoomed ? 'none' : '';
+  }
+  draw(fullHistory);
+
+  function svgEl(){ return svgHolder.querySelector('svg'); }
+
+  // Converts a pointer's clientX into a 0..1 fraction across the rendered SVG.
+  function clientToFrac(clientX){
+    const svg = svgEl();
+    if(!svg) return 0;
+    const rect = svg.getBoundingClientRect();
+    if(rect.width === 0) return 0;
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }
+  // Maps a 0..1 fraction of chart width to the nearest data index, using
+  // the same padded-plot-area math as buildPriceLineChart's x().
+  function fracToIndex(frac){
+    const geo = getChartGeometry(current);
+    const svgX = frac * geo.w;
+    const rel = (svgX - geo.padL) / geo.plotW;
+    return Math.round(Math.max(0, Math.min(1, rel)) * (current.length - 1));
+  }
+
+  function showTooltip(clientX, idx){
+    const p = current[idx];
+    const svg = svgEl();
+    if(!p || !svg) return;
+    const rect = svg.getBoundingClientRect();
+    const geo = getChartGeometry(current);
+    const xPx = (geo.x(idx) / geo.w) * rect.width;
+    crosshair.style.left = `${xPx}px`;
+    crosshair.style.display = 'block';
+    tooltip.innerHTML = `<div class="chart-tooltip-date">${fmtDate(p.date)}</div><div class="chart-tooltip-price">${fmtMoney(p.close)}</div>`;
+    tooltip.style.display = 'block';
+    const tooltipW = 96;
+    let leftPx = xPx + 10;
+    if(leftPx + tooltipW > rect.width) leftPx = xPx - tooltipW - 6;
+    tooltip.style.left = `${Math.max(2, leftPx)}px`;
+  }
+  function hideTooltip(){
+    crosshair.style.display = 'none';
+    tooltip.style.display = 'none';
+  }
+
+  wrap.addEventListener('pointerdown', e => {
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
+    wrap.setPointerCapture(e.pointerId);
+    pointerDownClientX = e.clientX;
+    dragging = true;
+    hideTooltip();
+    const svg = svgEl();
+    if(!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const startFrac = clientToFrac(e.clientX);
+    dragBand.style.display = 'block';
+    dragBand.style.left = `${startFrac * rect.width}px`;
+    dragBand.style.width = '0px';
+  });
+
+  wrap.addEventListener('pointermove', e => {
+    const svg = svgEl();
+    if(!svg) return;
+    const rect = svg.getBoundingClientRect();
+    if(dragging && pointerDownClientX !== null){
+      const f1 = clientToFrac(pointerDownClientX);
+      const f2 = clientToFrac(e.clientX);
+      dragBand.style.left = `${Math.min(f1, f2) * rect.width}px`;
+      dragBand.style.width = `${Math.abs(f2 - f1) * rect.width}px`;
+    } else {
+      const idx = fracToIndex(clientToFrac(e.clientX));
+      showTooltip(e.clientX, idx);
+    }
+  });
+
+  function endDrag(e){
+    if(!dragging) return;
+    dragging = false;
+    dragBand.style.display = 'none';
+    if(pointerDownClientX === null) return;
+    const f1 = clientToFrac(pointerDownClientX);
+    const f2 = clientToFrac(e.clientX);
+    pointerDownClientX = null;
+    const i1 = fracToIndex(Math.min(f1, f2));
+    const i2 = fracToIndex(Math.max(f1, f2));
+    if(i2 - i1 >= 3){
+      draw(current.slice(i1, i2 + 1));
+    }
+  }
+  wrap.addEventListener('pointerup', endDrag);
+  wrap.addEventListener('pointercancel', () => {
+    dragging = false;
+    pointerDownClientX = null;
+    dragBand.style.display = 'none';
+  });
+  wrap.addEventListener('pointerleave', () => { if(!dragging) hideTooltip(); });
+  wrap.addEventListener('dblclick', () => draw(fullHistory));
+  resetBtn.addEventListener('click', () => draw(fullHistory));
 }
 function renderDetailModal(){
   const h = calculateStockHolding(detailSymbol);

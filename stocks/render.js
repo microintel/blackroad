@@ -395,26 +395,37 @@ function buildPerfBarChart(holdings){
   }).join('') + `</div>`;
 }
 
-// Line chart of a single stock's closing price history, with an optional
-// marker for the user's purchase date. Pure SVG, styled with CSS vars so
-// it follows the light/dark theme automatically.
-function buildPriceLineChart(history, opts){
-  opts = opts || {};
+// Shared geometry for the price chart: padding, plot area, and the
+// index->x / price->y mapping functions. Exposed separately (not just
+// inlined in buildPriceLineChart) so app.js's interactivity layer can
+// reuse the exact same coordinate math when hit-testing pointer events.
+function getChartGeometry(history){
   const w = 600, h = 220;
   const padL = 54, padR = 12, padT = 14, padB = 26;
   const plotW = w - padL - padR;
   const plotH = h - padT - padB;
   const n = history.length;
-
   const closes = history.map(p => p.close);
   let min = Math.min(...closes), max = Math.max(...closes);
   if(min === max){ min -= 1; max += 1; }
   const pad = (max - min) * 0.1;
   min -= pad; max += pad;
-
   const x = i => padL + (n === 1 ? plotW/2 : (i/(n-1)) * plotW);
   const y = v => padT + plotH - ((v - min) / (max - min)) * plotH;
+  return { w, h, padL, padR, padT, padB, plotW, plotH, n, min, max, x, y };
+}
 
+// Line chart of a single stock's closing price history, with an optional
+// marker for the user's purchase date. Pure SVG, styled with CSS vars so
+// it follows the light/dark theme automatically. Stateless — the caller
+// (renderChartInteractive in app.js) re-invokes this on every zoom/pan
+// with whichever slice of history is currently in view.
+function buildPriceLineChart(history, opts){
+  opts = opts || {};
+  const geo = getChartGeometry(history);
+  const { w, h, padL, padT, plotW, plotH, n, min, max, x, y } = geo;
+
+  const closes = history.map(p => p.close);
   const up = closes[n-1] >= closes[0];
   const lineColor = up ? 'var(--gain)' : 'var(--loss)';
   const gradId = 'priceGrad' + Math.random().toString(36).slice(2, 9);
@@ -423,14 +434,15 @@ function buildPriceLineChart(history, opts){
   const areaPath = `M${x(0).toFixed(2)},${(padT+plotH).toFixed(2)} L${pts.join(' L')} L${x(n-1).toFixed(2)},${(padT+plotH).toFixed(2)} Z`;
 
   // Marker for the user's purchase date — first history point on/after it.
+  // Only drawn if the buy date actually falls within the currently-viewed slice.
   let marker = null;
-  if(opts.buyDate){
+  if(opts.buyDate && opts.buyDate >= history[0].date && opts.buyDate <= history[n-1].date){
     let idx = history.findIndex(p => p.date >= opts.buyDate);
     if(idx === -1) idx = 0;
     marker = { x: x(idx), y: y(history[idx].close) };
   }
 
-  const yTicks = [max - pad, (max + min) / 2, min + pad];
+  const yTicks = [max - (max-min)*0.05, (max + min) / 2, min + (max-min)*0.05];
   const xTickIdx = n > 1 ? [0, Math.floor((n-1)/2), n-1] : [0];
 
   return `
@@ -441,7 +453,7 @@ function buildPriceLineChart(history, opts){
           <stop offset="100%" stop-color="${lineColor}" stop-opacity="0"></stop>
         </linearGradient>
       </defs>
-      ${yTicks.map(v => `<line x1="${padL}" x2="${w-padR}" y1="${y(v).toFixed(2)}" y2="${y(v).toFixed(2)}" class="chart-gridline"></line>`).join('')}
+      ${yTicks.map(v => `<line x1="${padL}" x2="${w-geo.padR}" y1="${y(v).toFixed(2)}" y2="${y(v).toFixed(2)}" class="chart-gridline"></line>`).join('')}
       <path d="${areaPath}" fill="url(#${gradId})"></path>
       <polyline points="${pts.join(' ')}" fill="none" stroke="${lineColor}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"></polyline>
       ${marker ? `<line x1="${marker.x.toFixed(2)}" x2="${marker.x.toFixed(2)}" y1="${padT}" y2="${padT+plotH}" class="chart-buy-line"></line>
