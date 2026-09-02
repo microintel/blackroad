@@ -15,7 +15,6 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
 <!-- Fallback for browsers/robots without JS: redirect after 8s (after the intro would have finished) -->
-<meta http-equiv="refresh" content="4; url=blackroad-dashboard.html">
 <style>
   :root{
     --bg: #E5B851;
@@ -422,26 +421,33 @@
   </div>
 
 <script>
-  const SPLASH_DURATION = 3000;
   const REDIRECT_URL = "blackroad-dashboard.html";
 
-  window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      document.dispatchEvent(new CustomEvent('splash:complete'));
+  // Register Service Worker
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js")
+        .then(() => {
+          console.log("BlackRoad Service Worker registered");
+        })
+        .catch(error => {
+          console.error("Service Worker registration failed:", error);
+        });
+    });
+  }
 
-      const splash = document.getElementById('splash');
-      splash.addEventListener('animationend', (e) => {
-        if (e.animationName === 'cineFade') {
-          splash.remove();
-          document.body.style.background = '#E5B851';
-        }
-      });
-    }, SPLASH_DURATION - 450);
+  window.addEventListener("DOMContentLoaded", () => {
+    const splash = document.getElementById("splash");
 
-    // Hand off to the dashboard once the intro has fully played.
-    setTimeout(() => {
-      window.location.replace(REDIRECT_URL);
-    }, SPLASH_DURATION);
+    // Wait until the splash fade animation has completely finished
+    splash.addEventListener("animationend", (event) => {
+      if (event.animationName === "cineFade") {
+        splash.remove();
+
+        // Redirect only AFTER splash animation finishes
+        window.location.replace(REDIRECT_URL);
+      }
+    });
   });
 </script>
 
