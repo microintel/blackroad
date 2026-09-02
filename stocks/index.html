@@ -371,6 +371,17 @@
       </div>
       <button class="btn" id="detailFetchLtpBtn" type="button" title="Fetch live LTP" style="height:40px;"><i data-lucide="refresh-cw"></i>Fetch LTP</button>
     </div>
+
+    <div class="detail-chart-panel" id="detailChartPanel">
+      <div class="detail-chart-head">
+        <h3><i data-lucide="line-chart"></i>Price chart since purchase</h3>
+        <span class="detail-chart-range" id="detailChartRange"></span>
+      </div>
+      <div class="detail-chart-body" id="detailChartBody">
+        <div class="chart-loading">Loading price history…</div>
+      </div>
+    </div>
+
     <h3 style="font-size:14px; margin-bottom:10px;">Transaction history</h3>
     <div class="panel" style="max-height:240px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;">
       <table class="ledger-table" id="detailTxnTable">

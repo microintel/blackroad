@@ -10,6 +10,7 @@
    overwrites prices[symbol], same as typing a number does.
 ------------------------------------------------------------------*/
 const LTP_API_BASE = 'https://indian-stock-ltp.vercel.app/api/ltp';
+const CHART_API_BASE = 'https://indian-stock-ltp.vercel.app/api/chart';
 
 // Sends the request, gets the JSON response, pulls out the LTP.
 // Matches ltp.js's response shape: { symbol, yahooSymbol, ltp } on
@@ -48,6 +49,20 @@ async function refreshAllPrices(silent){
       ? `Updated ${updated} price${updated === 1 ? '' : 's'}`
       : `Updated ${updated}, ${failed} failed — enter manually`);
   }
+}
+
+// Fetches a symbol's daily closing-price history from the same Vercel
+// API. The endpoint currently always returns roughly its last 1 year of
+// daily closes (query params like range/startDate don't extend it), so
+// a purchase date older than that just gets clipped to what's available —
+// handled by the caller, loadDetailChart().
+async function fetchChartHistory(symbol){
+  const res = await fetch(`${CHART_API_BASE}?symbol=${encodeURIComponent(symbol)}`);
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error || `HTTP ${res.status}`);
+  }
+  return data;
 }
 
 // Fetches LTP for one symbol (used by the "Fetch LTP" button in the
@@ -381,6 +396,53 @@ function openDetailModal(symbol){
   detailSymbol = symbol;
   renderDetailModal();
   detailModal.classList.add('active');
+  loadDetailChart(symbol);
+}
+
+// Loads and draws the "price chart since purchase" panel in the stock
+// detail modal: fetches the symbol's price history, clips it to the
+// user's earliest transaction date for that stock (their "start date"),
+// and hands it to buildPriceLineChart() for rendering.
+async function loadDetailChart(symbol){
+  const body = document.getElementById('detailChartBody');
+  const rangeEl = document.getElementById('detailChartRange');
+  if(!body) return;
+  const requestSymbol = symbol;
+  body.innerHTML = `<div class="chart-loading">Loading price history…</div>`;
+  rangeEl.textContent = '';
+
+  const txns = getSymbolTransactions(symbol);
+  const buyDate = txns.length ? txns[0].date : null;
+
+  try{
+    const data = await fetchChartHistory(symbol);
+    if(requestSymbol !== detailSymbol) return; // modal moved on to another stock
+    const fullHistory = Array.isArray(data.history) ? data.history : [];
+    let history = fullHistory;
+    if(buyDate){
+      const clipped = fullHistory.filter(p => p.date >= buyDate);
+      if(clipped.length >= 2) history = clipped;
+    }
+    if(history.length < 2){
+      body.innerHTML = `<div class="chart-empty">Not enough price history available yet for ${escHtml(symbol)}.</div>`;
+      return;
+    }
+    body.innerHTML = buildPriceLineChart(history, { buyDate });
+    if(window.lucide) lucide.createIcons();
+
+    const startPrice = history[0].close, endPrice = history[history.length-1].close;
+    const pct = startPrice ? ((endPrice - startPrice) / startPrice) * 100 : 0;
+    const clippedToApiStart = buyDate && fullHistory.length && fullHistory[0].date > buyDate;
+    rangeEl.innerHTML = `${fmtDate(history[0].date)} → ${fmtDate(history[history.length-1].date)}
+      <span class="${pnlClass(pct)}">${fmtPct(pct)}</span>
+      ${clippedToApiStart ? `<span class="chart-range-note">· source data starts ${fmtDate(fullHistory[0].date)}</span>` : ''}`;
+  }catch(err){
+    if(requestSymbol !== detailSymbol) return;
+    body.innerHTML = `<div class="chart-empty">Couldn't load price chart.
+      <button type="button" class="chart-retry" id="chartRetryBtn">Retry</button></div>`;
+    const retryBtn = document.getElementById('chartRetryBtn');
+    if(retryBtn) retryBtn.addEventListener('click', () => loadDetailChart(detailSymbol));
+  }
 }
 function renderDetailModal(){
   const h = calculateStockHolding(detailSymbol);
