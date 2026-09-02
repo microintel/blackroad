@@ -48,6 +48,7 @@
 }
 
 #overview, .panel{ scroll-margin-top:var(--topbar-h); }
+@keyframes br-screen-in{ from{ opacity:0; transform:translateX(18px); } to{ opacity:1; transform:none; } }
 
 /* ============ NEUMORPHIC (SOFT-UI) SHADOW SYSTEM ============
    Every surface sits at the SAME tone as the page (--surface == --bg),
@@ -611,6 +612,17 @@ footer{
 
   .content{ padding:4px 16px calc(var(--bottom-nav-h) + 28px); }
 
+  /* ---- One screen at a time (native app feel) ----
+     Instead of one long page you scroll through, each section becomes
+     its own "screen": only the active one is shown, so navigating
+     (bottom tabs / sidebar / tiles) swaps screens instantly like a
+     native app instead of scrolling the whole dashboard. */
+  .content > section{ display:none; }
+  .content > section.mobile-active{
+    display:block;
+    animation: br-screen-in .32s var(--ease);
+  }
+
   /* ---- Hero card ---- */
   .hero-grid{ gap:14px; margin:12px 0 22px; }
   .hero-card{ padding:22px 20px; border-radius:18px; }
@@ -1096,7 +1108,7 @@ footer{
     <div class="content">
 
       <!-- OVERVIEW -->
-      <section id="overview">
+      <section id="overview" class="mobile-active">
         <div class="hero-grid">
           <div class="card hero-card">
             <div class="hero-eyebrow"><i class="bi bi-graph-up"></i> Total Net Worth</div>
@@ -2064,7 +2076,18 @@ function scrollToSection(id){
   // restores whatever scroll position the page had before it opened,
   // which would otherwise override/cancel the scrollIntoView below.
   closeSidebarMobile();
-  target.scrollIntoView({behavior:'smooth', block:'start'});
+
+  if(window.matchMedia('(max-width:940px)').matches){
+    // Native-app feel on mobile: swap to the target screen instead of
+    // scrolling through the whole dashboard.
+    document.querySelectorAll('.content > section.mobile-active').forEach(s=>{
+      if(s !== target) s.classList.remove('mobile-active');
+    });
+    target.classList.add('mobile-active');
+    window.scrollTo(0,0);
+  } else {
+    target.scrollIntoView({behavior:'smooth', block:'start'});
+  }
   setActiveNav(id);
 }
 document.querySelectorAll('[data-target]').forEach(el=>{
