@@ -1048,6 +1048,36 @@ footer{
 .empty-note i{ font-size:22px; display:block; margin-bottom:8px; }
 .empty-note a{ color:var(--accent); font-weight:600; }
 
+/* ---- Skeleton loading ---- */
+@keyframes skel-shimmer{
+  0%{ background-position:-200px 0; }
+  100%{ background-position:calc(200px + 100%) 0; }
+}
+.skel{
+  position:relative; overflow:hidden; border-radius:8px;
+  background:var(--surface-2);
+  background-image:linear-gradient(90deg, var(--surface-2) 0%, color-mix(in srgb, var(--text) 10%, var(--surface-2)) 50%, var(--surface-2) 100%);
+  background-size:200px 100%; background-repeat:no-repeat;
+  animation:skel-shimmer 1.3s ease-in-out infinite;
+}
+.skel-tile{
+  display:flex; align-items:center; gap:14px; padding:18px 20px;
+  border-radius:var(--radius-md); background:var(--surface); box-shadow:var(--shadow-sm);
+}
+.skel-tile .skel{ flex-shrink:0; }
+.skel-tile .skel-icon{ width:40px; height:40px; border-radius:12px; }
+.skel-tile .skel-lines{ flex:1; display:flex; flex-direction:column; gap:8px; }
+.skel-tile .skel-line{ height:11px; border-radius:6px; }
+.skel-tile .skel-line.w60{ width:60%; }
+.skel-tile .skel-line.w40{ width:40%; }
+.skel-row{ display:flex; align-items:center; gap:14px; padding:14px 4px; }
+.skel-row .skel-avatar{ width:30px; height:30px; border-radius:9px; flex-shrink:0; }
+.skel-row .skel-lines{ flex:1; display:flex; flex-direction:column; gap:7px; }
+.skel-row .skel-line{ height:10px; border-radius:6px; }
+.skel-row .skel-line.w70{ width:70%; }
+.skel-row .skel-line.w35{ width:35%; }
+.skel-row .skel-amt{ width:64px; height:14px; border-radius:6px; flex-shrink:0; }
+
 @media (max-width:940px){
   .notif-item{ padding:12px 14px; }
   .notif-item-title{ font-size:13px; white-space:normal; }
@@ -1082,13 +1112,6 @@ footer{
         </div>
       </div>
       <div class="topbar-actions">
-        <div class="style-picker compact" id="stylePicker">
-          <button type="button" class="style-opt" data-style="neumo" title="Soft UI"><i class="bi bi-circle-square"></i></button>
-          <button type="button" class="style-opt" data-style="glass" title="Glass"><i class="bi bi-droplet-half"></i></button>
-          <button type="button" class="style-opt" data-style="flat" title="Flat"><i class="bi bi-square"></i></button>
-          <button type="button" class="style-opt" data-style="skeuo" title="Skeuomorphic"><i class="bi bi-box-fill"></i></button>
-        </div>
-        <button type="button" class="icon-btn" id="themeToggle" title="Toggle dark / light"><i class="bi bi-moon-stars-fill" id="themeIcon"></i></button>
         <button type="button" class="icon-btn" id="refreshBtn" title="Refresh"><i class="bi bi-arrow-clockwise" id="refreshIcon"></i></button>
       </div>
     </div>
@@ -1099,7 +1122,12 @@ footer{
         <h3><i class="bi bi-bell-fill"></i> Today's Snapshot</h3>
         <p id="lastUpdatedText">Loading…</p>
       </div>
-      <div class="tile-grid" id="summaryTiles" style="margin-bottom:28px;"></div>
+      <div class="tile-grid" id="summaryTiles" style="margin-bottom:28px;">
+        <div class="skel-tile"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div>
+        <div class="skel-tile"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div>
+        <div class="skel-tile"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div>
+        <div class="skel-tile"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div></div>
+      </div>
 
       <!-- STOCKS -->
       <section class="panel card in-view" id="stocksNotifPanel">
@@ -1113,7 +1141,11 @@ footer{
         <div style="overflow-x:auto;">
           <table>
             <thead><tr><th>Stock</th><th>Qty</th><th>Avg</th><th>LTP</th><th>Day Chg</th><th>Day P&amp;L</th><th>Overall</th></tr></thead>
-            <tbody id="stocksNotifBody"><tr><td colspan="7"><div class="empty-note">Loading live prices…</div></td></tr></tbody>
+            <tbody id="stocksNotifBody"><tr><td colspan="7">
+              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+            </td></tr></tbody>
           </table>
         </div>
       </section>
@@ -1130,7 +1162,11 @@ footer{
         <div style="overflow-x:auto;">
           <table>
             <thead><tr><th>Fund</th><th>NAV</th><th>Day Chg</th><th>Day P&amp;L</th><th>Invested</th><th>Overall</th></tr></thead>
-            <tbody id="mfNotifBody"><tr><td colspan="6"><div class="empty-note">Loading live NAV…</div></td></tr></tbody>
+            <tbody id="mfNotifBody"><tr><td colspan="6">
+              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+            </td></tr></tbody>
           </table>
         </div>
       </section>
@@ -1143,7 +1179,11 @@ footer{
             <div><h3>Due &amp; Reminders</h3><span id="dueSubtext">Loading…</span></div>
           </div>
         </div>
-        <div class="notif-list" id="dueList"><div class="empty-note">Loading reminders…</div></div>
+        <div class="notif-list" id="dueList">
+          <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+        </div>
       </section>
 
     </div>
@@ -1184,28 +1224,8 @@ const authGate = document.getElementById('authGate');
    dashboard itself is opened, and vice versa.
    ============================================================ */
 const html = document.documentElement;
-const themeToggleBtn = document.getElementById('themeToggle');
-
-function applyTheme(mode, persist = true) {
-  html.setAttribute('data-theme', mode);
-  const icon = document.getElementById('themeIcon');
-  if (icon) icon.className = mode === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
-  if (persist) { try { localStorage.setItem('br-theme', mode); } catch (e) {} }
-}
-function toggleTheme() {
-  applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-}
-themeToggleBtn.addEventListener('click', toggleTheme);
-applyTheme(html.getAttribute('data-theme'), false);
-
-const styleOpts = document.querySelectorAll('.style-opt');
-function applyStyle(style, persist = true) {
-  html.setAttribute('data-style', style);
-  styleOpts.forEach(b => b.classList.toggle('active', b.dataset.style === style));
-  if (persist) { try { localStorage.setItem('br_style', style); } catch (e) {} }
-}
-styleOpts.forEach(b => b.addEventListener('click', () => applyStyle(b.dataset.style)));
-applyStyle(html.getAttribute('data-style') || 'neumo', false);
+/* Theme/style are fixed to whatever's saved from the dashboard
+   (applied already by the inline head script) — no switcher here. */
 
 /* ============================================================
    TOAST (simplified — no progress bar needed on this page)
@@ -1223,6 +1243,10 @@ function showToast(msg, icon) {
 /* ============================================================
    SHARED FORMAT / DATE HELPERS
    ============================================================ */
+function skeletonRows(n) {
+  const row = `<div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>`;
+  return row.repeat(n);
+}
 function formatINR(n) {
   const num = Number(n) || 0;
   const sign = num < 0 ? '-' : '';
@@ -1360,6 +1384,7 @@ async function loadStocksNotifications() {
   const tbody = document.getElementById('stocksNotifBody');
   const subtext = document.getElementById('stocksSubtext');
   const dayPnlEl = document.getElementById('stocksDayPnl');
+  tbody.innerHTML = `<tr><td colspan="7">${skeletonRows(3)}</td></tr>`;
   try {
     const holdings = await NotifStocksStore.getHoldings();
     if (!holdings.length) {
@@ -1509,6 +1534,7 @@ async function loadMfNotifications() {
   const tbody = document.getElementById('mfNotifBody');
   const subtext = document.getElementById('mfSubtext');
   const dayPnlEl = document.getElementById('mfDayPnl');
+  tbody.innerHTML = `<tr><td colspan="6">${skeletonRows(3)}</td></tr>`;
   try {
     const summary = await NotifMutualFundStore.getSummary();
     if (!summary.hasData) {
@@ -1698,7 +1724,7 @@ const STATUS_META = {
 async function loadDueNotifications() {
   const list = document.getElementById('dueList');
   const subtext = document.getElementById('dueSubtext');
-  list.innerHTML = `<div class="empty-note">Loading reminders…</div>`;
+  list.innerHTML = skeletonRows(3);
   const [lendingItems, fdItems] = await Promise.all([getLendingDueItems(), getFdDueItems()]);
   const items = [...lendingItems, ...fdItems].map(it => {
     const days = daysUntil(it.date);
