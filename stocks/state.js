@@ -17,7 +17,10 @@ const STORAGE_KEY_TXNS = 'ledger_transactions_v1';   // legacy localStorage keys
 const STORAGE_KEY_PRICES = 'ledger_prices_v1';
 const STORAGE_KEY_SEQ = 'ledger_seq_v1';
 
-const IDB_NAME = 'blackStocks';
+const IDB_NAME_BASE = 'blackStocks';
+// Namespaced per signed-in user so two accounts on the same browser never
+// share a portfolio (see BRAuth.scopeSuffix in ../auth.js).
+const IDB_NAME = window.BRAuth ? IDB_NAME_BASE + '::' + BRAuth.scopeSuffix() : IDB_NAME_BASE;
 const IDB_VERSION = 1;
 const IDB_STORE = 'state';
 
@@ -65,7 +68,8 @@ function idbSet(key, value){
 }
 
 // Async — resolves once transactions/prices/seqCounter have been loaded
-// from IndexedDB (or migrated in from an older localStorage-based version).
+// from IndexedDB (or migrated in from an older localStorage-based version,
+// or an older un-namespaced version of this same IndexedDB database).
 async function loadState(){
   try{
     let [t, p, s] = await Promise.all([
@@ -74,9 +78,24 @@ async function loadState(){
       idbGet('seqCounter')
     ]);
 
+    // Nothing in this user's namespaced IndexedDB yet — check for data left
+    // over from the old shared (un-namespaced) database and migrate it in,
+    // once, so existing data isn't lost by this update. Guests never get
+    // their own persistent copy of anyone's data, so skip this for them.
+    if(t === undefined && p === undefined && s === undefined && IDB_NAME !== IDB_NAME_BASE && !(window.BRAuth && BRAuth.isGuestSync())){
+      const legacy = await loadLegacyIdbState();
+      if(legacy){
+        transactions = legacy.transactions || [];
+        prices = legacy.prices || {};
+        seqCounter = legacy.seqCounter || 0;
+        await saveState();
+        return;
+      }
+    }
+
     // Nothing in IndexedDB yet — check for data left over from the old
     // localStorage-based version and migrate it in, once.
-    if(t === undefined && p === undefined && s === undefined){
+    if(t === undefined && p === undefined && s === undefined && !(window.BRAuth && BRAuth.isGuestSync())){
       const legacyT = localStorage.getItem(STORAGE_KEY_TXNS);
       const legacyP = localStorage.getItem(STORAGE_KEY_PRICES);
       const legacyS = localStorage.getItem(STORAGE_KEY_SEQ);
@@ -106,10 +125,46 @@ async function loadState(){
   }
 }
 
+function loadLegacyIdbState(){
+  return new Promise((resolve) => {
+    try {
+      const flag = 'br_migrated::' + IDB_NAME;
+      if (localStorage.getItem(flag)) return resolve(null);
+      const req = indexedDB.open(IDB_NAME_BASE);
+      req.onupgradeneeded = (e) => e.target.transaction.abort();
+      req.onerror = () => resolve(null);
+      req.onsuccess = (e) => {
+        const legacyDb = e.target.result;
+        if (!legacyDb.objectStoreNames.contains(IDB_STORE)) {
+          localStorage.setItem(flag, '1');
+          legacyDb.close();
+          return resolve(null);
+        }
+        const tx = legacyDb.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE);
+        Promise.all([
+          new Promise((res) => { const r = tx.get('transactions'); r.onsuccess = () => res(r.result); r.onerror = () => res(undefined); }),
+          new Promise((res) => { const r = tx.get('prices'); r.onsuccess = () => res(r.result); r.onerror = () => res(undefined); }),
+          new Promise((res) => { const r = tx.get('seqCounter'); r.onsuccess = () => res(r.result); r.onerror = () => res(undefined); }),
+        ]).then(([legT, legP, legS]) => {
+          localStorage.setItem(flag, '1');
+          legacyDb.close();
+          if (legT === undefined && legP === undefined && legS === undefined) resolve(null);
+          else resolve({ transactions: legT, prices: legP, seqCounter: legS });
+        });
+      };
+    } catch (e) {
+      resolve(null);
+    }
+  });
+}
+
 // Fire-and-forget from most call sites (in-memory state is already
 // updated by the time this is called); returns a Promise so callers
 // that need to be sure a write landed — e.g. migration — can await it.
 function saveState(){
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    return Promise.reject(Object.assign(new Error('Guest mode is view-only.'), { code: 'GUEST_READONLY' }));
+  }
   return Promise.all([
     idbSet('transactions', transactions),
     idbSet('prices', prices),

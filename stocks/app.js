@@ -1,5 +1,14 @@
 // app.js — Ledger: modals, filters, demo data, toast, and app init
 
+// Wraps saveState() so a guest's attempted write shows a friendly toast
+// instead of a silent console error (guests can look around freely but
+// nothing they do is ever persisted — see BRAuth.isGuestSync).
+function saveStateGuarded(){
+  return saveState().catch(err => {
+    if (err && err.code === 'GUEST_READONLY') showToast("Sign in to save changes — guest mode is view-only.");
+  });
+}
+
 /* ---------------------------------------------------------------
    LIVE LTP FETCHING (Vercel endpoint — CORS enabled)
    Fetches last-traded-price per symbol from the indian-stock-ltp
@@ -43,7 +52,7 @@ async function refreshAllPrices(silent){
     if(ltp !== null){ prices[sym] = ltp; updated++; }
     else failed++;
   });
-  if(updated > 0){ saveState(); renderAll(); }
+  if(updated > 0){ saveStateGuarded(); renderAll(); }
   if(!silent){
     showToast(failed === 0
       ? `Updated ${updated} price${updated === 1 ? '' : 's'}`
@@ -72,7 +81,7 @@ async function refreshSinglePrice(symbol){
   try{
     const ltp = await fetchLTP(symbol);
     prices[symbol] = ltp;
-    saveState();
+    saveStateGuarded();
     renderDetailModal();
     renderAll();
     showToast(`LTP updated: ${fmtMoney(ltp)}`);
@@ -214,6 +223,11 @@ document.addEventListener('click', e => {
 });
 
 document.getElementById('txnSaveBtn').addEventListener('click', () => {
+  if(window.BRAuth && BRAuth.isGuestSync()){
+    showToast("Sign in to save transactions — guest mode is view-only.");
+    closeTxnModal();
+    return;
+  }
   const errEl = document.getElementById('txnError');
   errEl.style.display = 'none';
 
@@ -249,7 +263,7 @@ document.getElementById('txnSaveBtn').addEventListener('click', () => {
     showToast('Transaction added');
   }
 
-  saveState();
+  saveStateGuarded();
   closeTxnModal();
   renderAll();
 });
@@ -272,9 +286,15 @@ deleteModal.addEventListener('click', e => { if(e.target === deleteModal){ pendi
 
 document.getElementById('deleteConfirmBtn').addEventListener('click', () => {
   if(!pendingDeleteId) return;
+  if(window.BRAuth && BRAuth.isGuestSync()){
+    showToast("Sign in to delete transactions — guest mode is view-only.");
+    pendingDeleteId = null;
+    deleteModal.classList.remove('active');
+    return;
+  }
   transactions = transactions.filter(t => t.id !== pendingDeleteId);
   pendingDeleteId = null;
-  saveState();
+  saveStateGuarded();
   deleteModal.classList.remove('active');
   renderAll();
   showToast('Transaction deleted');
@@ -288,10 +308,15 @@ document.getElementById('clearDataBtn').addEventListener('click', () => clearMod
 document.getElementById('clearCancelBtn').addEventListener('click', () => clearModal.classList.remove('active'));
 clearModal.addEventListener('click', e => { if(e.target === clearModal) clearModal.classList.remove('active'); });
 document.getElementById('clearConfirmBtn').addEventListener('click', () => {
+  if(window.BRAuth && BRAuth.isGuestSync()){
+    showToast("Sign in to clear data — guest mode is view-only.");
+    clearModal.classList.remove('active');
+    return;
+  }
   transactions = [];
   prices = {};
   seqCounter = 0;
-  saveState();
+  saveStateGuarded();
   clearModal.classList.remove('active');
   renderAll();
   showToast('All data cleared');
@@ -300,11 +325,13 @@ document.getElementById('clearConfirmBtn').addEventListener('click', () => {
 /* ---------------------------------------------------------------
    EXPORT / IMPORT DATA
 ------------------------------------------------------------------*/
-document.getElementById('exportDataBtn').addEventListener('click', () => {
+document.getElementById('exportDataBtn').addEventListener('click', async () => {
+  const owner = window.BRAuth ? await BRAuth.currentUser() : null;
   const payload = {
     app: 'stocks-portfolio-tracker',
     version: 1,
     exportedAt: new Date().toISOString(),
+    exportedBy: owner ? { name: owner.name, email: owner.email } : null,
     transactions,
     prices,
     seqCounter
@@ -327,7 +354,13 @@ const importFileInput = document.getElementById('importFileInput');
 const importError = document.getElementById('importError');
 let pendingImportData = null;
 
-document.getElementById('importDataBtn').addEventListener('click', () => importFileInput.click());
+document.getElementById('importDataBtn').addEventListener('click', () => {
+  if(window.BRAuth && BRAuth.isGuestSync()){
+    showToast("Sign in to import data — guest mode is view-only.");
+    return;
+  }
+  importFileInput.click();
+});
 
 importFileInput.addEventListener('change', () => {
   const file = importFileInput.files[0];
@@ -368,7 +401,7 @@ document.getElementById('importConfirmBtn').addEventListener('click', () => {
     ? pendingImportData.seqCounter
     : transactions.reduce((m, t) => Math.max(m, t.seq || 0), 0);
   pendingImportData = null;
-  saveState();
+  saveStateGuarded();
   importModal.classList.remove('active');
   renderAll();
   showToast('Data imported');
@@ -630,7 +663,7 @@ document.getElementById('detailPriceInput').addEventListener('change', (e) => {
   const val = parseFloat(e.target.value);
   if(isNaN(val) || val < 0) return;
   prices[detailSymbol] = val;
-  saveState();
+  saveStateGuarded();
   renderDetailModal();
   renderAll();
   showToast('Current price updated');
@@ -663,7 +696,7 @@ document.getElementById('demoBtn').addEventListener('click', () => {
   ];
   transactions = demoTxns.map(t => ({ id: genId(), seq: ++seqCounter, notes:'', ...t }));
   prices = { RELIANCE: 1650, TCS: 3350, ITC: 430 };
-  saveState();
+  saveStateGuarded();
   renderAll();
   showToast('Demo data loaded');
 });
