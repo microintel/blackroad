@@ -1399,15 +1399,20 @@ async function loadStocksNotifications() {
     const enriched = await Promise.all(holdings.map(async h => {
       let ltp = h.currentPrice, live = false;
       try { const l = await fetchLTP(h.symbol); if (l !== null && l !== undefined) { ltp = l; live = true; } } catch (e) {}
-      let prevClose = await fetchPrevClose(h.symbol);
-      if (prevClose === null || prevClose === undefined) prevClose = ltp;
-      const dayChange = ltp - prevClose;
-      const dayChangePct = prevClose ? (dayChange / prevClose) * 100 : 0;
-      const dayPnl = dayChange * h.quantity;
+      const fetchedPrevClose = await fetchPrevClose(h.symbol);
+      const hasPrevClose = fetchedPrevClose !== null && fetchedPrevClose !== undefined;
+      // If today's close/history isn't available yet, fall back to LTP itself
+      // instead of computing a change against missing data (avoids showing a
+      // misleading tiny +/- from floating-point noise when there's really no
+      // "day change" figure to show).
+      const prevClose = hasPrevClose ? fetchedPrevClose : ltp;
+      const dayChange = hasPrevClose ? ltp - prevClose : 0;
+      const dayChangePct = hasPrevClose && prevClose ? (dayChange / prevClose) * 100 : 0;
+      const dayPnl = hasPrevClose ? dayChange * h.quantity : 0;
       const currentValue = ltp * h.quantity;
       const overallPnl = currentValue - h.investedValue;
       const overallPnlPct = h.investedValue ? (overallPnl / h.investedValue) * 100 : 0;
-      return { ...h, ltp, dayChangePct, dayPnl, overallPnl, overallPnlPct, currentValue, live };
+      return { ...h, ltp, dayChangePct, dayPnl, overallPnl, overallPnlPct, currentValue, live, hasPrevClose };
     }));
 
     const totalDayPnl = enriched.reduce((s, r) => s + r.dayPnl, 0);
@@ -1419,14 +1424,20 @@ async function loadStocksNotifications() {
     const frag = document.createDocumentFragment();
     enriched.sort((a, b) => b.currentValue - a.currentValue).forEach(r => {
       const dayUp = r.dayPnl >= 0, ovUp = r.overallPnl >= 0;
+      const dayChgCell = r.hasPrevClose
+        ? `<span class="${dayUp ? 'pos' : 'neg'}">${formatPct(r.dayChangePct)}</span>`
+        : `<span style="color:var(--text-faint)" title="Today's close isn't available yet — showing LTP only">—</span>`;
+      const dayPnlCell = r.hasPrevClose
+        ? `<span class="${dayUp ? 'pos' : 'neg'}">${dayUp ? '+' : ''}${formatINR(r.dayPnl)}</span>`
+        : `<span style="color:var(--text-faint)">—</span>`;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="row-name" data-label="Stock"><span class="row-icon"><i class="bi bi-graph-up"></i></span>${escapeHtml(r.name || r.symbol)}</td>
         <td class="mono-cell" data-label="Qty">${r.quantity}</td>
         <td class="mono-cell" data-label="Avg">${formatINR(r.avgPrice)}</td>
         <td class="mono-cell" data-label="LTP">${formatINR(r.ltp)} <span class="tag ${r.live ? 'live' : 'cached'}">${r.live ? 'live' : 'cached'}</span></td>
-        <td class="mono-cell ${dayUp ? 'pos' : 'neg'}" data-label="Day Chg">${formatPct(r.dayChangePct)}</td>
-        <td class="mono-cell ${dayUp ? 'pos' : 'neg'}" data-label="Day P&amp;L">${dayUp ? '+' : ''}${formatINR(r.dayPnl)}</td>
+        <td class="mono-cell" data-label="Day Chg">${dayChgCell}</td>
+        <td class="mono-cell" data-label="Day P&amp;L">${dayPnlCell}</td>
         <td class="mono-cell ${ovUp ? 'pos' : 'neg'}" data-label="Overall">${formatPct(r.overallPnlPct)}</td>`;
       frag.appendChild(tr);
     });
