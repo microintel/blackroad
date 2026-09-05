@@ -241,6 +241,11 @@ function openLoanDialog(id) {
 
 document.getElementById("loanForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to save loans — guest mode is view-only.");
+    closeDialog("loanDialog");
+    return;
+  }
   const record = {
     lender: document.getElementById("loanLender").value.trim(),
     principal: parseFloat(document.getElementById("loanPrincipal").value) || 0,
@@ -298,6 +303,11 @@ function openPaymentDialog(loanId, paymentId) {
 
 document.getElementById("paymentForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to record payments — guest mode is view-only.");
+    closeDialog("paymentDialog");
+    return;
+  }
   const amount = parseFloat(document.getElementById("payAmount").value) || 0;
   const date = document.getElementById("payDate").value;
   const note = document.getElementById("payNote").value.trim();
@@ -344,6 +354,12 @@ function confirmDeletePayment(loanId, paymentId) {
 
 document.getElementById("confirmYesBtn").addEventListener("click", async () => {
   if (!pendingDelete) return;
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to delete loans — guest mode is view-only.");
+    pendingDelete = null;
+    closeDialog("confirmDialog");
+    return;
+  }
   try {
     if (pendingDelete.type === "loan") {
       await deleteLoanDB(pendingDelete.loanId);

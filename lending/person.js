@@ -192,6 +192,11 @@ document.getElementById("addEntryBtn").addEventListener("click", () => openEntry
 
 document.getElementById("entryForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to save entries — guest mode is view-only.");
+    closeDialog("entryDialog");
+    return;
+  }
   const type = document.getElementById("entryType").value;
   const amount = parseFloat(document.getElementById("entryAmount").value) || 0;
   const date = document.getElementById("entryDate").value;
@@ -227,6 +232,11 @@ document.getElementById("editPersonBtn").addEventListener("click", () => {
 
 document.getElementById("personForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to save changes — guest mode is view-only.");
+    closeDialog("personDialog");
+    return;
+  }
   PARTY.name = document.getElementById("personNameInput").value.trim();
   PARTY.phone = document.getElementById("personPhoneInput").value.trim();
   PARTY.note = document.getElementById("personNoteInput").value.trim();
@@ -253,6 +263,12 @@ function confirmDeleteEntry(entryId) {
 
 document.getElementById("confirmYesBtn").addEventListener("click", async () => {
   if (!pendingDelete) return;
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to delete entries — guest mode is view-only.");
+    pendingDelete = null;
+    closeDialog("confirmDialog");
+    return;
+  }
   if (pendingDelete.type === "entry") {
     await deleteEntryDB(pendingDelete.entryId);
     showToast("Entry deleted");

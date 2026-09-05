@@ -146,6 +146,11 @@ document.getElementById("addPersonBtn").addEventListener("click", () => openPers
 
 document.getElementById("personForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to save people — guest mode is view-only.");
+    closeDialog("personDialog");
+    return;
+  }
   const name = document.getElementById("personName").value.trim();
   const phone = document.getElementById("personPhone").value.trim();
   const note = document.getElementById("personNote").value.trim();
@@ -184,6 +189,12 @@ function confirmDeletePerson(id) {
 
 document.getElementById("confirmYesBtn").addEventListener("click", async () => {
   if (pendingDeleteId == null) return;
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to delete people — guest mode is view-only.");
+    pendingDeleteId = null;
+    closeDialog("confirmDialog");
+    return;
+  }
   await deleteEntriesForParty(pendingDeleteId);
   await deletePartyDB(pendingDeleteId);
   showToast("Person deleted");

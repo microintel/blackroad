@@ -19,7 +19,10 @@
      "entries"  { id, partyId, type:'gave'|'got', amount, date, note }
 ========================================================= */
 
-const DB_NAME = "LendLedger";
+const DB_NAME_BASE = "LendLedger";
+// Namespaced per signed-in user so two accounts on the same browser never
+// share people/entries/loans (see BRAuth.scopeSuffix in ../auth.js).
+const DB_NAME = window.BRAuth ? DB_NAME_BASE + "::" + BRAuth.scopeSuffix() : DB_NAME_BASE;
 const DB_VERSION = 3;
 const STORE_PARTIES = "parties";
 const STORE_ENTRIES = "entries";
@@ -48,6 +51,54 @@ function openDB() {
     req.onsuccess = (e) => resolve(e.target.result);
     req.onerror = (e) => reject(e.target.error);
     req.onblocked = () => reject(new Error("Database upgrade blocked — close other tabs of this app and reload."));
+  }).then((_db) => migrateLegacyDataOnce(_db));
+}
+
+/* One-time migration: the first account to open LendLedger on a given
+   browser inherits whatever was already in the old shared (un-namespaced)
+   database, so existing data isn't lost by this update. */
+function migrateLegacyDataOnce(_db) {
+  return new Promise((resolve) => {
+    try {
+      if (DB_NAME === DB_NAME_BASE) return resolve(_db);
+      const flag = "br_migrated::" + DB_NAME;
+      if (localStorage.getItem(flag)) return resolve(_db);
+      const countReq = _db.transaction(STORE_PARTIES, "readonly").objectStore(STORE_PARTIES).count();
+      countReq.onsuccess = () => {
+        if (countReq.result > 0) { localStorage.setItem(flag, "1"); return resolve(_db); }
+        const legacyReq = indexedDB.open(DB_NAME_BASE);
+        legacyReq.onupgradeneeded = (e) => e.target.transaction.abort();
+        legacyReq.onerror = () => resolve(_db);
+        legacyReq.onsuccess = (e) => {
+          const legacyDb = e.target.result;
+          const stores = [STORE_PARTIES, STORE_ENTRIES, STORE_LOANS].filter((s) =>
+            legacyDb.objectStoreNames.contains(s)
+          );
+          if (!stores.length) { localStorage.setItem(flag, "1"); legacyDb.close(); return resolve(_db); }
+          Promise.all(
+            stores.map(
+              (s) =>
+                new Promise((res) => {
+                  const r = legacyDb.transaction(s, "readonly").objectStore(s).getAll();
+                  r.onsuccess = () => res({ store: s, items: r.result || [] });
+                  r.onerror = () => res({ store: s, items: [] });
+                })
+            )
+          ).then((results) => {
+            const wtx = _db.transaction(stores, "readwrite");
+            results.forEach(({ store, items }) => {
+              const os = wtx.objectStore(store);
+              items.forEach((it) => os.put(it));
+            });
+            wtx.oncomplete = () => { localStorage.setItem(flag, "1"); legacyDb.close(); resolve(_db); };
+            wtx.onerror = () => { legacyDb.close(); resolve(_db); };
+          });
+        };
+      };
+      countReq.onerror = () => resolve(_db);
+    } catch (e) {
+      resolve(_db);
+    }
   });
 }
 
@@ -66,6 +117,7 @@ function getAllParties() {
 }
 
 function putParty(party) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = storeTx(STORE_PARTIES, "readwrite").put(party);
     req.onsuccess = () => resolve(req.result);
@@ -74,6 +126,7 @@ function putParty(party) {
 }
 
 function deletePartyDB(id) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = storeTx(STORE_PARTIES, "readwrite").delete(id);
     req.onsuccess = () => resolve();
@@ -92,6 +145,7 @@ function getAllEntries() {
 }
 
 function putEntry(entry) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = storeTx(STORE_ENTRIES, "readwrite").put(entry);
     req.onsuccess = () => resolve(req.result);
@@ -100,6 +154,7 @@ function putEntry(entry) {
 }
 
 function deleteEntryDB(id) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = storeTx(STORE_ENTRIES, "readwrite").delete(id);
     req.onsuccess = () => resolve();
@@ -108,6 +163,7 @@ function deleteEntryDB(id) {
 }
 
 function deleteEntriesForParty(partyId) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const store = storeTx(STORE_ENTRIES, "readwrite");
     const idx = store.index("partyId");
@@ -132,6 +188,7 @@ function getAllLoans() {
 }
 
 function putLoan(loan) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = storeTx(STORE_LOANS, "readwrite").put(loan);
     req.onsuccess = () => resolve(req.result);
@@ -140,6 +197,7 @@ function putLoan(loan) {
 }
 
 function deleteLoanDB(id) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = storeTx(STORE_LOANS, "readwrite").delete(id);
     req.onsuccess = () => resolve();
@@ -294,20 +352,24 @@ function initMobileSheets() {
    Import wipes current data and restores it from a chosen backup file, so
    people can move the ledger between devices or keep an off-app copy. */
 function collectExportPayload() {
-  return Promise.all([getAllParties(), getAllEntries(), getAllLoans()]).then(
-    ([parties, entries, loans]) => ({
-      app: "LendLedger",
-      version: DB_VERSION,
-      exportedAt: new Date().toISOString(),
-      parties,
-      entries,
-      loans,
-    })
-  );
+  return Promise.all([
+    getAllParties(),
+    getAllEntries(),
+    getAllLoans(),
+    window.BRAuth ? BRAuth.currentUser() : Promise.resolve(null),
+  ]).then(([parties, entries, loans, owner]) => ({
+    app: "LendLedger",
+    version: DB_VERSION,
+    exportedAt: new Date().toISOString(),
+    exportedBy: owner ? { name: owner.name, email: owner.email } : null,
+    parties,
+    entries,
+    loans,
+  }));
 }
 
 function exportData() {
-  collectExportPayload()
+  return collectExportPayload()
     .then((payload) => {
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -325,6 +387,10 @@ function exportData() {
 
 function importDataFromFile(file) {
   if (!file) return;
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to import data — guest mode is view-only.");
+    return;
+  }
   const reader = new FileReader();
   reader.onload = () => {
     let data;
