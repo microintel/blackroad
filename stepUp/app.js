@@ -54,6 +54,13 @@ async function loadProfiles() {
   profiles = await dbGetAllProfiles();
   profiles.sort((a, b) => a.id - b.id);
 
+  if (!profiles.length && window.BRAuth && window.BRAuth.isGuestSync()) {
+    // Guests get a transient, in-memory-only profile so the app has
+    // something to display — nothing here is ever written to IndexedDB.
+    profiles = [{ id: 'guest-preview', name: 'My SIP (guest preview)' }];
+    return;
+  }
+
   // First-time migration: if no profiles exist but legacy settings do,
   // create a default profile from them.
   if (!profiles.length) {
@@ -95,6 +102,7 @@ async function switchProfile(id) {
 }
 
 async function createProfile(name) {
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to create a SIP — guest mode is view-only.'); return; }
   const pid = await dbPutProfile({ name: name.trim() });
   profiles = await dbGetAllProfiles();
   profiles.sort((a, b) => a.id - b.id);
@@ -104,6 +112,7 @@ async function createProfile(name) {
 
 async function deleteProfile(id) {
   if (profiles.length <= 1) { toast('Cannot delete your only SIP.'); return; }
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to delete a SIP — guest mode is view-only.'); return; }
   const p = profiles.find(p => p.id === id);
   if (!confirm(`Delete "${p ? p.name : 'this SIP'}" and all its data?`)) return;
   await dbDelProfile(id);
@@ -119,6 +128,7 @@ async function deleteProfile(id) {
 }
 
 async function renameProfile(id, newName) {
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to rename a SIP — guest mode is view-only.'); return; }
   const p = profiles.find(p => p.id === id);
   if (!p) return;
   p.name = newName.trim() || p.name;
@@ -344,6 +354,7 @@ function applySettingsToUI() {
 ══════════════════════════════════════════════════════ */
 document.getElementById('btn-save-settings').addEventListener('click', async () => {
   if (!activeProfile) { toast('No active SIP profile.'); return; }
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to save settings — guest mode is view-only.'); return; }
   const amt  = parseFloat(document.getElementById('sip-amount').value);
   const date = document.getElementById('sip-start').value;
   if (!amt || amt <= 0 || !date) { toast('Enter a valid SIP amount and start date.'); return; }
@@ -639,6 +650,7 @@ document.getElementById('entry-date').addEventListener('change', updateEntryPrev
 ══════════════════════════════════════════════════════ */
 document.getElementById('btn-add-entry').addEventListener('click', async () => {
   if (!settings) { toast('Save SIP settings first.'); return; }
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to save entries — guest mode is view-only.'); return; }
   const dateVal = document.getElementById('entry-date').value;
   const pctStr  = document.getElementById('entry-pct').value.trim();
   if (!dateVal || !pctStr) { toast('Enter date and % change.'); return; }
@@ -859,6 +871,7 @@ if (_btnGetFundData) {
 
 document.getElementById('btn-import-fund').addEventListener('click', async () => {
   if (!activeProfile) { toast('No active SIP profile.'); return; }
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to import data — guest mode is view-only.'); return; }
   const fileInput = document.getElementById('fund-json-file');
   const startDate = document.getElementById('fund-sip-start').value;
   const file = fileInput.files && fileInput.files[0];
@@ -977,6 +990,11 @@ document.getElementById('edit-cancel').addEventListener('click', () =>
   document.getElementById('edit-modal').classList.remove('open'));
 
 document.getElementById('edit-save').addEventListener('click', async () => {
+  if (window.BRAuth && window.BRAuth.isGuestSync()) {
+    toast('Sign in to save changes — guest mode is view-only.');
+    document.getElementById('edit-modal').classList.remove('open');
+    return;
+  }
   const dateVal = document.getElementById('edit-date').value;
   const pct     = parseFloat(document.getElementById('edit-pct').value);
   if (!dateVal || isNaN(pct)) { toast('Invalid values.'); return; }
@@ -997,6 +1015,7 @@ document.getElementById('edit-save').addEventListener('click', async () => {
 ══════════════════════════════════════════════════════ */
 async function deleteEntry(id) {
   if (!confirm('Delete this entry?')) return;
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to delete entries — guest mode is view-only.'); return; }
   await dbDelEntry(id);
   entries = await dbGetEntries(activeProfile.id);
   entries.sort((a, b) => a.date.localeCompare(b.date));
@@ -1020,17 +1039,26 @@ document.getElementById('btn-pdf-report-row').addEventListener('click', async ()
   }
 });
 
-document.getElementById('btn-export-row').addEventListener('click', () => {
+document.getElementById('btn-export-row').addEventListener('click', async () => {
+  const owner = window.BRAuth ? await window.BRAuth.currentUser() : null;
   const a   = document.createElement('a');
-  const payload = { profileName: activeProfile?.name, settings, entries };
+  const payload = {
+    exportedBy: owner ? { name: owner.name, email: owner.email } : null,
+    exportedAt: new Date().toISOString(),
+    profileName: activeProfile?.name,
+    settings,
+    entries,
+  };
   a.href    = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
   a.download = `sip-${(activeProfile?.name || 'data').replace(/\s+/g,'-')}-${todayStr()}.json`;
   a.click();
   toast('Exported ✓');
 });
 
-document.getElementById('btn-import-row').addEventListener('click', () =>
-  document.getElementById('import-file').click());
+document.getElementById('btn-import-row').addEventListener('click', () => {
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to import data — guest mode is view-only.'); return; }
+  document.getElementById('import-file').click();
+});
 
 document.getElementById('import-file').addEventListener('change', async e => {
   const file = e.target.files[0]; if (!file) return;
@@ -1067,6 +1095,7 @@ document.getElementById('import-file').addEventListener('change', async e => {
 ══════════════════════════════════════════════════════ */
 document.getElementById('btn-export-all-row').addEventListener('click', async () => {
   try {
+    const owner = window.BRAuth ? await window.BRAuth.currentUser() : null;
     const allProfiles = await dbGetAllProfiles();
     const bundle = [];
     for (const p of allProfiles) {
@@ -1075,7 +1104,12 @@ document.getElementById('btn-export-all-row').addEventListener('click', async ()
       pEntries.sort((a, b) => a.date.localeCompare(b.date));
       bundle.push({ profileName: p.name, settings: pSettings || null, entries: pEntries });
     }
-    const payload = { type: 'sip-all-export', exportedAt: todayStr(), profiles: bundle };
+    const payload = {
+      type: 'sip-all-export',
+      exportedAt: todayStr(),
+      exportedBy: owner ? { name: owner.name, email: owner.email } : null,
+      profiles: bundle,
+    };
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
     a.download = `sip-all-funds-${todayStr()}.json`;
@@ -1086,8 +1120,10 @@ document.getElementById('btn-export-all-row').addEventListener('click', async ()
   }
 });
 
-document.getElementById('btn-import-all-row').addEventListener('click', () =>
-  document.getElementById('import-all-file').click());
+document.getElementById('btn-import-all-row').addEventListener('click', () => {
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to import data — guest mode is view-only.'); return; }
+  document.getElementById('import-all-file').click();
+});
 
 document.getElementById('import-all-file').addEventListener('change', async e => {
   const file = e.target.files[0]; if (!file) return;
@@ -1135,6 +1171,7 @@ document.getElementById('import-all-file').addEventListener('change', async e =>
 
 document.getElementById('btn-reset-row').addEventListener('click', async () => {
   if (!confirm(`Reset ALL data for "${activeProfile?.name}"? This cannot be undone.`)) return;
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to reset data — guest mode is view-only.'); return; }
   await dbClearEntries(activeProfile.id);
   try { await dbDel('settings', activeProfile.id); } catch(_) {}
   settings = null; entries = [];

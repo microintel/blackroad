@@ -1047,6 +1047,12 @@
   });
 })();
 </script>
+<script src="../auth.js"></script>
+<script>
+  (function () {
+    if (window.BRAuth) BRAuth.guardSubAppPage("../login.html");
+  })();
+</script>
 <script type="module" src="app.js"></script>
 
 <!-- ═══════════ SERVICE WORKER REGISTRATION ═══════════ -->
