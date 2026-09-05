@@ -13,7 +13,10 @@
                        the same way every other store does)
 ========================================================= */
 
-const DB_NAME = "BlackRoad2";
+const DB_NAME_BASE = "BlackRoad2";
+// Namespaced per signed-in user so two accounts on the same browser never
+// share entries (see BRAuth.scopeSuffix in ../auth.js).
+const DB_NAME = window.BRAuth ? DB_NAME_BASE + "::" + BRAuth.scopeSuffix() : DB_NAME_BASE;
 const DB_VERSION = 3;
 const STORE = "entries";
 const META_STORE = "meta";
@@ -39,6 +42,64 @@ function openDB() {
     };
     req.onsuccess = (e) => resolve(e.target.result);
     req.onerror = (e) => reject(e.target.error);
+  }).then((_db) => migrateLegacyDataOnce(_db));
+}
+
+/* One-time migration: the very first account to open this app on a given
+   browser inherits whatever was already in the old shared (un-namespaced)
+   database, so existing data isn't lost by this update. Runs at most once
+   per signed-in user (flagged in localStorage) and never overwrites data
+   that user already has. */
+function migrateLegacyDataOnce(_db) {
+  return new Promise((resolve) => {
+    try {
+      if (DB_NAME === DB_NAME_BASE) return resolve(_db); // no BRAuth / not scoped
+      const flag = "br_migrated::" + DB_NAME;
+      if (localStorage.getItem(flag)) return resolve(_db);
+      const checkReq = _db.transaction(STORE, "readonly").objectStore(STORE).count();
+      checkReq.onsuccess = () => {
+        if (checkReq.result > 0) {
+          localStorage.setItem(flag, "1");
+          return resolve(_db);
+        }
+        const legacyReq = indexedDB.open(DB_NAME_BASE);
+        legacyReq.onsuccess = (e) => {
+          const legacyDb = e.target.result;
+          try {
+            if (!legacyDb.objectStoreNames.contains(STORE)) {
+              localStorage.setItem(flag, "1");
+              legacyDb.close();
+              return resolve(_db);
+            }
+            const items = [];
+            const cursorReq = legacyDb.transaction(STORE, "readonly").objectStore(STORE).openCursor();
+            cursorReq.onsuccess = (ev) => {
+              const cursor = ev.target.result;
+              if (cursor) { items.push(cursor.value); cursor.continue(); return; }
+              if (!items.length) {
+                localStorage.setItem(flag, "1");
+                legacyDb.close();
+                return resolve(_db);
+              }
+              const wtx = _db.transaction(STORE, "readwrite").objectStore(STORE);
+              items.forEach((it) => wtx.put(it));
+              wtx.transaction.oncomplete = () => {
+                localStorage.setItem(flag, "1");
+                legacyDb.close();
+                resolve(_db);
+              };
+              wtx.transaction.onerror = () => { legacyDb.close(); resolve(_db); };
+            };
+            cursorReq.onerror = () => { legacyDb.close(); resolve(_db); };
+          } catch (e2) { resolve(_db); }
+        };
+        legacyReq.onerror = () => resolve(_db);
+        legacyReq.onupgradeneeded = (e) => { e.target.transaction.abort(); };
+      };
+      checkReq.onerror = () => resolve(_db);
+    } catch (e) {
+      resolve(_db);
+    }
   });
 }
 
@@ -59,6 +120,7 @@ function getAllEntries() {
 }
 
 function putEntry(entry) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = tx("readwrite").put(entry);
     req.onsuccess = () => resolve(req.result);
@@ -67,6 +129,7 @@ function putEntry(entry) {
 }
 
 function deleteEntryDB(id) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = tx("readwrite").delete(id);
     req.onsuccess = () => resolve();
@@ -75,6 +138,7 @@ function deleteEntryDB(id) {
 }
 
 function clearAllDB() {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = tx("readwrite").clear();
     req.onsuccess = () => resolve();
@@ -98,6 +162,7 @@ function getUpdateDate() {
 }
 
 function setUpdateDate(dateStr) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = metaTx("readwrite").put({ key: UPDATE_DATE_KEY, value: dateStr });
     req.onsuccess = () => resolve();
@@ -106,6 +171,7 @@ function setUpdateDate(dateStr) {
 }
 
 function clearMetaDB() {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((resolve, reject) => {
     const req = metaTx("readwrite").clear();
     req.onsuccess = () => resolve();

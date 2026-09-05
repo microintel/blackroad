@@ -224,6 +224,12 @@
 
 <div id="toast"></div>
 
+<script src="../auth.js"></script>
+<script>
+  (function () {
+    if (window.BRAuth) BRAuth.guardSubAppPage("../login.html");
+  })();
+</script>
 <script src="shared.js"></script>
 <script src="stats.js"></script>
 </body>

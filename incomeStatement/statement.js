@@ -247,6 +247,11 @@ document.getElementById("addIncomeBtn").addEventListener("click", () => openInco
 
 document.getElementById("incomeForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to save income — guest mode is view-only.");
+    closeDialog("incomeDialog");
+    return;
+  }
   const amount = parseFloat(document.getElementById("incAmount").value) || 0;
   const from = document.getElementById("incFrom").value.trim();
   const date = document.getElementById("incDate").value;
@@ -344,6 +349,11 @@ function openTxnDialog(entryId, txnId) {
 
 document.getElementById("txnForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to save expenses — guest mode is view-only.");
+    closeDialog("txnDialog");
+    return;
+  }
   const amount = parseFloat(document.getElementById("txnAmount").value) || 0;
   const description = document.getElementById("txnDesc").value.trim();
   const category = txnCategorySelect.value === CUSTOM_OPTION_VALUE
@@ -390,6 +400,12 @@ function confirmDeleteTxn(entryId, txnId) {
 
 document.getElementById("confirmYesBtn").addEventListener("click", async () => {
   if (!pendingDelete) return;
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to delete entries — guest mode is view-only.");
+    pendingDelete = null;
+    closeDialog("confirmDialog");
+    return;
+  }
   if (pendingDelete.type === "entry") {
     await deleteEntryDB(pendingDelete.entryId);
     showToast("Entry deleted");
@@ -445,6 +461,10 @@ document.getElementById("collapseAllBtn").addEventListener("click", collapseAllE
 
 const updateDateInput = document.getElementById("updateDateInput");
 updateDateInput.addEventListener("change", async () => {
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to save changes — guest mode is view-only.");
+    return;
+  }
   await setUpdateDate(updateDateInput.value);
   showToast("Update date saved");
 });

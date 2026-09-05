@@ -20,7 +20,7 @@ function updateSummary() {
 }
 
 document.getElementById("exportBtn").addEventListener("click", async () => {
-  const data = ENTRIES.map((e) => ({
+  const entries = ENTRIES.map((e) => ({
     income: String(e.income),
     date: e.date,
     from: e.from,
@@ -35,6 +35,14 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
       type: t.type || ""
     }))
   }));
+  // Tag the export with whoever is signed in, so a backup file always
+  // says which account it came from.
+  const owner = window.BRAuth ? await BRAuth.currentUser() : null;
+  const data = {
+    exportedBy: owner ? { name: owner.name, email: owner.email } : null,
+    exportedAt: new Date().toISOString(),
+    entries,
+  };
   const blob = new Blob([JSON.stringify(data, null, 4)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -49,11 +57,19 @@ document.getElementById("importBtn").addEventListener("click", () => {
 });
 
 document.getElementById("importFile").addEventListener("change", async (ev) => {
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to import data — guest mode is view-only.");
+    ev.target.value = "";
+    return;
+  }
   const file = ev.target.files[0];
   if (!file) return;
   try {
     const text = await file.text();
-    const parsed = JSON.parse(text);
+    const parsedRaw = JSON.parse(text);
+    // Accept both the current export shape ({ exportedBy, entries }) and
+    // older plain-array exports, so nothing already backed up breaks.
+    const parsed = Array.isArray(parsedRaw) ? parsedRaw : parsedRaw.entries;
     if (!Array.isArray(parsed)) throw new Error("Expected an array of entries");
 
     const normalized = parsed.map((raw) => recalcEntry({
@@ -77,7 +93,7 @@ document.getElementById("importFile").addEventListener("change", async (ev) => {
     ENTRIES = await getAllEntries();
     updateSummary();
   } catch (err) {
-    showToast("Import failed: invalid JSON file");
+    showToast(err && err.code === "GUEST_READONLY" ? err.message : "Import failed: invalid JSON file");
     console.error(err);
   } finally {
     ev.target.value = "";
@@ -85,6 +101,10 @@ document.getElementById("importFile").addEventListener("change", async (ev) => {
 });
 
 document.getElementById("clearAllBtn").addEventListener("click", () => {
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to clear data — guest mode is view-only.");
+    return;
+  }
   document.getElementById("confirmTitle").textContent = "Clear all data?";
   document.getElementById("confirmBody").textContent =
     "This permanently deletes every income entry and expense in BlackRoad. This can't be undone.";
@@ -92,11 +112,16 @@ document.getElementById("clearAllBtn").addEventListener("click", () => {
 });
 
 document.getElementById("confirmYesBtn").addEventListener("click", async () => {
-  await clearAllDB();
-  showToast("All data cleared");
-  closeDialog("confirmDialog");
-  ENTRIES = [];
-  updateSummary();
+  try {
+    await clearAllDB();
+    showToast("All data cleared");
+    ENTRIES = [];
+    updateSummary();
+  } catch (err) {
+    showToast(err && err.code === "GUEST_READONLY" ? err.message : "Could not clear data");
+  } finally {
+    closeDialog("confirmDialog");
+  }
 });
 
 (async function init() {
