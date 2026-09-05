@@ -539,6 +539,12 @@ tbody tr{ animation:rowIn .3s var(--ease); }
   </div>
 </div>
 
+<script src="../auth.js"></script>
+<script>
+  (function () {
+    if (window.BRAuth) BRAuth.guardSubAppPage("../login.html");
+  })();
+</script>
 <script>
 /* ===== Inlined StocksStore (IndexedDB) — no external file dependency ===== */
 /* ============================================================
@@ -550,7 +556,10 @@ tbody tr{ animation:rowIn .3s var(--ease); }
 (function (global) {
   "use strict";
 
-  const DB_NAME = "BlackRoadDB";
+  const DB_NAME_BASE = "BlackRoadDB";
+  // Namespaced per signed-in user so two accounts on the same browser never
+  // share holdings (see BRAuth.scopeSuffix in auth.js).
+  const DB_NAME = global.BRAuth ? DB_NAME_BASE + "::" + global.BRAuth.scopeSuffix() : DB_NAME_BASE;
   const DB_VERSION = 1;
   const STORE = "stocks";
   const CHANNEL_NAME = "blackroad-stocks-sync";
@@ -611,6 +620,7 @@ tbody tr{ animation:rowIn .3s var(--ease); }
   }
 
   async function add(stock) {
+    if (global.BRAuth) global.BRAuth.assertCanWrite();
     const s = await store("readwrite");
     const now = new Date().toISOString();
     const record = Object.assign({ createdAt: now, updatedAt: now }, stock);
@@ -624,6 +634,7 @@ tbody tr{ animation:rowIn .3s var(--ease); }
   }
 
   async function update(id, changes) {
+    if (global.BRAuth) global.BRAuth.assertCanWrite();
     const s = await store("readwrite");
     const updated = await new Promise((resolve, reject) => {
       const getReq = s.get(id);
@@ -642,6 +653,7 @@ tbody tr{ animation:rowIn .3s var(--ease); }
   }
 
   async function remove(id) {
+    if (global.BRAuth) global.BRAuth.assertCanWrite();
     const s = await store("readwrite");
     await new Promise((resolve, reject) => {
       const req = s.delete(id);
@@ -938,6 +950,11 @@ function validateForm(){
 stockForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
   if(!validateForm()) return;
+  if(window.BRAuth && BRAuth.isGuestSync()){
+    showToast('Sign in to save stocks — guest mode is view-only.', 'bi-exclamation-triangle-fill');
+    closeModal();
+    return;
+  }
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.disabled = true;
 
@@ -1003,6 +1020,12 @@ confirmModal.addEventListener('click', (e)=>{ if(e.target === confirmModal){ con
 
 document.getElementById('confirmDeleteBtn').addEventListener('click', async ()=>{
   if(pendingDeleteId == null) return;
+  if(window.BRAuth && BRAuth.isGuestSync()){
+    showToast('Sign in to delete stocks — guest mode is view-only.', 'bi-exclamation-triangle-fill');
+    pendingDeleteId = null;
+    confirmModal.classList.remove('open');
+    return;
+  }
   try{
     await StocksStore.remove(pendingDeleteId);
     cache = cache.filter(r=> r.id !== pendingDeleteId);
@@ -1059,6 +1082,11 @@ priceModal.addEventListener('click', (e)=>{ if(e.target === priceModal) closePri
 
 priceForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
+  if(window.BRAuth && BRAuth.isGuestSync()){
+    showToast('Sign in to update prices — guest mode is view-only.', 'bi-exclamation-triangle-fill');
+    closePriceModal();
+    return;
+  }
   const input = document.getElementById('newLtpInput');
   const newLtp = Number(input.value);
   if(!(newLtp >= 0) || input.value.trim()===''){

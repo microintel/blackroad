@@ -53,8 +53,13 @@ function todayStr() {
 /* Shared with the rest of BlackRoad (see /pages/stocks-store.js and
    blackroad-dashboard.html). All BlackRoad pages open this same database
    name/version so a single connection upgrade can create every store,
-   regardless of which page happens to open it first. */
-const DB_NAME = 'BlackRoadDB', DB_VERSION = 2;
+   regardless of which page happens to open it first.
+
+   Namespaced per signed-in user (see BRAuth.scopeSuffix in ../auth.js) so
+   two accounts on the same browser never share SIP profiles/entries. */
+const DB_NAME_BASE = 'BlackRoadDB';
+const DB_NAME = window.BRAuth ? DB_NAME_BASE + '::' + BRAuth.scopeSuffix() : DB_NAME_BASE;
+const DB_VERSION = 2;
 let db;
 
 function openDB() {
@@ -82,10 +87,10 @@ function openDB() {
 
 const txs   = (s, m = 'readonly') => db.transaction(s, m).objectStore(s);
 const dbGet = (s, k) => new Promise((res, rej) => { const r = txs(s).get(k);        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-const dbPut = (s, v) => new Promise((res, rej) => { const r = txs(s, 'readwrite').put(v);    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-const dbDel = (s, k) => new Promise((res, rej) => { const r = txs(s, 'readwrite').delete(k); r.onsuccess = () => res();         r.onerror = () => rej(r.error); });
+const dbPut = (s, v) => { if (window.BRAuth) BRAuth.assertCanWrite(); return new Promise((res, rej) => { const r = txs(s, 'readwrite').put(v);    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); };
+const dbDel = (s, k) => { if (window.BRAuth) BRAuth.assertCanWrite(); return new Promise((res, rej) => { const r = txs(s, 'readwrite').delete(k); r.onsuccess = () => res();         r.onerror = () => rej(r.error); }); };
 const dbAll = (s)    => new Promise((res, rej) => { const r = txs(s).getAll();               r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-const dbClr = (s)    => new Promise((res, rej) => { const r = txs(s, 'readwrite').clear();   r.onsuccess = () => res();         r.onerror = () => rej(r.error); });
+const dbClr = (s)    => { if (window.BRAuth) BRAuth.assertCanWrite(); return new Promise((res, rej) => { const r = txs(s, 'readwrite').clear();   r.onsuccess = () => res();         r.onerror = () => rej(r.error); }); };
 
 /* ── Profile-scoped keys ── */
 /* settings key: "settings:{profileId}", entries key prefix: "p{profileId}:" */
@@ -142,6 +147,7 @@ function dbDelEntry(id) {
  * Clear all entries for a specific profile.
  */
 function dbClearEntries(profileId) {
+  if (window.BRAuth) BRAuth.assertCanWrite();
   return new Promise((res, rej) => {
     const store = db.transaction('entries', 'readwrite').objectStore('entries');
     const toDelete = [];
@@ -1414,6 +1420,13 @@ async function loadProfiles() {
   profiles = await dbGetAllProfiles();
   profiles.sort((a, b) => a.id - b.id);
 
+  if (!profiles.length && window.BRAuth && BRAuth.isGuestSync()) {
+    // Guests get a transient, in-memory-only profile so the app has
+    // something to display — nothing here is ever written to IndexedDB.
+    profiles = [{ id: 'guest-preview', name: 'My SIP (guest preview)' }];
+    return;
+  }
+
   // First-time migration: if no profiles exist but legacy settings do,
   // create a default profile from them.
   if (!profiles.length) {
@@ -1585,6 +1598,7 @@ function applySettingsToUI() {
 ══════════════════════════════════════════════════════ */
 document.getElementById('btn-save-settings').addEventListener('click', async () => {
   if (!activeProfile) { toast('No active SIP profile.'); return; }
+  if (window.BRAuth && BRAuth.isGuestSync()) { toast('Sign in to save settings — guest mode is view-only.'); return; }
   const amt  = parseFloat(document.getElementById('sip-amount').value);
   const date = document.getElementById('sip-start').value;
   if (!amt || amt <= 0 || !date) { toast('Enter a valid SIP amount and start date.'); return; }
@@ -1836,6 +1850,7 @@ document.getElementById('entry-date').addEventListener('change', updateEntryPrev
 ══════════════════════════════════════════════════════ */
 document.getElementById('btn-add-entry').addEventListener('click', async () => {
   if (!settings) { toast('Save SIP settings first.'); return; }
+  if (window.BRAuth && BRAuth.isGuestSync()) { toast('Sign in to save entries — guest mode is view-only.'); return; }
   const dateVal = document.getElementById('entry-date').value;
   const pctStr  = document.getElementById('entry-pct').value.trim();
   if (!dateVal || !pctStr) { toast('Enter date and % change.'); return; }
@@ -1870,6 +1885,11 @@ document.getElementById('edit-cancel').addEventListener('click', () =>
   document.getElementById('edit-modal').classList.remove('open'));
 
 document.getElementById('edit-save').addEventListener('click', async () => {
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    toast('Sign in to save changes — guest mode is view-only.');
+    document.getElementById('edit-modal').classList.remove('open');
+    return;
+  }
   const dateVal = document.getElementById('edit-date').value;
   const pct     = parseFloat(document.getElementById('edit-pct').value);
   if (!dateVal || isNaN(pct)) { toast('Invalid values.'); return; }
@@ -1890,6 +1910,7 @@ document.getElementById('edit-save').addEventListener('click', async () => {
 ══════════════════════════════════════════════════════ */
 async function deleteEntry(id) {
   if (!confirm('Delete this entry?')) return;
+  if (window.BRAuth && BRAuth.isGuestSync()) { toast('Sign in to delete entries — guest mode is view-only.'); return; }
   await dbDelEntry(id);
   entries = await dbGetEntries(activeProfile.id);
   entries.sort((a, b) => a.date.localeCompare(b.date));
@@ -1913,17 +1934,26 @@ document.getElementById('btn-pdf-report-row').addEventListener('click', async ()
   }
 });
 
-document.getElementById('btn-export-row').addEventListener('click', () => {
+document.getElementById('btn-export-row').addEventListener('click', async () => {
+  const owner = window.BRAuth ? await BRAuth.currentUser() : null;
   const a   = document.createElement('a');
-  const payload = { profileName: activeProfile?.name, settings, entries };
+  const payload = {
+    exportedBy: owner ? { name: owner.name, email: owner.email } : null,
+    exportedAt: new Date().toISOString(),
+    profileName: activeProfile?.name,
+    settings,
+    entries,
+  };
   a.href    = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
   a.download = `sip-${(activeProfile?.name || 'data').replace(/\s+/g,'-')}-${todayStr()}.json`;
   a.click();
   toast('Exported ✓');
 });
 
-document.getElementById('btn-import-row').addEventListener('click', () =>
-  document.getElementById('import-file').click());
+document.getElementById('btn-import-row').addEventListener('click', () => {
+  if (window.BRAuth && BRAuth.isGuestSync()) { toast('Sign in to import data — guest mode is view-only.'); return; }
+  document.getElementById('import-file').click();
+});
 
 document.getElementById('import-file').addEventListener('change', async e => {
   const file = e.target.files[0]; if (!file) return;
@@ -1957,6 +1987,7 @@ document.getElementById('import-file').addEventListener('change', async e => {
 
 document.getElementById('btn-reset-row').addEventListener('click', async () => {
   if (!confirm(`Reset ALL data for "${activeProfile?.name}"? This cannot be undone.`)) return;
+  if (window.BRAuth && BRAuth.isGuestSync()) { toast('Sign in to reset data — guest mode is view-only.'); return; }
   await dbClearEntries(activeProfile.id);
   try { await dbDel('settings', activeProfile.id); } catch(_) {}
   settings = null; entries = [];

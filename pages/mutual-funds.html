@@ -610,6 +610,12 @@
   });
 })();
 </script>
+<script src="../auth.js"></script>
+<script>
+  (function () {
+    if (window.BRAuth) BRAuth.guardSubAppPage("../login.html");
+  })();
+</script>
 <script src="mutual-funds.js"></script>
 </body>
 </html>
