@@ -1282,7 +1282,7 @@ function escapeHtml(s) {
    ============================================================ */
 (function (global) {
   "use strict";
-  const DB_NAME = "blackStocks", DB_VERSION = 1, STORE = "state";
+  const DB_NAME = window.BRAuth ? "blackStocks::" + BRAuth.scopeSuffix() : "blackStocks", DB_VERSION = 1, STORE = "state";
 
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -1460,7 +1460,7 @@ async function loadStocksNotifications() {
    ============================================================ */
 (function (global) {
   "use strict";
-  const MF_DB_NAME = "sip-compounder", MF_DB_VERSION = 2;
+  const MF_DB_NAME = window.BRAuth ? "sip-compounder::" + BRAuth.scopeSuffix() : "sip-compounder", MF_DB_VERSION = 2;
   let mfDbPromise = null;
 
   function mfOpenDB() {
@@ -1617,7 +1617,7 @@ async function loadMfNotifications() {
    "BlackRoadFD"). Same math the Loans and Fixed Deposits pages
    themselves use to derive next-due / maturity dates.
    ============================================================ */
-const LL_DB_NAME = "LendLedger", LL_DB_VERSION = 3;
+const LL_DB_NAME = window.BRAuth ? "LendLedger::" + BRAuth.scopeSuffix() : "LendLedger", LL_DB_VERSION = 3;
 function llOpenDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(LL_DB_NAME, LL_DB_VERSION);
@@ -1674,7 +1674,7 @@ async function getLendingDueItems() {
   }
 }
 
-const FD_DB_NAME = "BlackRoadFD", FD_DB_VERSION = 1;
+const FD_DB_NAME = window.BRAuth ? "BlackRoadFD::" + BRAuth.scopeSuffix() : "BlackRoadFD", FD_DB_VERSION = 1;
 function fdOpenDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(FD_DB_NAME, FD_DB_VERSION);

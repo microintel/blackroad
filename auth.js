@@ -116,6 +116,42 @@
     return "user:" + normEmail(email);
   }
 
+  /* ---------------- active-user scope (sync, always via localStorage) ----------------
+     Every sub-app (Income Statement, Lending, Stocks, StepUp, FD, Mutual Funds)
+     namespaces its own IndexedDB / localStorage data with this value, so two
+     accounts signed in on the SAME browser/device never see each other's data,
+     even though the underlying storage backend is shared.
+
+     This is deliberately a plain synchronous localStorage read/write (not the
+     async widget-storage-or-localStorage shim above) because each sub-app's
+     database name has to be known the instant its script runs, before any
+     `await` is possible. It is written every time setSession/loginGuest/logout
+     run, so it always mirrors the real "session" record. */
+  const ACTIVE_SCOPE_KEY = "br_active_scope";
+
+  function setActiveScopeSync(id) {
+    try { localStorage.setItem(ACTIVE_SCOPE_KEY, id); } catch (e) {}
+  }
+  function clearActiveScopeSync() {
+    try { localStorage.removeItem(ACTIVE_SCOPE_KEY); } catch (e) {}
+  }
+  function getActiveScopeSync() {
+    try { return localStorage.getItem(ACTIVE_SCOPE_KEY) || null; } catch (e) { return null; }
+  }
+  /** Safe suffix to append to a database/key name so it's unique per signed-in user. */
+  function scopeSuffix() {
+    const id = getActiveScopeSync();
+    if (!id) return "anon";
+    return id.replace(/[^a-z0-9@._-]/gi, "_");
+  }
+  function isGuestSync() {
+    return getActiveScopeSync() === "guest";
+  }
+  function isLoggedInSync() {
+    const s = getActiveScopeSync();
+    return !!s && s !== "guest";
+  }
+
   /* ---------------- user records (shared) ---------------- */
   async function findUser(email) {
     const raw = await stGet(userKey(email), true);
@@ -142,6 +178,7 @@
   /* ---------------- session (personal) ---------------- */
   async function setSession(email) {
     await stSet("session", { email: normEmail(email), guest: false, ts: Date.now() }, false);
+    setActiveScopeSync(normEmail(email));
   }
   async function getSession() {
     const raw = await stGet("session", false);
@@ -154,9 +191,11 @@
   }
   async function logout() {
     await stDelete("session", false);
+    clearActiveScopeSync();
   }
   async function loginGuest() {
     await stSet("session", { guest: true, ts: Date.now() }, false);
+    setActiveScopeSync("guest");
   }
 
   /* ---------------- public actions ---------------- */
@@ -278,6 +317,62 @@
     if (s) location.replace(redirectTo);
   }
 
+  /* ---------------- sub-app page guard ----------------
+     Used by every finance sub-app (Income Statement, Lending, Stocks,
+     StepUp, FD, Mutual Funds) as its very first script. It:
+       1. Redirects to the login page if nobody is signed in at all.
+       2. Marks the page as guest/view-only when a guest is signed in
+          (adds a "br-guest-mode" class to <body> and sets
+          window.BRGuestMode = true) so the page's own CSS/JS can hide
+          or disable "Add / Save / Delete / Import" controls while
+          still letting the guest see everything.
+     Each sub-app page is one level down (incomeStatement/, lending/,
+     stocks/, stepUp/, fd/, pages/), so loginRedirect defaults to
+     "../login.html". */
+  async function guardSubAppPage(loginRedirect) {
+    const user = await requireAuth(loginRedirect || "../login.html");
+    if (!user) return null; // already redirected
+    if (user.guest) {
+      document.documentElement.classList.add("br-guest-mode");
+      if (document.body) document.body.classList.add("br-guest-mode");
+      else document.addEventListener("DOMContentLoaded", () => document.body.classList.add("br-guest-mode"));
+      global.BRGuestMode = true;
+    } else {
+      global.BRGuestMode = false;
+    }
+    return user;
+  }
+
+  /** Throws/rejects if the current visitor is a guest. Call this at the
+   *  top of any "add / save / delete / import" action in a sub-app so
+   *  guests can look around freely but never create or change data. */
+  function assertCanWrite() {
+    if (isGuestSync()) {
+      const err = new Error("You're browsing as a guest — sign in to save changes.");
+      err.code = "GUEST_READONLY";
+      throw err;
+    }
+  }
+
+  /* One-time self-heal: if a session already exists (e.g. this file was
+     just updated on a device that was already signed in) but the sync
+     scope marker hasn't been written yet, back-fill it immediately so
+     the very first page load after the update is already isolated
+     correctly, instead of waiting for the next login. Only works when
+     the real localStorage-backed session is used (i.e. not the
+     Claude-artifact sandbox), which is exactly the case where a
+     synchronous fix is possible/needed. */
+  if (!hasWidgetStorage && getActiveScopeSync() === null) {
+    try {
+      const raw = localStorage.getItem("br_session");
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s && s.guest) setActiveScopeSync("guest");
+        else if (s && s.email) setActiveScopeSync(normEmail(s.email));
+      }
+    } catch (e) {}
+  }
+
   global.BRAuth = {
     register,
     login,
@@ -291,5 +386,11 @@
     requireAuth,
     redirectIfLoggedIn,
     normEmail,
+    scopeSuffix,
+    isGuestSync,
+    isLoggedInSync,
+    getActiveScopeSync,
+    guardSubAppPage,
+    assertCanWrite,
   };
 })(window);

@@ -1467,7 +1467,7 @@ footer{
 (function (global) {
   "use strict";
 
-  const DB_NAME = "blackStocks";
+  const DB_NAME = window.BRAuth ? "blackStocks::" + BRAuth.scopeSuffix() : "blackStocks";
   const DB_VERSION = 1;
   const STORE = "state";
 
@@ -1588,7 +1588,7 @@ footer{
    net-worth math reflect real numbers, live, with no server and no
    copy of the data. Read-only here; all edits happen in /lending. */
 (function (global) {
-  const DB_NAME = "LendLedger";
+  const DB_NAME = window.BRAuth ? "LendLedger::" + BRAuth.scopeSuffix() : "LendLedger";
   const DB_VERSION = 3;
   const STORE_PARTIES = "parties";
   const STORE_ENTRIES = "entries";
@@ -1712,7 +1712,7 @@ footer{
 (function (global) {
   "use strict";
 
-  const DB_NAME = "BlackRoadFD";
+  const DB_NAME = window.BRAuth ? "BlackRoadFD::" + BRAuth.scopeSuffix() : "BlackRoadFD";
   const DB_VERSION = 1;
   const STORE = "deposits";
   const CHANNEL_NAME = "blackroad-deposits-sync";
@@ -1763,6 +1763,7 @@ footer{
   }
 
   async function remove(id) {
+    if (window.BRAuth) BRAuth.assertCanWrite();
     const s = await store("readwrite");
     await new Promise((resolve, reject) => {
       const req = s.delete(id);
@@ -2642,7 +2643,7 @@ swatches.forEach(s=>{
 // version has moved past what we guessed. Instead we open at whatever
 // version the DB is already at, and only bump +1 to add a store if it's
 // truly missing (e.g. after a full wipe).
-const BACKUP_DB_SCHEMAS = {
+const BACKUP_DB_SCHEMAS_BASE = {
   blackStocks: {
     // Key-value store (no keyPath) — the Stocks app (/stocks/state.js)
     // puts 'transactions', 'prices', and 'seqCounter' in under explicit
@@ -2678,6 +2679,16 @@ const BACKUP_DB_SCHEMAS = {
     }
   }
 };
+// Every sub-app database is namespaced per signed-in user (see
+// BRAuth.scopeSuffix in auth.js), so the backup/restore tool has to target
+// the SAME scoped names those apps actually use, or it would silently back
+// up/restore an empty, orphaned database instead of the signed-in user's
+// real data.
+const BACKUP_DB_SCHEMAS = {};
+Object.keys(BACKUP_DB_SCHEMAS_BASE).forEach((baseName) => {
+  const scoped = window.BRAuth ? baseName + "::" + BRAuth.scopeSuffix() : baseName;
+  BACKUP_DB_SCHEMAS[scoped] = BACKUP_DB_SCHEMAS_BASE[baseName];
+});
 const BACKUP_DBS = Object.keys(BACKUP_DB_SCHEMAS);
 
 function createStoreFromDef(db, storeName, def){
@@ -2936,7 +2947,11 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
     const databases = await exportAllIndexedDB(async (step, total, label) => {
       await stepBackupProgress(step, total, `Exporting ${label}…`);
     });
-    const data = Object.assign(snapshotData(), { databases });
+    const owner = window.BRAuth ? await BRAuth.currentUser() : null;
+    const data = Object.assign(snapshotData(), {
+      exportedBy: owner ? { name: owner.name, email: owner.email } : null,
+      databases,
+    });
     const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2958,11 +2973,20 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
 });
 
 document.getElementById('importBtn').addEventListener('click', ()=>{
+  if(window.BRAuth && BRAuth.isGuestSync()){
+    showToast("Sign in to restore a backup — guest mode is view-only.", 'bi-exclamation-triangle-fill');
+    return;
+  }
   document.getElementById('importFile').click();
 });
 document.getElementById('importFile').addEventListener('change', (e)=>{
   const file = e.target.files[0];
   if(!file) return;
+  if(window.BRAuth && BRAuth.isGuestSync()){
+    showToast("Sign in to restore a backup — guest mode is view-only.", 'bi-exclamation-triangle-fill');
+    e.target.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = async ()=>{
     try{
@@ -3121,7 +3145,7 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
    ============================================================ */
 (function(){
   "use strict";
-  const MF_DB_NAME = "sip-compounder";
+  const MF_DB_NAME = window.BRAuth ? "sip-compounder::" + BRAuth.scopeSuffix() : "sip-compounder";
   const MF_DB_VERSION = 2;
   let mfDbPromise = null;
 
@@ -3299,7 +3323,7 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
    ============================================================ */
 (function(){
   "use strict";
-  const INC_DB_NAME = "BlackRoad2";
+  const INC_DB_NAME = window.BRAuth ? "BlackRoad2::" + BRAuth.scopeSuffix() : "BlackRoad2";
   const INC_DB_VERSION = 3;
   const INC_STORE = "entries";
   const INC_META_STORE = "meta";
