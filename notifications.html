@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-style="neumo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications — BlackRoad</title>
+<script>
+/* Apply saved theme immediately (before CSS paints) — identical to
+   blackroad-dashboard.html's own inline head script, reading the
+   SAME localStorage keys, so theme/style stay in sync between pages. */
+(function(){
+  try{
+    const saved = localStorage.getItem('br-theme');
+    if(saved === 'dark' || saved === 'light'){
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+    const savedStyle = localStorage.getItem('br_style');
+    if(savedStyle === 'neumo' || savedStyle === 'glass' || savedStyle === 'flat' || savedStyle === 'skeuo'){
+      document.documentElement.setAttribute('data-style', savedStyle);
+    }
+  }catch(e){}
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon512_rounded.png">
+<script src="auth.js"></script>
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --gold:#E8B84B;
+  --gold-dim:#B8912F;
+  --green:#1E8E4E;
+  --blue:#60A5FA;
+  --violet:#A78BFA;
+  --paleGold:#F0D48A;
+  --red:#F2545B;
+
+  --radius-sm:12px;
+  --radius-md:18px;
+  --radius-lg:26px;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --topbar-h:96px;
+}
+
+#overview, .panel{ scroll-margin-top:var(--topbar-h); }
+@keyframes br-screen-in{ from{ opacity:0; transform:translateX(18px); } to{ opacity:1; transform:none; } }
+
+/* ============ NEUMORPHIC (SOFT-UI) SHADOW SYSTEM ============
+   Every surface sits at the SAME tone as the page (--surface == --bg),
+   so cards, tiles, buttons and inputs are sculpted purely from a
+   light/dark shadow pair instead of borders or fill contrast.
+   --shadow      = raised / extruded (default resting state)
+   --shadow-lg   = raised further (hover / lift)
+   --shadow-sm   = small raised element (icon buttons, chips, badges)
+   --shadow-in   = pressed / recessed (active state, tracks, inputs)
+   --shadow-in-sm= small pressed element (pills, switch tracks) */
+html[data-theme="dark"]{
+  --bg:#1B1E24;
+  --bg-elevated:#1B1E24;
+  --surface:#1B1E24;
+  --surface-2:#20242C;
+  --border:rgba(255,255,255,.06);
+  --text:#F2F0EA;
+  --text-dim:#9BA1AC;
+  --text-faint:#5C6270;
+  --accent:var(--gold);
+  --nl:rgba(255,255,255,.05);
+  --nd:rgba(0,0,0,.62);
+  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
+  --shadow-lg: 14px 14px 28px var(--nd), -10px -10px 24px var(--nl);
+  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
+  --shadow-in: inset 5px 5px 11px var(--nd), inset -5px -5px 11px var(--nl);
+  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+  --dash-color: rgba(232,184,75,.55);
+}
+
+html[data-theme="light"]{
+  --bg:#EAE7DE;
+  --bg-elevated:#EAE7DE;
+  --surface:#EAE7DE;
+  --surface-2:#E2DED2;
+  --border:rgba(30,25,10,.08);
+  --text:#171A1F;
+  --text-dim:#5B6270;
+  --text-faint:#84808f;
+  --accent:#B8862A;
+  --nl:rgba(255,255,255,.9);
+  --nd:rgba(163,150,115,.4);
+  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
+  --shadow-lg: 14px 14px 28px var(--nd), -10px -10px 24px var(--nl);
+  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
+  --shadow-in: inset 5px 5px 11px var(--nd), inset -5px -5px 11px var(--nl);
+  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+  --dash-color: rgba(184,134,42,.5);
+}
+
+/* ============ THEME STYLES ============
+   "neumo" (soft-UI, above) is the default. The three variants below
+   override the same token set — surface fill, border and the five
+   --shadow-* values — so every component built on those tokens
+   (.card, .panel, .tile, .icon-btn, .tag, .bar-track, etc.) restyles
+   itself automatically with no per-component overrides needed. */
+
+/* ---- Glassmorphism: translucent, frosted, blurred ---- */
+html[data-theme="dark"][data-style="glass"]{
+  --surface: rgba(255,255,255,.055);
+  --surface-2: rgba(255,255,255,.09);
+  --border: rgba(255,255,255,.16);
+  --shadow: 0 8px 32px rgba(0,0,0,.45);
+  --shadow-lg: 0 18px 48px rgba(0,0,0,.55);
+  --shadow-sm: 0 4px 18px rgba(0,0,0,.35);
+  --shadow-in: inset 0 1px 1px rgba(255,255,255,.10), inset 0 -1px 10px rgba(0,0,0,.3);
+  --shadow-in-sm: inset 0 1px 1px rgba(255,255,255,.08), inset 0 -1px 6px rgba(0,0,0,.25);
+}
+html[data-theme="light"][data-style="glass"]{
+  --surface: rgba(255,255,255,.4);
+  --surface-2: rgba(255,255,255,.58);
+  --border: rgba(255,255,255,.75);
+  --shadow: 0 8px 32px rgba(120,105,60,.16);
+  --shadow-lg: 0 18px 44px rgba(120,105,60,.22);
+  --shadow-sm: 0 4px 16px rgba(120,105,60,.14);
+  --shadow-in: inset 0 1px 1px rgba(255,255,255,.75), inset 0 -1px 10px rgba(120,105,60,.14);
+  --shadow-in-sm: inset 0 1px 1px rgba(255,255,255,.65), inset 0 -1px 6px rgba(120,105,60,.1);
+}
+html[data-style="glass"] .card,
+html[data-style="glass"] .panel,
+html[data-style="glass"] .tile,
+html[data-style="glass"] .ie-box,
+html[data-style="glass"] .icon-btn,
+html[data-style="glass"] .avatar,
+html[data-style="glass"] .theme-toggle,
+html[data-style="glass"] .chart-toggle,
+html[data-style="glass"] .tag,
+html[data-style="glass"] .donut-tooltip,
+html[data-style="glass"] .bar-track,
+html[data-style="glass"] .style-opt,
+html[data-style="glass"] .swatch,
+html[data-style="glass"] .login-card,
+html[data-style="glass"] .field input,
+html[data-style="glass"] .btn-secondary{
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+
+/* ---- Flat design: solid fills, no shadows, thin borders ---- */
+html[data-theme="dark"][data-style="flat"]{
+  --surface:#20242C;
+  --surface-2:#262B34;
+  --border: rgba(255,255,255,.14);
+  --shadow:none; --shadow-lg:none; --shadow-sm:none; --shadow-in:none; --shadow-in-sm:none;
+}
+html[data-theme="light"][data-style="flat"]{
+  --surface:#FFFFFF;
+  --surface-2:#F3F0E7;
+  --border: rgba(20,15,5,.14);
+  --shadow:none; --shadow-lg:none; --shadow-sm:none; --shadow-in:none; --shadow-in-sm:none;
+}
+html[data-style="flat"] .tile:hover,
+html[data-style="flat"] .icon-btn:hover,
+html[data-style="flat"] .btn-secondary:hover{ transform:none; border-color:color-mix(in srgb, var(--accent) 55%, var(--border)); }
+
+/* ---- Skeuomorphic: raised bevels + gloss ---- */
+html[data-theme="dark"][data-style="skeuo"]{
+  --surface:#262B34;
+  --surface-2:#2C313B;
+  --border: rgba(255,255,255,.10);
+  --shadow: 7px 7px 16px rgba(0,0,0,.55), -4px -4px 10px rgba(255,255,255,.035), inset 0 1px 0 rgba(255,255,255,.05);
+  --shadow-lg: 11px 11px 26px rgba(0,0,0,.6), -5px -5px 14px rgba(255,255,255,.045), inset 0 1px 0 rgba(255,255,255,.06);
+  --shadow-sm: 3px 3px 9px rgba(0,0,0,.5), -2px -2px 6px rgba(255,255,255,.03), inset 0 1px 0 rgba(255,255,255,.05);
+  --shadow-in: inset 4px 4px 9px rgba(0,0,0,.6), inset -3px -3px 7px rgba(255,255,255,.03);
+  --shadow-in-sm: inset 2px 2px 5px rgba(0,0,0,.55), inset -2px -2px 4px rgba(255,255,255,.03);
+}
+html[data-theme="light"][data-style="skeuo"]{
+  --surface:#F1EDE0;
+  --surface-2:#E7E2D2;
+  --border: rgba(120,105,60,.22);
+  --shadow: 7px 7px 16px rgba(163,150,115,.45), -4px -4px 10px rgba(255,255,255,.95), inset 0 1px 0 rgba(255,255,255,.6);
+  --shadow-lg: 11px 11px 26px rgba(163,150,115,.5), -5px -5px 14px rgba(255,255,255,1), inset 0 1px 0 rgba(255,255,255,.7);
+  --shadow-sm: 3px 3px 9px rgba(163,150,115,.4), -2px -2px 6px rgba(255,255,255,.9), inset 0 1px 0 rgba(255,255,255,.6);
+  --shadow-in: inset 4px 4px 9px rgba(163,150,115,.5), inset -3px -3px 7px rgba(255,255,255,.85);
+  --shadow-in-sm: inset 2px 2px 5px rgba(163,150,115,.45), inset -2px -2px 4px rgba(255,255,255,.8);
+}
+html[data-style="skeuo"] .card,
+html[data-style="skeuo"] .panel,
+html[data-style="skeuo"] .tile,
+html[data-style="skeuo"] .ie-box,
+html[data-style="skeuo"] .icon-btn,
+html[data-style="skeuo"] .avatar,
+html[data-style="skeuo"] .theme-toggle,
+html[data-style="skeuo"] .btn-secondary,
+html[data-style="skeuo"] .swatch,
+html[data-style="skeuo"] .style-opt,
+html[data-style="skeuo"] .chart-toggle-btn.active{
+  background-image: linear-gradient(145deg, rgba(255,255,255,.07), rgba(0,0,0,.10));
+}
+html[data-theme="light"][data-style="skeuo"] .card,
+html[data-theme="light"][data-style="skeuo"] .panel,
+html[data-theme="light"][data-style="skeuo"] .tile,
+html[data-theme="light"][data-style="skeuo"] .ie-box,
+html[data-theme="light"][data-style="skeuo"] .icon-btn,
+html[data-theme="light"][data-style="skeuo"] .avatar,
+html[data-theme="light"][data-style="skeuo"] .theme-toggle,
+html[data-theme="light"][data-style="skeuo"] .btn-secondary,
+html[data-theme="light"][data-style="skeuo"] .swatch,
+html[data-theme="light"][data-style="skeuo"] .style-opt,
+html[data-theme="light"][data-style="skeuo"] .chart-toggle-btn.active{
+  background-image: linear-gradient(145deg, rgba(255,255,255,.65), rgba(120,105,60,.08));
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overflow-x:hidden;
+  transition:background .35s var(--ease), color .35s var(--ease);
+}
+h1,h2,h3,h4,.display{font-family:'Outfit',sans-serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
+a{color:inherit;text-decoration:none;}
+::selection{background:var(--accent);color:#0B0D10;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface-2);border-radius:10px;}
+
+/* ============ LANE DIVIDER (signature motif) ============ */
+.lane{
+  height:3px;
+  width:100%;
+  background-image:repeating-linear-gradient(90deg, var(--dash-color) 0 26px, transparent 26px 46px);
+  opacity:.9;
+}
+
+/* ============ LAYOUT ============ */
+.app{ display:flex; min-height:100vh; }
+
+/* ---- Sidebar ---- */
+.sidebar{
+  width:250px;
+  flex-shrink:0;
+  background:var(--bg-elevated);
+  border-right:1px solid var(--border);
+  box-shadow:6px 0 24px -8px var(--nd);
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  top:0; left:0; bottom:0;
+  z-index:100;
+  transition:transform .35s var(--ease), background .35s var(--ease), border-color .35s var(--ease);
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:26px 22px 18px;
+}
+.brand-mark{
+  width:34px;height:34px;border-radius:11px;
+  background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  color:#0B0D10;font-weight:800;font-size:16px;
+  box-shadow:var(--shadow-sm);
+}
+.brand-name{font-weight:700;font-size:18.5px;letter-spacing:.2px;}
+.brand-name span{color:var(--accent);}
+
+.nav-scroll{flex:1;overflow-y:auto;padding:10px 14px;overscroll-behavior:contain;}
+.nav-label{
+  font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase;
+  color:var(--text-faint); padding:16px 10px 8px;
+}
+.nav-link{
+  display:flex; align-items:center; gap:12px;
+  padding:10.5px 12px;
+  border-radius:var(--radius-sm);
+  color:var(--text-dim);
+  font-size:14.3px; font-weight:500;
+  margin-bottom:3px;
+  position:relative;
+  transition:background .22s var(--ease), color .22s var(--ease), padding-left .22s var(--ease);
+}
+.nav-link i{font-size:16.5px; width:20px; text-align:center; color:var(--text-faint); transition:color .22s var(--ease);}
+.nav-link:hover{ box-shadow:var(--shadow-in-sm); color:var(--text); }
+.nav-link:hover i{ color:var(--accent); }
+.nav-link.active{ box-shadow:var(--shadow-in-sm); color:var(--text); }
+.nav-link.active i{ color:var(--accent); }
+.nav-link.active::before{
+  content:"";
+  position:absolute; left:-14px; top:50%; transform:translateY(-50%);
+  width:3px; height:60%;
+  background:var(--accent);
+  border-radius:0 4px 4px 0;
+}
+.nav-link .badge-dot{
+  margin-left:auto; width:6px;height:6px;border-radius:50%;
+  background:var(--green);
+}
+
+.sidebar-footer{
+  padding:16px; border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.theme-toggle{
+  display:flex; align-items:center; gap:8px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:6px 12px;
+  font-size:13px; color:var(--text-dim);
+  box-shadow:var(--shadow-in-sm);
+  transition:background .2s var(--ease), color .2s var(--ease);
+}
+.theme-toggle:hover{ color:var(--text); }
+.theme-toggle i{ font-size:15px; color:var(--accent); }
+
+/* ---- Main ---- */
+.main{
+  flex:1;
+  margin-left:250px;
+  min-height:100vh;
+  transition:margin .35s var(--ease);
+}
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  padding:20px 34px 16px;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+}
+.greet-eyebrow{ font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:var(--text-faint); }
+.greet-title{ font-size:24px; font-weight:700; margin-top:2px; }
+.topbar-actions{ display:flex; align-items:center; gap:12px; }
+.icon-btn{
+  width:38px;height:38px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface); border:1px solid var(--border);
+  color:var(--text-dim); font-size:16px;
+  box-shadow:var(--shadow-sm);
+  transition:all .2s var(--ease);
+}
+.icon-btn:hover{ color:var(--accent); transform:translateY(-1px); box-shadow:var(--shadow); }
+.icon-btn:active{ box-shadow:var(--shadow-in-sm); transform:translateY(0); }
+.avatar{
+  width:38px;height:38px;border-radius:12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:600; font-size:13px; color:var(--accent);
+}
+
+.content{ padding:6px 34px 70px; }
+
+/* ---- Hero / net worth ---- */
+.hero-grid{
+  display:grid; grid-template-columns:1.5fr 1fr; gap:20px;
+  margin:18px 0 30px;
+}
+@media (max-width:980px){ .hero-grid{ grid-template-columns:1fr; } }
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);
+  transition:background .35s var(--ease), border-color .35s var(--ease), transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+
+.hero-card{ padding:30px 32px; position:relative; overflow:hidden; }
+.hero-eyebrow{ display:flex; align-items:center; gap:8px; color:var(--text-faint); font-size:12.5px; letter-spacing:1px; text-transform:uppercase; }
+.hero-eyebrow i{ color:var(--green); }
+.hero-value{ font-size:46px; font-weight:800; margin:10px 0 4px; letter-spacing:-1px; }
+.hero-sub{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:6px; }
+.chip{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:13px; font-weight:600; padding:5px 11px;
+  border-radius:999px;
+}
+.chip.up{ background:color-mix(in srgb, var(--green) 15%, transparent); color:var(--green); box-shadow:var(--shadow-in-sm); }
+.chip.down{ background:color-mix(in srgb, var(--red) 15%, transparent); color:var(--red); box-shadow:var(--shadow-in-sm); }
+/* Light mode's background is a pale cream, so the same faint 15%
+   tint used on dark backgrounds gets washed out and reads as low
+   contrast / low opacity. Bump the fill and darken the text a touch
+   so the chips stay legible without changing dark mode at all. */
+html[data-theme="light"] .chip.up{ background:color-mix(in srgb, var(--green) 28%, transparent); color:color-mix(in srgb, var(--green) 75%, black 25%); }
+html[data-theme="light"] .chip.down{ background:color-mix(in srgb, var(--red) 28%, transparent); color:color-mix(in srgb, var(--red) 75%, black 15%); }
+.stat-mini{ font-size:13px; color:var(--text-dim); }
+.stat-mini b{ color:var(--text); font-weight:600; }
+
+.hero-lane{ margin:22px 0 20px; }
+.hero-footrow{ display:flex; gap:28px; flex-wrap:wrap; }
+.footrow-item{ font-size:12.5px; color:var(--text-faint); }
+.footrow-item b{ display:block; font-size:16px; color:var(--text); font-family:'JetBrains Mono',monospace; margin-top:2px; font-weight:600; }
+
+/* ---- Donut (Chart.js) ---- */
+.donut-card{ padding:26px 28px; display:flex; flex-direction:column; }
+.donut-card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.donut-card h4{ font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; margin-bottom:0; }
+.donut-card h4 i{ color:var(--accent); }
+.chart-toggle{ display:flex; gap:4px; padding:3px; border-radius:10px; background:var(--surface-2); border:1px solid var(--border); flex-shrink:0; }
+.chart-toggle-btn{ width:28px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:12.5px; transition:all .15s var(--ease); }
+.chart-toggle-btn:hover{ color:var(--text); }
+.chart-toggle-btn.active{ background:var(--surface); color:var(--accent); box-shadow:var(--shadow-sm); }
+.donut-wrap{ display:flex; align-items:center; gap:20px; }
+.bar-wrap{ display:none; height:220px; }
+.bar-wrap.visible{ display:block; }
+.donut-wrap.hidden{ display:none; }
+.donut{
+  width:132px;height:132px;
+  position:relative;
+  flex-shrink:0;
+}
+.donut-center{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+.donut-center small{ font-size:9.5px; color:var(--text-faint); letter-spacing:.5px; }
+.donut-center b{ font-size:15px; font-family:'JetBrains Mono',monospace; }
+/* Docked tooltip — replaces Chart.js's floating tooltip, which on a
+   small ring like this always renders on top of .donut-center and
+   becomes unreadable. This sits in a fixed spot below the donut
+   instead, so a tap/hover never covers the ring or the center total. */
+.donut-tooltip{
+  display:flex; align-items:center; gap:8px;
+  margin-top:14px; padding:10px 14px;
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  box-shadow:var(--shadow-in-sm);
+  font-size:12.5px; color:var(--text);
+  opacity:0; transform:translateY(-4px);
+  transition:opacity .15s var(--ease), transform .15s var(--ease);
+  pointer-events:none;
+}
+.donut-tooltip.visible{ opacity:1; transform:translateY(0); }
+.donut-tooltip .dot{ width:9px;height:9px;border-radius:3px; flex-shrink:0; }
+.donut-tooltip b{ margin-left:auto; font-family:'JetBrains Mono',monospace; }
+.legend{ display:flex; flex-direction:column; gap:9px; }
+.legend-item{ display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--text-dim); }
+.legend-dot{ width:9px;height:9px;border-radius:3px; flex-shrink:0; }
+.legend-vals{ display:flex; flex-direction:column; align-items:flex-end; margin-left:auto; padding-left:10px; }
+.legend-item b{ color:var(--text); font-weight:600; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.3;}
+.legend-item .legend-pct{ color:var(--text-faint); font-size:10.5px; font-family:'JetBrains Mono',monospace; line-height:1.3; }
+
+/* ---- Section headers ---- */
+.section-head{ display:flex; align-items:baseline; justify-content:space-between; margin:8px 0 16px; }
+.section-head h3{ font-size:19px; font-weight:700; display:flex; align-items:center; gap:9px; }
+.section-head h3 .num{ font-size:12px; color:var(--text-faint); font-weight:500; }
+.section-head p{ font-size:13px; color:var(--text-faint); margin-top:2px; }
+
+/* ---- Category grid (tiles) ---- */
+.tile-grid{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:44px;
+}
+@media (max-width:1180px){ .tile-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:560px){ .tile-grid{ grid-template-columns:1fr; } }
+
+.tile{
+  padding:22px; cursor:pointer;
+  display:flex; flex-direction:column; gap:14px;
+  position:relative;
+}
+.tile:hover{ transform:translateY(-4px); box-shadow:var(--shadow-lg); }
+.tile-icon{
+  width:42px;height:42px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;
+  box-shadow:var(--shadow-sm);
+}
+.tile-arrow{
+  position:absolute; top:22px; right:22px;
+  color:var(--text-faint); font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .25s var(--ease), color .25s var(--ease);
+}
+.tile:hover .tile-arrow{ transform:translate(3px,-3px); color:var(--accent); }
+.tile-body{ display:flex; flex-direction:column; gap:6px; }
+.tile-name{ font-size:13.5px; color:var(--text-dim); font-weight:500; }
+.tile-value{ font-size:21px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:-.5px; }
+.tile-trend{ font-size:12px; display:flex; align-items:center; gap:5px; }
+.tile.add-tile{
+  align-items:center; justify-content:center; text-align:center;
+  border:2px dashed color-mix(in srgb, var(--text-faint) 40%, transparent);
+  box-shadow:var(--shadow-in);
+  color:var(--text-faint);
+  gap:8px;
+}
+.tile.add-tile i{ font-size:22px; }
+.tile.add-tile:hover{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 55%, transparent); box-shadow:var(--shadow-in-sm); }
+
+/* ---- Detail panels ---- */
+.panel{
+  padding:28px 30px; margin-bottom:22px;
+  opacity:0; transform:translateY(14px);
+  transition:opacity .6s var(--ease), transform .6s var(--ease);
+}
+.panel.in-view{ opacity:1; transform:translateY(0); }
+.panel-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:22px; }
+.panel-title{ display:flex; align-items:center; gap:12px; }
+.panel-title .pi{
+  width:38px;height:38px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:var(--shadow-sm);
+}
+.panel-title h3{ font-size:18px; font-weight:700; }
+.panel-title span{ font-size:12.5px; color:var(--text-faint); }
+.panel-total{ text-align:right; }
+.panel-total b{ display:block; font-size:22px; font-family:'JetBrains Mono',monospace; }
+.panel-total small{ font-size:12px; color:var(--text-faint); }
+.panel-head-right{ display:flex; align-items:center; gap:14px; }
+
+.bars{ display:flex; flex-direction:column; gap:14px; margin-bottom:8px; }
+.bar-row{ display:grid; grid-template-columns:130px 1fr 90px; align-items:center; gap:14px; font-size:13px; }
+.bar-row .label{ color:var(--text-dim); }
+.bar-track{ height:9px; border-radius:6px; background:var(--surface-2); box-shadow:var(--shadow-in-sm); overflow:hidden; }
+.bar-fill{ height:100%; border-radius:6px; width:0%; transition:width 1.1s var(--ease); }
+.bar-row .amt{ text-align:right; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text); }
+
+table{ width:100%; border-collapse:collapse; margin-top:6px; }
+th{ text-align:left; font-size:11px; letter-spacing:.6px; text-transform:uppercase; color:var(--text-faint); padding:0 10px 10px; font-weight:600; }
+td{ padding:12px 10px; font-size:13.5px; border-top:1px solid var(--border); }
+tr td:first-child, th:first-child{ padding-left:14px; }
+.row-name{ display:flex; align-items:center; gap:10px; font-weight:500; }
+.row-icon{ width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center; font-size:13px; flex-shrink:0; box-shadow:var(--shadow-sm); }
+.mono-cell{ font-family:'JetBrains Mono',monospace; }
+.pos{ color:var(--green); }
+.neg{ color:var(--red); }
+.tag{ font-size:11px; padding:3px 9px; border-radius:999px; background:var(--surface-2); color:var(--text-dim); box-shadow:var(--shadow-in-sm); }
+
+/* Income vs expense compare */
+.ie-compare{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:26px; }
+@media (max-width:640px){ .ie-compare{ grid-template-columns:1fr; } }
+.ie-box{ padding:18px 20px; border-radius:var(--radius-md); background:var(--surface); box-shadow:var(--shadow-sm); }
+.ie-box .lbl{ font-size:12px; color:var(--text-faint); display:flex; align-items:center; gap:6px; }
+.ie-box .val{ font-size:24px; font-weight:700; font-family:'JetBrains Mono',monospace; margin-top:6px; }
+
+/* ---- Footer ---- */
+footer{
+  padding:28px 34px 40px;
+}
+.footer-inner{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;
+  color:var(--text-faint); font-size:12.5px;
+}
+.footer-inner .dev b{ color:var(--accent); font-weight:700; }
+.footer-links{ display:flex; gap:18px; }
+.footer-links a{ color:var(--text-faint); transition:color .2s; }
+.footer-links a:hover{ color:var(--accent); }
+
+/* Fade-up on scroll for tiles */
+.tile{ opacity:0; transform:translateY(16px); transition:opacity .5s var(--ease), transform .5s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease); }
+.tile.in-view{ opacity:1; transform:translateY(0); }
+
+/* ============================================================
+   NATIVE APP MOBILE EXPERIENCE
+   ============================================================ */
+:root{ --bottom-nav-h:64px; }
+
+/* remove tap flash / enable momentum scroll everywhere on touch */
+@media (max-width:940px){
+  html,body{ -webkit-tap-highlight-color:transparent; overscroll-behavior-y:none; }
+  * { -webkit-tap-highlight-color:transparent; }
+  body{ -webkit-overflow-scrolling:touch; }
+  :root{ --topbar-h:74px; }
+
+  /* desktop sidebar is repurposed as a bottom sheet on mobile */
+  .sidebar{
+    top:auto; left:0; right:0; bottom:0;
+    width:100%; height:auto; max-height:78vh;
+    border-right:none;
+    border-top:1px solid var(--border);
+    border-radius:22px 22px 0 0;
+    transform:translateY(110%);
+    box-shadow:0 -14px 40px -10px rgba(0,0,0,.45);
+    transition:transform .38s var(--ease);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .sidebar.open{ transform:translateY(0); }
+  /* Locks the page behind the "More" bottom sheet so scrolling the
+     sheet's nav list never chains through to the dashboard behind it. */
+  body.br-sheet-lock{ position:fixed; left:0; right:0; overflow:hidden; }
+  .sidebar::before{
+    content:""; position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    width:38px; height:4px; border-radius:4px; background:var(--surface-2);
+    box-shadow:var(--shadow-sm);
+  }
+  .sidebar .brand{ padding-top:24px; }
+  .sidebar .lane{ display:none; }
+  .nav-scroll{ max-height:50vh; }
+
+  .main{ margin-left:0; }
+
+  /* ---- Top bar: compact app-header feel ---- */
+  .topbar{
+    padding:calc(env(safe-area-inset-top) + 14px) 18px 12px;
+    position:sticky; top:0;
+  }
+  .greet-eyebrow{ font-size:11px; }
+  .greet-title{ font-size:19px; }
+  .topbar-actions{ gap:8px; }
+  #installAppBtn span{ display:none; } /* icon-only install button on small screens */
+  #installAppBtn{ padding:9px; }
+  .icon-btn,.avatar{ width:34px; height:34px; border-radius:9px; }
+
+  .content{ padding:4px 16px calc(var(--bottom-nav-h) + 28px); }
+
+  /* ---- Sections stack normally on this page ----
+     (No bottom-tab screen-switcher here, so every section — Stocks,
+     Mutual Funds, Due & Reminders — stays visible and just stacks
+     vertically, same content as desktop, instead of being hidden.) */
+  .content > section{ display:block; animation: br-screen-in .32s var(--ease); }
+
+  /* ---- Hero card ---- */
+  .hero-grid{ gap:14px; margin:12px 0 22px; }
+  .hero-card{ padding:22px 20px; border-radius:18px; }
+  .hero-value{ font-size:34px; }
+  .hero-footrow{ display:grid; grid-template-columns:1fr 1fr; gap:16px 14px; }
+  .footrow-item{ font-size:11.5px; }
+  .footrow-item b{ font-size:14.5px; }
+  .hero-sub{ flex-direction:column; align-items:flex-start; gap:8px; }
+  .donut-card{ padding:20px; border-radius:18px; }
+  .donut-wrap{ flex-direction:column; align-items:flex-start; gap:18px; }
+  .legend{ width:100%; }
+
+  /* ---- Section tiles: native list-card feel ---- */
+  .section-head{ margin:4px 0 12px; }
+  .section-head h3{ font-size:17px; }
+  .tile-grid{ grid-template-columns:1fr; gap:10px; margin-bottom:28px; }
+  .tile{
+    flex-direction:row; align-items:center; padding:14px 16px; border-radius:16px; gap:14px;
+  }
+  .tile-icon{ width:44px; height:44px; border-radius:12px; font-size:19px; flex-shrink:0; order:1; }
+  .tile-arrow{ position:static; width:30px; height:30px; border-radius:8px; background:var(--surface-2); flex-shrink:0; font-size:14px; order:3; }
+  .tile-body{ flex:1; min-width:0; gap:3px; order:2; }
+  .tile-name{ font-size:12px; }
+  .tile-value{ font-size:16.5px; }
+  .tile-trend{ font-size:11px; }
+  .tile:active{ transform:scale(.97); background:var(--surface-2); }
+  .tile.add-tile{ flex-direction:row; padding:16px; }
+
+  /* ---- Panels ---- */
+  .panel{ padding:20px 16px; border-radius:18px; margin-bottom:14px; }
+  .panel-head{ flex-direction:column; align-items:flex-start; gap:14px; }
+  .panel-head-right{ width:100%; justify-content:space-between; padding-top:12px; border-top:1px dashed var(--border); }
+  .panel-total{ text-align:left; width:auto; padding-top:0; border-top:none; }
+  .panel-total b{ font-size:19px; }
+  .panel-title h3{ font-size:16px; }
+
+  .bar-row{ grid-template-columns:1fr; gap:6px; }
+  .bar-row .label{ font-size:12.5px; }
+  .bar-row .amt{ text-align:left; font-size:12px; color:var(--text-dim); }
+
+  .ie-compare{ gap:10px; }
+  .ie-box{ padding:14px 16px; }
+  .ie-box .val{ font-size:20px; }
+
+  .settings-row{ flex-direction:column; align-items:flex-start; gap:10px; padding:16px 0; }
+  .backup-actions{ width:100%; }
+  .backup-actions .btn-secondary{ flex:1; justify-content:center; }
+  .swatches{ gap:12px; }
+  .form-actions{ flex-wrap:wrap; }
+
+  /* ---- Tables become stacked cards (native transaction-list feel) ---- */
+  table, thead, tbody, th, tr, td{ display:block; }
+  thead{ display:none; }
+  table{ margin-top:0; }
+  tbody tr{
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:12px 14px;
+    margin-bottom:10px;
+    background:var(--surface);
+    box-shadow:var(--shadow-sm);
+  }
+  tbody tr td{ border-top:none; padding:5px 0; display:flex; align-items:center; justify-content:space-between; font-size:13px; }
+  tbody tr td.row-name{ justify-content:flex-start; font-size:14px; padding-bottom:8px; margin-bottom:4px; border-bottom:1px dashed var(--border); }
+  tbody tr td:not(.row-name)::before{ content:attr(data-label); color:var(--text-faint); font-size:11.5px; font-weight:500; }
+  tbody tr td .tag{ margin-left:auto; }
+
+  footer{ padding:20px 16px calc(var(--bottom-nav-h) + 30px); }
+  .footer-inner{ flex-direction:column; align-items:flex-start; gap:10px; }
+
+  .login-card{ padding:30px 22px 24px; border-radius:20px; }
+  .avatar-wrap .avatar-menu{ width:min(250px, calc(100vw - 28px)); }
+}
+
+/* ---- Bottom tab bar (native app navigation) ---- */
+.bottom-nav{
+  display:none;
+}
+@media (max-width:940px){
+  .bottom-nav{
+    display:flex;
+    position:fixed; left:0; right:0; bottom:0; z-index:110;
+    background:color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    border-top:1px solid var(--border);
+    padding:8px 6px calc(env(safe-area-inset-bottom) + 6px);
+    justify-content:space-around;
+    align-items:center;
+    box-shadow:0 -6px 24px -10px rgba(0,0,0,.35);
+  }
+  .bn-item{
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    flex:1; padding:6px 2px;
+    color:var(--text-faint);
+    font-size:10.5px; font-weight:600;
+    border-radius:12px;
+    transition:color .2s var(--ease), transform .15s var(--ease);
+  }
+  .bn-item i{ font-size:19px; transition:transform .2s var(--ease); }
+  .bn-item.active{ color:var(--accent); }
+  .bn-item.active i{ transform:translateY(-2px); }
+  .bn-item:active{ transform:scale(.9); }
+  .bn-item .bn-dot{
+    width:4px;height:4px;border-radius:50%;background:var(--accent);
+    margin-top:-1px; opacity:0; transition:opacity .2s;
+  }
+  .bn-item.active .bn-dot{ opacity:1; }
+}
+
+.overlay{
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:90;
+}
+.overlay.show{ display:block; }
+
+/* ============================================================
+   LOGIN SCREEN
+   ============================================================ */
+.login-screen{
+  position:fixed; inset:0; z-index:300;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg);
+  padding:24px;
+  transition:opacity .4s var(--ease), visibility .4s var(--ease);
+}
+.login-screen.hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+.login-card{
+  width:100%; max-width:400px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);
+  padding:36px 34px 28px;
+  animation:loginIn .5s var(--ease);
+}
+@keyframes loginIn{ from{ opacity:0; transform:translateY(16px) scale(.98); } to{ opacity:1; transform:none; } }
+.login-title{ font-size:22px; font-weight:700; }
+.login-sub{ font-size:13.5px; color:var(--text-faint); margin:4px 0 24px; }
+.login-row{ display:flex; align-items:center; justify-content:space-between; margin:2px 0 16px; font-size:12.5px; }
+.remember{ display:flex; align-items:center; gap:7px; color:var(--text-dim); }
+.remember input{ accent-color:var(--accent); }
+.forgot{ color:var(--accent); font-weight:600; }
+.login-error{ display:none; color:var(--red); font-size:12.5px; margin-bottom:12px; }
+.login-error.show{ display:block; }
+.login-submit{ width:100%; justify-content:center; margin-bottom:10px; }
+.login-guest{ width:100%; justify-content:center; }
+.login-foot{ text-align:center; font-size:11.5px; color:var(--text-faint); margin-top:22px; }
+.login-foot b{ color:var(--accent); }
+
+/* ============================================================
+   FORM FIELDS / BUTTONS / SWITCHES (Account + Settings)
+   ============================================================ */
+.field{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.field span{ font-size:12px; color:var(--text-faint); font-weight:500; }
+.field input{
+  font-family:inherit; font-size:14px; color:var(--text);
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:10px 13px;
+  box-shadow:var(--shadow-in-sm);
+  transition:box-shadow .2s var(--ease), background .2s var(--ease);
+}
+.field input:focus{ outline:none; box-shadow:var(--shadow-in-sm), 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+.field input:disabled{ color:var(--text-faint); cursor:not-allowed; opacity:.7; }
+.form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+@media (max-width:640px){ .form-grid{ grid-template-columns:1fr; } }
+.form-actions{ display:flex; align-items:center; gap:14px; margin-top:6px; }
+.save-hint{ font-size:12.5px; color:var(--green); opacity:0; transition:opacity .3s; }
+.save-hint.show{ opacity:1; }
+.sub-head{ font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:8px; margin-bottom:16px; color:var(--text); }
+.sub-head i{ color:var(--accent); }
+
+.btn-primary, .btn-secondary, .btn-danger{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:13.5px; font-weight:600; padding:10px 18px;
+  border-radius:999px; transition:all .18s var(--ease);
+  border:1px solid transparent;
+  box-shadow:var(--shadow-sm);
+}
+.btn-primary{ background:var(--accent); color:#0B0D10; }
+.btn-primary:hover{ filter:brightness(1.08); transform:translateY(-1px); box-shadow:var(--shadow); }
+.btn-primary:active{ transform:translateY(0); box-shadow:var(--shadow-in-sm); filter:brightness(1); }
+.btn-secondary{ background:var(--surface); border-color:var(--border); color:var(--text); }
+.btn-secondary:hover{ color:var(--accent); transform:translateY(-1px); box-shadow:var(--shadow); }
+.btn-secondary:active{ transform:translateY(0); box-shadow:var(--shadow-in-sm); }
+.btn-danger{ background:var(--surface); color:var(--red); }
+.btn-danger:hover{ background:color-mix(in srgb, var(--red) 14%, var(--surface)); transform:translateY(-1px); box-shadow:var(--shadow); }
+.btn-danger:active{ transform:translateY(0); box-shadow:var(--shadow-in-sm); }
+
+.settings-row{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:14px 0; flex-wrap:wrap;
+}
+.settings-row b{ font-size:13.5px; font-weight:600; }
+.settings-row p{ font-size:12.5px; color:var(--text-faint); margin-top:2px; }
+
+.switch{
+  width:44px; height:25px; border-radius:999px; background:var(--surface-2);
+  border:1px solid var(--border); box-shadow:var(--shadow-in-sm);
+  position:relative; flex-shrink:0; transition:background .25s var(--ease);
+}
+.switch .knob{
+  position:absolute; top:2px; left:2px; width:19px; height:19px; border-radius:50%;
+  background:var(--surface); box-shadow:var(--shadow-sm);
+  transition:transform .25s var(--ease), background .25s var(--ease);
+}
+.switch.on{ background:color-mix(in srgb, var(--accent) 22%, var(--surface-2)); }
+.switch.on .knob{ transform:translateX(19px); background:var(--accent); }
+
+.swatches{ display:flex; gap:10px; }
+.swatch{
+  width:28px; height:28px; border-radius:50%; border:2px solid transparent;
+  cursor:pointer; transition:transform .2s var(--ease), border-color .2s var(--ease);
+  box-shadow:inset 0 0 0 2px var(--surface), var(--shadow-sm);
+}
+.swatch:hover{ transform:scale(1.12); }
+.swatch.active{ border-color:var(--text); transform:scale(1.12); }
+
+.style-picker{ display:flex; gap:10px; flex-wrap:wrap; }
+.style-opt{
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  width:84px; padding:12px 8px;
+  border-radius:var(--radius-md);
+  background:var(--surface); border:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+  font-size:11.5px; color:var(--text-dim); text-align:center;
+  cursor:pointer; transition:all .2s var(--ease);
+}
+.style-opt i{ font-size:18px; color:var(--text-faint); transition:color .2s var(--ease); }
+.style-opt:hover{ color:var(--text); transform:translateY(-2px); }
+.style-opt.active{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow:var(--shadow-in-sm); }
+.style-opt.active i{ color:var(--accent); }
+
+.backup-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+/* ============================================================
+   AVATAR DROPDOWN
+   ============================================================ */
+.avatar-wrap{ position:relative; }
+.avatar{ border:1px solid var(--border); cursor:pointer; transition:border-color .2s; }
+.avatar:hover{ border-color:var(--accent); }
+.avatar-menu{
+  position:absolute; top:calc(100% + 12px); right:0; z-index:120;
+  width:250px;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md);
+  box-shadow:var(--shadow);
+  padding:16px;
+  opacity:0; visibility:hidden; transform:translateY(-8px);
+  transition:opacity .22s var(--ease), transform .22s var(--ease), visibility .22s;
+}
+.avatar-menu.open{ opacity:1; visibility:visible; transform:translateY(0); }
+.am-head{ display:flex; align-items:center; gap:10px; }
+.am-head div:last-child{ display:flex; flex-direction:column; min-width:0; }
+.am-head b{ font-size:13.5px; }
+.am-head span{ font-size:11.5px; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.am-lane{ height:2px; margin:14px 0 6px; background-image:repeating-linear-gradient(90deg, var(--dash-color) 0 10px, transparent 10px 18px); }
+.am-item{
+  display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:8px;
+  font-size:13px; color:var(--text-dim); transition:background .2s, color .2s;
+}
+.am-item i{ font-size:15px; color:var(--text-faint); }
+.am-item:hover{ box-shadow:var(--shadow-in-sm); color:var(--text); }
+.am-item.danger{ color:var(--red); margin-top:4px; }
+.am-item.danger i{ color:var(--red); }
+.am-item.danger:hover{ box-shadow:var(--shadow-in-sm); }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  padding:12px 20px; border-radius:999px; font-size:13.5px; font-weight:500;
+  display:flex; align-items:center; gap:9px; box-shadow:var(--shadow);
+  z-index:400; opacity:0; pointer-events:none; transition:opacity .3s var(--ease), transform .3s var(--ease);
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+.toast i{ color:var(--green); }
+.toast .toast-progress-track{
+  width:64px; height:5px; border-radius:999px; overflow:hidden;
+  background:var(--surface-2); box-shadow:var(--shadow-in-sm); flex-shrink:0; display:none;
+}
+.toast.has-progress .toast-progress-track{ display:block; }
+.toast .toast-progress-fill{
+  height:100%; width:0%; border-radius:999px; background:var(--accent);
+  transition:width .2s var(--ease);
+}
+@media (max-width:940px){ .toast{ bottom:calc(var(--bottom-nav-h) + 16px); } }
+
+/* ============================================================
+   BACKUP PROGRESS (SweetAlert2) — themed to match the dashboard
+   ============================================================ */
+.br-swal-popup{
+  background:var(--bg-elevated) !important; color:var(--text) !important;
+  border-radius:var(--radius-lg) !important; border:1px solid var(--border) !important;
+  box-shadow:var(--shadow) !important; padding-bottom:1.8em !important;
+}
+.br-swal-title{ color:var(--text) !important; font-family:'Outfit',sans-serif !important; font-size:19px !important; }
+.br-swal-popup .swal2-html-container{ margin-top:.6em !important; }
+.br-swal-popup .swal2-confirm{
+  background:var(--accent) !important; border-radius:999px !important;
+  box-shadow:none !important; font-family:'Outfit',sans-serif !important;
+}
+.br-swal-popup .swal2-timer-progress-bar{ background:var(--accent) !important; }
+
+@keyframes brSpin{ to{ transform:rotate(360deg); } }
+@keyframes brBreathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.08); } }
+@keyframes brDotPulse{ 0%,100%{ opacity:.4; transform:scale(.8); } 50%{ opacity:1; transform:scale(1.2); } }
+@keyframes brShimmer{ 0%{ transform:translateX(-120%); } 100%{ transform:translateX(320%); } }
+@keyframes brFillBump{ 0%{ filter:brightness(1); } 45%{ filter:brightness(1.4); } 100%{ filter:brightness(1); } }
+@keyframes brLabelSwap{ from{ opacity:0; transform:translateY(3px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes brRowIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes brCheckPop{ 0%{ transform:scale(.4); opacity:0; } 60%{ transform:scale(1.15); opacity:1; } 100%{ transform:scale(1); } }
+
+.br-progress-icon-wrap{
+  width:56px; height:56px; margin:0 auto 14px; position:relative;
+  display:flex; align-items:center; justify-content:center;
+}
+.br-progress-icon-wrap::before{
+  content:''; position:absolute; inset:0; border-radius:50%;
+  background:conic-gradient(from 0deg, var(--accent), transparent 65%, var(--accent));
+  animation:brSpin 1.5s linear infinite;
+  -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  transition:background .4s var(--ease);
+}
+.br-progress-icon-wrap.br-icon-done::before{ animation-play-state:paused; background:var(--green); }
+.br-progress-icon{
+  position:relative; z-index:1; width:42px; height:42px; border-radius:50%;
+  background:var(--surface-2); display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow-in-sm);
+  animation:brBreathe 1.8s ease-in-out infinite;
+}
+.br-progress-icon i{ font-size:19px; color:var(--accent); transition:color .3s var(--ease); }
+.br-progress-icon-wrap.br-icon-done .br-progress-icon i{ color:var(--green); animation:brCheckPop .4s var(--ease); }
+
+.br-current-row{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text-dim);
+  min-height:18px; margin-bottom:14px; text-align:center;
+}
+.br-current-dot{
+  width:6px; height:6px; border-radius:50%; background:var(--accent);
+  animation:brDotPulse 1s ease-in-out infinite; flex-shrink:0;
+}
+.br-current-label{ display:inline-block; }
+.br-current-label.br-fade-swap{ animation:brLabelSwap .3s var(--ease); }
+
+.br-progress-track{
+  position:relative; width:100%; height:9px; border-radius:999px;
+  background:var(--surface-2); box-shadow:var(--shadow-in-sm); overflow:hidden;
+}
+.br-progress-fill{
+  position:relative; height:100%; width:0%; border-radius:999px;
+  background:linear-gradient(90deg, var(--gold-dim), var(--gold), var(--accent));
+  transition:width .3s var(--ease), background .4s var(--ease);
+  overflow:hidden;
+}
+.br-progress-fill.br-bump{ animation:brFillBump .35s var(--ease); }
+.br-progress-fill.br-fill-done{
+  background:var(--green) !important;
+  box-shadow:0 0 12px 1px color-mix(in srgb, var(--green) 55%, transparent);
+}
+.br-shimmer{
+  position:absolute; top:0; left:0; height:100%; width:40%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation:brShimmer 1.4s linear infinite;
+}
+.br-progress-fill.br-fill-done .br-shimmer{ display:none; }
+
+.br-progress-meta{
+  display:flex; justify-content:space-between; margin-top:8px;
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-faint);
+}
+
+.br-progress-log{
+  margin-top:16px; display:flex; flex-direction:column; gap:6px;
+}
+.br-log-row{
+  display:flex; align-items:center; gap:8px;
+  font-size:11.5px; color:var(--text-dim);
+  background:var(--surface-2); border-radius:10px; padding:6px 10px;
+  animation:brRowIn .3s var(--ease);
+}
+.br-log-row i{ color:var(--green); font-size:13px; flex-shrink:0; }
+.br-log-row span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ============================================================
+   NOTIFICATIONS PAGE — additions on top of the BlackRoad
+   design system above (tokens / neumo / glass / flat / skeuo /
+   layout / card / panel / table / tile / login-screen CSS is
+   all reused as-is from blackroad-dashboard.html).
+   ============================================================ */
+
+/* This page has no sidebar, so .main shouldn't reserve space for one. */
+.main{ margin-left:0; }
+
+.notif-topbar-title{ display:flex; align-items:center; gap:14px; }
+.notif-back-btn{ text-decoration:none; border-radius:50% !important; }
+
+.style-picker.compact{ display:flex; gap:6px; padding:3px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); }
+.style-picker.compact .style-opt{
+  width:32px; height:32px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  background:transparent; border:1px solid transparent; box-shadow:none;
+}
+.style-picker.compact .style-opt i{ font-size:14px; }
+.style-picker.compact .style-opt.active{ background:var(--surface); border-color:var(--border); box-shadow:var(--shadow-sm); }
+
+#refreshIcon.br-spin, .br-spin{ display:inline-block; animation:brSpinIcon .8s linear infinite; }
+@keyframes brSpinIcon{ to{ transform:rotate(360deg); } }
+
+.notif-list{ display:flex; flex-direction:column; gap:10px; }
+.notif-item{
+  display:flex; align-items:center; gap:14px;
+  padding:14px 16px; border-radius:14px;
+  background:var(--surface); box-shadow:var(--shadow-sm);
+  transition:transform .15s var(--ease), box-shadow .15s var(--ease);
+}
+.notif-item:hover{ transform:translateY(-2px); box-shadow:var(--shadow); }
+.notif-item-body{ flex:1; min-width:0; }
+.notif-item-title{ font-size:13.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.notif-item-sub{ font-size:12px; color:var(--text-faint); margin-top:2px; }
+.notif-item-right{ text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0; }
+.notif-item-right b{ font-size:13.5px; font-family:'JetBrains Mono',monospace; }
+.notif-item-right .tag{ font-weight:600; }
+
+.tag.cached{ color:var(--text-faint); }
+.tag.live{ color:var(--green); }
+
+.empty-note{ text-align:center; color:var(--text-faint); padding:28px 12px; }
+.empty-note i{ font-size:22px; display:block; margin-bottom:8px; }
+.empty-note a{ color:var(--accent); font-weight:600; }
+
+@media (max-width:940px){
+  .notif-item{ padding:12px 14px; }
+  .notif-item-title{ font-size:13px; white-space:normal; }
+  .style-picker.compact{ display:none; } /* keep the mobile topbar uncluttered — theme still switches via toggle */
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH GATE — same session guard as blackroad-dashboard.html;
+     signed-out visitors are redirected to login.html before any
+     data loads. -->
+<div class="login-screen" id="authGate">
+  <div class="login-card" style="text-align:center;">
+    <div class="brand" style="padding:0 0 20px; justify-content:center;">
+      <div class="brand-mark" style="width:44px;height:44px;font-size:19px;">BR</div>
+      <div class="brand-name" style="font-size:22px;">Black<span>Road</span></div>
+    </div>
+    <div class="lane" style="margin-bottom:22px;"></div>
+    <p style="color:var(--text-faint);font-size:13.5px;">Checking your session…</p>
+  </div>
+</div>
+
+<div class="app">
+  <main class="main">
+    <div class="topbar">
+      <div class="notif-topbar-title">
+        <a class="icon-btn notif-back-btn" href="blackroad-dashboard.html" title="Back to Dashboard" aria-label="Back to Dashboard"><i class="bi bi-arrow-left"></i></a>
+        <div>
+          <div class="greet-eyebrow" id="notifGreet">Alerts &amp; reminders</div>
+          <div class="greet-title">Notifications</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="style-picker compact" id="stylePicker">
+          <button type="button" class="style-opt" data-style="neumo" title="Soft UI"><i class="bi bi-circle-square"></i></button>
+          <button type="button" class="style-opt" data-style="glass" title="Glass"><i class="bi bi-droplet-half"></i></button>
+          <button type="button" class="style-opt" data-style="flat" title="Flat"><i class="bi bi-square"></i></button>
+          <button type="button" class="style-opt" data-style="skeuo" title="Skeuomorphic"><i class="bi bi-box-fill"></i></button>
+        </div>
+        <button type="button" class="icon-btn" id="themeToggle" title="Toggle dark / light"><i class="bi bi-moon-stars-fill" id="themeIcon"></i></button>
+        <button type="button" class="icon-btn" id="refreshBtn" title="Refresh"><i class="bi bi-arrow-clockwise" id="refreshIcon"></i></button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="section-head">
+        <h3><i class="bi bi-bell-fill"></i> Today's Snapshot</h3>
+        <p id="lastUpdatedText">Loading…</p>
+      </div>
+      <div class="tile-grid" id="summaryTiles" style="margin-bottom:28px;"></div>
+
+      <!-- STOCKS -->
+      <section class="panel card in-view" id="stocksNotifPanel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <span class="pi"><i class="bi bi-graph-up-arrow"></i></span>
+            <div><h3>Stocks — Live LTP</h3><span id="stocksSubtext">Loading…</span></div>
+          </div>
+          <div class="panel-total"><b class="mono" id="stocksDayPnl">₹0</b><small>Today's P&amp;L</small></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Stock</th><th>Qty</th><th>Avg</th><th>LTP</th><th>Day Chg</th><th>Day P&amp;L</th><th>Overall</th></tr></thead>
+            <tbody id="stocksNotifBody"><tr><td colspan="7"><div class="empty-note">Loading live prices…</div></td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- MUTUAL FUNDS -->
+      <section class="panel card in-view" id="mfNotifPanel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <span class="pi"><i class="bi bi-pie-chart-fill"></i></span>
+            <div><h3>Mutual Funds — Live NAV</h3><span id="mfSubtext">Loading…</span></div>
+          </div>
+          <div class="panel-total"><b class="mono" id="mfDayPnl">₹0</b><small>Today's P&amp;L</small></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Fund</th><th>NAV</th><th>Day Chg</th><th>Day P&amp;L</th><th>Invested</th><th>Overall</th></tr></thead>
+            <tbody id="mfNotifBody"><tr><td colspan="6"><div class="empty-note">Loading live NAV…</div></td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- DUE & REMINDERS -->
+      <section class="panel card in-view" id="dueNotifPanel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <span class="pi"><i class="bi bi-calendar-event-fill"></i></span>
+            <div><h3>Due &amp; Reminders</h3><span id="dueSubtext">Loading…</span></div>
+          </div>
+        </div>
+        <div class="notif-list" id="dueList"><div class="empty-note">Loading reminders…</div></div>
+      </section>
+
+    </div>
+
+    <footer>
+      <div class="lane" style="margin-bottom:22px;"></div>
+      <div class="footer-inner">
+        <div class="dev"><i class="bi bi-code-slash"></i> Developed by <b>Microintel</b></div>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<div class="toast" id="toast"><i class="bi bi-check-circle-fill"></i><span id="toastMsg"></span></div>
+
+<script>
+/* ============================================================
+   AUTH GATE — same BRAuth session check as blackroad-dashboard.html.
+   ============================================================ */
+const authGate = document.getElementById('authGate');
+(async () => {
+  try {
+    const user = await BRAuth.requireAuth('login.html');
+    if (!user) return; // already redirecting to login.html
+    const name = user.guest ? 'Guest' : (user.name || 'BlackRoad User');
+    const greetEl = document.getElementById('notifGreet');
+    if (greetEl) greetEl.textContent = `Hi ${name.split(' ')[0]} — here's what needs your attention`;
+  } catch (e) {
+    console.error('Auth check failed', e);
+  }
+  authGate.classList.add('hidden');
+})();
+
+/* ============================================================
+   THEME + STYLE SYSTEM — identical keys/attrs to the dashboard
+   ('br-theme' / 'br_style' in localStorage, data-theme / data-style
+   on <html>), so switching here also carries over next time the
+   dashboard itself is opened, and vice versa.
+   ============================================================ */
+const html = document.documentElement;
+const themeToggleBtn = document.getElementById('themeToggle');
+
+function applyTheme(mode, persist = true) {
+  html.setAttribute('data-theme', mode);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = mode === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
+  if (persist) { try { localStorage.setItem('br-theme', mode); } catch (e) {} }
+}
+function toggleTheme() {
+  applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+themeToggleBtn.addEventListener('click', toggleTheme);
+applyTheme(html.getAttribute('data-theme'), false);
+
+const styleOpts = document.querySelectorAll('.style-opt');
+function applyStyle(style, persist = true) {
+  html.setAttribute('data-style', style);
+  styleOpts.forEach(b => b.classList.toggle('active', b.dataset.style === style));
+  if (persist) { try { localStorage.setItem('br_style', style); } catch (e) {} }
+}
+styleOpts.forEach(b => b.addEventListener('click', () => applyStyle(b.dataset.style)));
+applyStyle(html.getAttribute('data-style') || 'neumo', false);
+
+/* ============================================================
+   TOAST (simplified — no progress bar needed on this page)
+   ============================================================ */
+function showToast(msg, icon) {
+  const el = document.getElementById('toast');
+  const i = el.querySelector('i');
+  if (i) i.className = 'bi ' + (icon || 'bi-check-circle-fill');
+  document.getElementById('toastMsg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* ============================================================
+   SHARED FORMAT / DATE HELPERS
+   ============================================================ */
+function formatINR(n) {
+  const num = Number(n) || 0;
+  const sign = num < 0 ? '-' : '';
+  return sign + '₹' + Math.abs(Math.round(num)).toLocaleString('en-IN');
+}
+function formatPct(n) {
+  const num = Number(n) || 0;
+  return (num >= 0 ? '+' : '') + num.toFixed(2) + '%';
+}
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function daysUntil(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return null;
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((d - t) / 86400000);
+}
+function addMonthsISO(dateStr, months) {
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return null;
+  d.setMonth(d.getMonth() + Number(months || 0));
+  return d.toISOString().slice(0, 10);
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* ============================================================
+   STOCKS — read-only mirror of the Stocks app's IndexedDB.
+   Exact same DB/store/replay logic as blackroad-dashboard.html's
+   StocksStore (IndexedDB "blackStocks", store "state", keys
+   'transactions' + 'prices'). Read-only here — all edits stay in
+   /stocks/. Nothing about that app's own files is touched.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  const DB_NAME = "blackStocks", DB_VERSION = 1, STORE = "state";
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+  function idbGet(db, key) {
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(STORE, "readonly").objectStore(STORE).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function getRaw() {
+    try {
+      const db = await openDB();
+      const [transactions, prices] = await Promise.all([idbGet(db, "transactions"), idbGet(db, "prices")]);
+      db.close();
+      return { transactions: transactions || [], prices: prices || {} };
+    } catch (e) {
+      console.error("StocksStore: couldn't open blackStocks DB", e);
+      return { transactions: [], prices: {} };
+    }
+  }
+  function getSymbolTxns(symbol, txns) {
+    return txns.filter(t => t.symbol === symbol)
+      .sort((a, b) => (a.date === b.date ? a.seq - b.seq : a.date < b.date ? -1 : 1));
+  }
+  function replaySymbol(symbol, txns) {
+    const list = getSymbolTxns(symbol, txns);
+    let qty = 0, totalCost = 0, realizedPnL = 0;
+    for (const t of list) {
+      if (t.type === "BUY") { totalCost += t.quantity * t.price; qty += t.quantity; }
+      else {
+        if (t.quantity > qty) continue;
+        const avgCostAtSale = qty > 0 ? totalCost / qty : 0;
+        const costBasis = avgCostAtSale * t.quantity;
+        realizedPnL += t.quantity * t.price - costBasis;
+        totalCost -= costBasis; qty -= t.quantity;
+      }
+    }
+    return { quantity: qty, avgPrice: qty > 0 ? totalCost / qty : 0, investedValue: qty > 0 ? totalCost : 0, realizedPnL };
+  }
+  function getPrice(symbol, txns, prices) {
+    if (prices[symbol] !== undefined && prices[symbol] !== null) return prices[symbol];
+    const list = getSymbolTxns(symbol, txns);
+    return list.length ? list[list.length - 1].price : 0;
+  }
+  function getName(symbol, txns) {
+    const list = getSymbolTxns(symbol, txns);
+    return list.length ? list[list.length - 1].name : symbol;
+  }
+  async function getHoldings() {
+    const { transactions, prices } = await getRaw();
+    const symbols = [...new Set(transactions.map(t => t.symbol))];
+    return symbols.map(symbol => {
+      const r = replaySymbol(symbol, transactions);
+      const currentPrice = getPrice(symbol, transactions, prices);
+      const currentValue = r.quantity * currentPrice;
+      const pnl = currentValue - r.investedValue;
+      const pnlPct = r.investedValue > 0 ? (pnl / r.investedValue) * 100 : 0;
+      return { symbol, name: getName(symbol, transactions), quantity: r.quantity, avgPrice: r.avgPrice, currentPrice, investedValue: r.investedValue, currentValue, pnl, pnlPct };
+    }).filter(h => h.quantity > 0);
+  }
+  global.NotifStocksStore = { getHoldings };
+})(window);
+
+/* Live LTP + daily-close history — same Vercel endpoint the Stocks
+   app itself uses to refresh prices (indian-stock-ltp). */
+const LTP_API_BASE = 'https://indian-stock-ltp.vercel.app/api/ltp';
+const CHART_API_BASE = 'https://indian-stock-ltp.vercel.app/api/chart';
+
+async function fetchLTP(symbol) {
+  const res = await fetch(`${LTP_API_BASE}?symbol=${encodeURIComponent(symbol)}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+  return data.ltp;
+}
+async function fetchPrevClose(symbol) {
+  try {
+    const res = await fetch(`${CHART_API_BASE}?symbol=${encodeURIComponent(symbol)}`);
+    const data = await res.json();
+    if (!res.ok) return null;
+    const hist = Array.isArray(data.history) ? data.history : [];
+    if (!hist.length) return null;
+    const last = hist[hist.length - 1];
+    if (last.date === todayISO() && hist.length > 1) return hist[hist.length - 2].close;
+    return last.close;
+  } catch (e) { return null; }
+}
+
+async function loadStocksNotifications() {
+  const tbody = document.getElementById('stocksNotifBody');
+  const subtext = document.getElementById('stocksSubtext');
+  const dayPnlEl = document.getElementById('stocksDayPnl');
+  try {
+    const holdings = await NotifStocksStore.getHoldings();
+    if (!holdings.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-note"><i class="bi bi-graph-up"></i>No stock holdings yet — <a href="stocks/index.html">add a transaction</a>.</div></td></tr>`;
+      subtext.textContent = 'No holdings';
+      dayPnlEl.textContent = formatINR(0);
+      dayPnlEl.style.color = '';
+      return { dayPnl: 0 };
+    }
+    subtext.textContent = `Fetching live LTP for ${holdings.length} holding${holdings.length === 1 ? '' : 's'}…`;
+
+    const enriched = await Promise.all(holdings.map(async h => {
+      let ltp = h.currentPrice, live = false;
+      try { const l = await fetchLTP(h.symbol); if (l !== null && l !== undefined) { ltp = l; live = true; } } catch (e) {}
+      let prevClose = await fetchPrevClose(h.symbol);
+      if (prevClose === null || prevClose === undefined) prevClose = ltp;
+      const dayChange = ltp - prevClose;
+      const dayChangePct = prevClose ? (dayChange / prevClose) * 100 : 0;
+      const dayPnl = dayChange * h.quantity;
+      const currentValue = ltp * h.quantity;
+      const overallPnl = currentValue - h.investedValue;
+      const overallPnlPct = h.investedValue ? (overallPnl / h.investedValue) * 100 : 0;
+      return { ...h, ltp, dayChangePct, dayPnl, overallPnl, overallPnlPct, currentValue, live };
+    }));
+
+    const totalDayPnl = enriched.reduce((s, r) => s + r.dayPnl, 0);
+    dayPnlEl.textContent = formatINR(totalDayPnl);
+    dayPnlEl.style.color = totalDayPnl >= 0 ? 'var(--green)' : 'var(--red)';
+    const liveCount = enriched.filter(r => r.live).length;
+    subtext.textContent = `${enriched.length} holding${enriched.length === 1 ? '' : 's'} · ${liveCount} live`;
+
+    const frag = document.createDocumentFragment();
+    enriched.sort((a, b) => b.currentValue - a.currentValue).forEach(r => {
+      const dayUp = r.dayPnl >= 0, ovUp = r.overallPnl >= 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="row-name" data-label="Stock"><span class="row-icon"><i class="bi bi-graph-up"></i></span>${escapeHtml(r.name || r.symbol)}</td>
+        <td class="mono-cell" data-label="Qty">${r.quantity}</td>
+        <td class="mono-cell" data-label="Avg">${formatINR(r.avgPrice)}</td>
+        <td class="mono-cell" data-label="LTP">${formatINR(r.ltp)} <span class="tag ${r.live ? 'live' : 'cached'}">${r.live ? 'live' : 'cached'}</span></td>
+        <td class="mono-cell ${dayUp ? 'pos' : 'neg'}" data-label="Day Chg">${formatPct(r.dayChangePct)}</td>
+        <td class="mono-cell ${dayUp ? 'pos' : 'neg'}" data-label="Day P&amp;L">${dayUp ? '+' : ''}${formatINR(r.dayPnl)}</td>
+        <td class="mono-cell ${ovUp ? 'pos' : 'neg'}" data-label="Overall">${formatPct(r.overallPnlPct)}</td>`;
+      frag.appendChild(tr);
+    });
+    tbody.innerHTML = '';
+    tbody.appendChild(frag);
+    return { dayPnl: totalDayPnl };
+  } catch (e) {
+    console.error('Notifications: stocks load failed', e);
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-note"><i class="bi bi-wifi-off"></i>Couldn't load stock data.</div></td></tr>`;
+    subtext.textContent = 'Load failed';
+    return { dayPnl: 0 };
+  }
+}
+
+/* ============================================================
+   MUTUAL FUNDS — read-only mirror of the Step-Up SIP tracker's
+   IndexedDB ("sip-compounder"), same as blackroad-dashboard.html's
+   MutualFundStore, extended to also surface each SIP's linked
+   mfapi.in scheme code so we can pull live NAV.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  const MF_DB_NAME = "sip-compounder", MF_DB_VERSION = 2;
+  let mfDbPromise = null;
+
+  function mfOpenDB() {
+    if (mfDbPromise) return mfDbPromise;
+    mfDbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(MF_DB_NAME, MF_DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("settings")) db.createObjectStore("settings", { keyPath: "id" });
+        if (!db.objectStoreNames.contains("entries")) db.createObjectStore("entries", { keyPath: "id", autoIncrement: true });
+        if (!db.objectStoreNames.contains("profiles")) db.createObjectStore("profiles", { keyPath: "id", autoIncrement: true });
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+    return mfDbPromise;
+  }
+  async function mfGetAllProfiles() {
+    const db = await mfOpenDB();
+    return new Promise((resolve, reject) => {
+      if (!db.objectStoreNames.contains("profiles")) { resolve([]); return; }
+      const req = db.transaction("profiles", "readonly").objectStore("profiles").getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function mfGetEntriesForProfile(profileId) {
+    const db = await mfOpenDB();
+    return new Promise((resolve, reject) => {
+      if (!db.objectStoreNames.contains("entries")) { resolve([]); return; }
+      const req = db.transaction("entries", "readonly").objectStore("entries").getAll();
+      req.onsuccess = () => resolve((req.result || []).filter(e => e.profileId === profileId));
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function mfGetSettingsForProfile(profileId) {
+    const db = await mfOpenDB();
+    return new Promise((resolve, reject) => {
+      if (!db.objectStoreNames.contains("settings")) { resolve(null); return; }
+      const req = db.transaction("settings", "readonly").objectStore("settings").get(profileId);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function mfGetSummary() {
+    const profiles = await mfGetAllProfiles();
+    const sips = [];
+    for (const p of profiles) {
+      const [entries, settings] = await Promise.all([mfGetEntriesForProfile(p.id), mfGetSettingsForProfile(p.id)]);
+      if (!entries.length) continue;
+      const sorted = entries.slice().sort((a, b) => a.date.localeCompare(b.date));
+      const latest = sorted[sorted.length - 1];
+      const invested = latest.investedAmount || 0;
+      const currentValue = latest.portfolioValue || 0;
+      const pnl = currentValue - invested;
+      const pnlPct = invested ? (pnl / invested) * 100 : 0;
+      sips.push({
+        id: p.id, name: settings?.linkedFund?.schemeName || p.name || 'SIP',
+        schemeCode: settings?.linkedFund?.schemeCode || null,
+        invested, currentValue, pnl, pnlPct, lastDate: latest.date,
+      });
+    }
+    if (!sips.length) return { hasData: false, sips: [] };
+    return { hasData: true, sips };
+  }
+  global.NotifMutualFundStore = { getSummary: mfGetSummary };
+})(window);
+
+/* Live NAV — same mfapi.in endpoint the Step-Up app uses to sync. */
+const MFAPI_BASE = 'https://api.mfapi.in/mf';
+function mfapiDateToIso(d) { const [dd, mm, yyyy] = d.split('-'); return `${yyyy}-${mm}-${dd}`; }
+async function fetchMfapiNav(schemeCode) {
+  const res = await fetch(`${MFAPI_BASE}/${schemeCode}`);
+  if (!res.ok) throw new Error(`mfapi request failed (${res.status})`);
+  const json = await res.json();
+  const data = (Array.isArray(json.data) ? json.data.slice() : [])
+    .sort((a, b) => mfapiDateToIso(a.date).localeCompare(mfapiDateToIso(b.date)));
+  return { schemeName: json.meta?.scheme_name, navHistory: data };
+}
+
+async function loadMfNotifications() {
+  const tbody = document.getElementById('mfNotifBody');
+  const subtext = document.getElementById('mfSubtext');
+  const dayPnlEl = document.getElementById('mfDayPnl');
+  try {
+    const summary = await NotifMutualFundStore.getSummary();
+    if (!summary.hasData) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-note"><i class="bi bi-pie-chart"></i>No SIPs yet — <a href="stepUp/index.html">add one</a>.</div></td></tr>`;
+      subtext.textContent = 'No SIPs';
+      dayPnlEl.textContent = formatINR(0);
+      dayPnlEl.style.color = '';
+      return { dayPnl: 0 };
+    }
+    subtext.textContent = `Fetching live NAV for ${summary.sips.length} fund${summary.sips.length === 1 ? '' : 's'}…`;
+
+    const enriched = await Promise.all(summary.sips.map(async sip => {
+      let latestNav = null, dayChangePct = 0, dayPnl = 0, live = false;
+      if (sip.schemeCode) {
+        try {
+          const { navHistory } = await fetchMfapiNav(sip.schemeCode);
+          if (navHistory.length >= 2) {
+            latestNav = parseFloat(navHistory[navHistory.length - 1].nav);
+            const prevNav = parseFloat(navHistory[navHistory.length - 2].nav);
+            if (prevNav) {
+              dayChangePct = ((latestNav - prevNav) / prevNav) * 100;
+              dayPnl = sip.currentValue * (dayChangePct / 100);
+              live = true;
+            }
+          } else if (navHistory.length === 1) {
+            latestNav = parseFloat(navHistory[0].nav);
+          }
+        } catch (e) { /* leave as not-live, still show static figures */ }
+      }
+      return { ...sip, latestNav, dayChangePct, dayPnl, live };
+    }));
+
+    const totalDayPnl = enriched.reduce((s, r) => s + (r.dayPnl || 0), 0);
+    dayPnlEl.textContent = formatINR(totalDayPnl);
+    dayPnlEl.style.color = totalDayPnl >= 0 ? 'var(--green)' : 'var(--red)';
+    const liveCount = enriched.filter(r => r.live).length;
+    subtext.textContent = `${enriched.length} SIP${enriched.length === 1 ? '' : 's'} · ${liveCount} with live NAV`;
+
+    const frag = document.createDocumentFragment();
+    enriched.sort((a, b) => b.currentValue - a.currentValue).forEach(r => {
+      const dayUp = r.dayPnl >= 0, ovUp = r.pnl >= 0;
+      const navCell = r.latestNav != null ? formatINR(r.latestNav) : '—';
+      const dayChgCell = r.live ? `<span class="${dayUp ? 'pos' : 'neg'}">${formatPct(r.dayChangePct)}</span>` : '<span class="tag cached">no live NAV</span>';
+      const dayPnlCell = r.live ? `<span class="${dayUp ? 'pos' : 'neg'}">${dayUp ? '+' : ''}${formatINR(r.dayPnl)}</span>` : '—';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="row-name" data-label="Fund"><span class="row-icon"><i class="bi bi-pie-chart-fill"></i></span>${escapeHtml(r.name)}</td>
+        <td class="mono-cell" data-label="NAV">${navCell}</td>
+        <td class="mono-cell" data-label="Day Chg">${dayChgCell}</td>
+        <td class="mono-cell" data-label="Day P&amp;L">${dayPnlCell}</td>
+        <td class="mono-cell" data-label="Invested">${formatINR(r.invested)}</td>
+        <td class="mono-cell ${ovUp ? 'pos' : 'neg'}" data-label="Overall">${formatPct(r.pnlPct)}</td>`;
+      frag.appendChild(tr);
+    });
+    tbody.innerHTML = '';
+    tbody.appendChild(frag);
+    return { dayPnl: totalDayPnl };
+  } catch (e) {
+    console.error('Notifications: MF load failed', e);
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-note"><i class="bi bi-wifi-off"></i>Couldn't load mutual fund data.</div></td></tr>`;
+    subtext.textContent = 'Load failed';
+    return { dayPnl: 0 };
+  }
+}
+
+/* ============================================================
+   DUE & REMINDERS — loan EMIs + person-to-person dues (read-only
+   mirror of "LendLedger") and FD maturities (read-only mirror of
+   "BlackRoadFD"). Same math the Loans and Fixed Deposits pages
+   themselves use to derive next-due / maturity dates.
+   ============================================================ */
+const LL_DB_NAME = "LendLedger", LL_DB_VERSION = 3;
+function llOpenDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(LL_DB_NAME, LL_DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('parties')) db.createObjectStore('parties', { keyPath: 'id', autoIncrement: true });
+      if (!db.objectStoreNames.contains('entries')) { const es = db.createObjectStore('entries', { keyPath: 'id', autoIncrement: true }); es.createIndex('partyId', 'partyId', { unique: false }); }
+      if (!db.objectStoreNames.contains('loans')) db.createObjectStore('loans', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+function llGetAll(db, store) {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(store, 'readonly').objectStore(store).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+function loanPaidSoFar(r) { return (r.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0); }
+function loanOutstanding(r) { return Math.max(0, (Number(r.principal) || 0) - loanPaidSoFar(r)); }
+function loanInstallmentsCovered(r) {
+  const emi = Number(r.emiAmount) || 0;
+  if (emi <= 0) return (r.payments || []).length;
+  return Math.floor((loanPaidSoFar(r) / emi) + 1e-9);
+}
+function loanNextDue(r) {
+  if (loanOutstanding(r) <= 0) return null;
+  return addMonthsISO(r.date, loanInstallmentsCovered(r));
+}
+async function getLendingDueItems() {
+  try {
+    const db = await llOpenDB();
+    const [loans, entries, parties] = await Promise.all([llGetAll(db, 'loans'), llGetAll(db, 'entries'), llGetAll(db, 'parties')]);
+    const partyName = {}; parties.forEach(p => partyName[p.id] = p.name || 'Contact');
+    const items = [];
+    loans.forEach(r => {
+      const out = loanOutstanding(r);
+      if (out <= 0) return;
+      const due = loanNextDue(r);
+      if (!due) return;
+      items.push({ title: `${escapeHtml(r.lender || 'Loan')} — EMI due`, amount: Number(r.emiAmount) || 0, date: due, icon: 'bi-bank2', link: 'lending/loans.html' });
+    });
+    entries.forEach(e => {
+      if (!e.dueDate) return;
+      const label = e.type === 'gave' ? 'expected back from' : 'you owe';
+      items.push({ title: `${label} ${escapeHtml(partyName[e.partyId] || 'contact')}`, amount: Number(e.amount) || 0, date: e.dueDate, icon: 'bi-people-fill', link: 'lending/index.html' });
+    });
+    return items;
+  } catch (e) {
+    console.error('Notifications: lending due items failed', e);
+    return [];
+  }
+}
+
+const FD_DB_NAME = "BlackRoadFD", FD_DB_VERSION = 1;
+function fdOpenDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(FD_DB_NAME, FD_DB_VERSION);
+    req.onupgradeneeded = (e) => { const db = e.target.result; if (!db.objectStoreNames.contains('deposits')) db.createObjectStore('deposits', { keyPath: 'id', autoIncrement: true }); };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+function fdGetAll(db) {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction('deposits', 'readonly').objectStore('deposits').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+const FD_COMPOUNDS = { quarterly: 4, monthly: 12, yearly: 1, simple: 0 };
+function fdYearsBetween(fromISO, toISO) {
+  const a = new Date(fromISO + 'T00:00:00'), b = new Date(toISO + 'T00:00:00');
+  if (isNaN(a) || isNaN(b)) return 0;
+  return Math.max(0, (b - a) / (365.25 * 86400000));
+}
+function fdGrow(principal, ratePct, years, compounding) {
+  const P = Number(principal) || 0, r = Number(ratePct) || 0;
+  if (P <= 0 || years <= 0) return P;
+  const n = FD_COMPOUNDS[compounding] ?? 4;
+  if (n === 0) return P * (1 + (r * years) / 100);
+  return P * Math.pow(1 + r / (100 * n), n * years);
+}
+function fdMaturity(row) {
+  const tenureMonths = Number(row.tenureMonths) || 0;
+  const maturityDate = row.startDate ? addMonthsISO(row.startDate, tenureMonths) : null;
+  const maturityAmount = maturityDate ? fdGrow(row.principal, row.interestRate, tenureMonths / 12, row.compounding || 'quarterly') : Number(row.principal) || 0;
+  return { maturityDate, maturityAmount };
+}
+async function getFdDueItems() {
+  try {
+    const db = await fdOpenDB();
+    const rows = await fdGetAll(db);
+    const items = [];
+    rows.forEach(r => {
+      if (r.status === 'closed') return;
+      const m = fdMaturity(r);
+      if (!m.maturityDate) return;
+      items.push({ title: `${escapeHtml(r.bankName || 'Fixed Deposit')} — matures`, amount: m.maturityAmount, date: m.maturityDate, icon: 'bi-safe2-fill', link: 'fd/fixed-deposits.html' });
+    });
+    return items;
+  } catch (e) {
+    console.error('Notifications: FD due items failed', e);
+    return [];
+  }
+}
+
+const STATUS_META = {
+  overdue: { label: 'Overdue', color: 'var(--red)' },
+  'due-soon': { label: 'Due soon', color: 'var(--gold)' },
+  upcoming: { label: 'Upcoming', color: 'var(--green)' },
+};
+async function loadDueNotifications() {
+  const list = document.getElementById('dueList');
+  const subtext = document.getElementById('dueSubtext');
+  list.innerHTML = `<div class="empty-note">Loading reminders…</div>`;
+  const [lendingItems, fdItems] = await Promise.all([getLendingDueItems(), getFdDueItems()]);
+  const items = [...lendingItems, ...fdItems].map(it => {
+    const days = daysUntil(it.date);
+    const status = days < 0 ? 'overdue' : days <= 7 ? 'due-soon' : 'upcoming';
+    return { ...it, days, status };
+  }).sort((a, b) => a.date.localeCompare(b.date));
+
+  subtext.textContent = items.length ? `${items.length} upcoming item${items.length === 1 ? '' : 's'}` : 'All clear';
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-note"><i class="bi bi-check-circle" style="color:var(--green);"></i>No upcoming dues or maturities.</div>`;
+    return { overdueCount: 0 };
+  }
+
+  const frag = document.createDocumentFragment();
+  items.forEach(it => {
+    const meta = STATUS_META[it.status];
+    const when = it.days < 0 ? `${Math.abs(it.days)}d overdue` : it.days === 0 ? 'Today' : `in ${it.days}d`;
+    const row = document.createElement('a');
+    row.className = 'notif-item';
+    row.href = it.link || '#';
+    row.innerHTML = `
+      <span class="row-icon" style="color:${meta.color}"><i class="bi ${it.icon}"></i></span>
+      <div class="notif-item-body">
+        <div class="notif-item-title">${it.title}</div>
+        <div class="notif-item-sub">${it.date} · ${when}</div>
+      </div>
+      <div class="notif-item-right">
+        <b>${formatINR(it.amount)}</b>
+        <span class="tag" style="color:${meta.color}">${meta.label}</span>
+      </div>`;
+    frag.appendChild(row);
+  });
+  list.innerHTML = '';
+  list.appendChild(frag);
+  return { overdueCount: items.filter(i => i.status === 'overdue').length };
+}
+
+/* ============================================================
+   SUMMARY TILES + MASTER REFRESH
+   ============================================================ */
+function renderSummaryTiles({ stocksDayPnl, mfDayPnl, overdueCount }) {
+  const total = stocksDayPnl + mfDayPnl;
+  const defs = [
+    { label: "Today's Total P&L", value: formatINR(total), up: total >= 0, icon: 'bi-graph-up-arrow' },
+    { label: 'Stocks Day P&L', value: formatINR(stocksDayPnl), up: stocksDayPnl >= 0, icon: 'bi-bar-chart-line-fill' },
+    { label: 'Mutual Funds Day P&L', value: formatINR(mfDayPnl), up: mfDayPnl >= 0, icon: 'bi-pie-chart-fill' },
+    { label: 'Dues Needing Attention', value: String(overdueCount), up: overdueCount === 0, icon: 'bi-exclamation-circle-fill' },
+  ];
+  document.getElementById('summaryTiles').innerHTML = defs.map(t => `
+    <div class="tile card in-view" style="cursor:default;">
+      <div class="tile-icon" style="background:color-mix(in srgb, ${t.up ? 'var(--green)' : 'var(--red)'} 16%, transparent); color:${t.up ? 'var(--green)' : 'var(--red)'};"><i class="bi ${t.icon}"></i></div>
+      <div class="tile-body">
+        <div class="tile-name">${t.label}</div>
+        <div class="tile-value">${t.value}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function refreshAll() {
+  const icon = document.getElementById('refreshIcon');
+  icon.classList.add('br-spin');
+  try {
+    const [stocksRes, mfRes, dueRes] = await Promise.all([loadStocksNotifications(), loadMfNotifications(), loadDueNotifications()]);
+    renderSummaryTiles({ stocksDayPnl: stocksRes.dayPnl || 0, mfDayPnl: mfRes.dayPnl || 0, overdueCount: dueRes.overdueCount || 0 });
+    document.getElementById('lastUpdatedText').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    showToast('Notifications refreshed', 'bi-check-circle-fill');
+  } catch (e) {
+    console.error('Notifications: refresh failed', e);
+    showToast("Couldn't refresh everything — check your connection", 'bi-exclamation-triangle-fill');
+  } finally {
+    icon.classList.remove('br-spin');
+  }
+}
+document.getElementById('refreshBtn').addEventListener('click', refreshAll);
+window.addEventListener('focus', refreshAll);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAll(); });
+refreshAll();
+</script></body></html>
