@@ -18,7 +18,10 @@
 (function (global) {
   "use strict";
 
-  const DB_NAME = "BlackRoadFD";
+  const DB_NAME_BASE = "BlackRoadFD";
+  // Namespaced per signed-in user so two accounts on the same browser never
+  // share fixed deposits (see BRAuth.scopeSuffix in ../auth.js).
+  const DB_NAME = global.BRAuth ? DB_NAME_BASE + "::" + global.BRAuth.scopeSuffix() : DB_NAME_BASE;
   const DB_VERSION = 1;
   const STORE = "deposits";
   const CHANNEL_NAME = "blackroad-deposits-sync";
@@ -78,6 +81,7 @@
   }
 
   async function add(fd) {
+    if (global.BRAuth) global.BRAuth.assertCanWrite();
     const s = await store("readwrite");
     const now = new Date().toISOString();
     const record = Object.assign({ status: "active", createdAt: now, updatedAt: now }, fd);
@@ -91,6 +95,7 @@
   }
 
   async function update(id, changes) {
+    if (global.BRAuth) global.BRAuth.assertCanWrite();
     const s = await store("readwrite");
     const updated = await new Promise((resolve, reject) => {
       const getReq = s.get(id);
@@ -111,6 +116,7 @@
   /* put() accepts a full record (with or without an id) — used by
      import/restore, mirroring shared.js's putLoan()/putParty() style. */
   async function put(fd) {
+    if (global.BRAuth) global.BRAuth.assertCanWrite();
     const s = await store("readwrite");
     const now = new Date().toISOString();
     const record = Object.assign({ status: "active", createdAt: now, updatedAt: now }, fd);
@@ -124,6 +130,7 @@
   }
 
   async function remove(id) {
+    if (global.BRAuth) global.BRAuth.assertCanWrite();
     const s = await store("readwrite");
     await new Promise((resolve, reject) => {
       const req = s.delete(id);

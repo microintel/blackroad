@@ -174,6 +174,12 @@
 
 <div id="toast"></div>
 
+<script src="../auth.js"></script>
+<script>
+  (function () {
+    if (window.BRAuth) BRAuth.guardSubAppPage("../login.html");
+  })();
+</script>
 <script src="deposits-store.js"></script>
 <script>
 /* =========================================================
@@ -433,6 +439,11 @@ function openFdDialog(id) {
 
 document.getElementById("fdForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to save deposits — guest mode is view-only.");
+    closeDialog("fdDialog");
+    return;
+  }
   const record = {
     bankName: document.getElementById("fdBank").value.trim(),
     principal: parseFloat(document.getElementById("fdPrincipal").value) || 0,
@@ -475,6 +486,11 @@ function openCloseDialog(id) {
 
 document.getElementById("closeForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to save changes — guest mode is view-only.");
+    closeDialog("closeDialog");
+    return;
+  }
   const closedAmount = parseFloat(document.getElementById("closeAmount").value) || 0;
   const closedDate = document.getElementById("closeDate").value;
   try {
@@ -502,6 +518,12 @@ function confirmDeleteFd(id) {
 
 document.getElementById("confirmYesBtn").addEventListener("click", async () => {
   if (pendingDeleteId == null) return;
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to delete deposits — guest mode is view-only.");
+    pendingDeleteId = null;
+    closeDialog("confirmDialog");
+    return;
+  }
   try {
     await DepositsStore.remove(pendingDeleteId);
     showToast("Deposit deleted");
@@ -517,10 +539,14 @@ document.getElementById("confirmYesBtn").addEventListener("click", async () => {
 /* ---------- Import / Export (backup of this page's deposits store) ---------- */
 
 function collectExportPayload() {
-  return DepositsStore.getAll().then((deposits) => ({
+  return Promise.all([
+    DepositsStore.getAll(),
+    window.BRAuth ? BRAuth.currentUser() : Promise.resolve(null),
+  ]).then(([deposits, owner]) => ({
     app: "BlackRoad Fixed Deposits",
     version: 1,
     exportedAt: new Date().toISOString(),
+    exportedBy: owner ? { name: owner.name, email: owner.email } : null,
     deposits,
   }));
 }
@@ -544,6 +570,10 @@ function exportData() {
 
 function importDataFromFile(file) {
   if (!file) return;
+  if (window.BRAuth && BRAuth.isGuestSync()) {
+    showToast("Sign in to import data — guest mode is view-only.");
+    return;
+  }
   const reader = new FileReader();
   reader.onload = () => {
     let data;
