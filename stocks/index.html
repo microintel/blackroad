@@ -79,10 +79,44 @@
         <div class="sub" id="viewSub">Your holdings, calculated from transaction history</div>
       </div>
       <div class="topbar-actions">
-        <button class="btn" id="refreshPricesBtn" title="Fetch live LTP for all holdings"><i data-lucide="refresh-cw"></i>Refresh prices</button>
+        <button class="btn" id="refreshPricesBtn" title="Get today's prices for everything you hold"><i data-lucide="refresh-cw"></i>Update prices</button>
         <button class="btn btn-primary" id="addTxnBtn"><i data-lucide="plus"></i>Add transaction</button>
       </div>
     </div>
+
+    <!-- STOCK DETAIL — opens inline in this same page, never a popup window -->
+    <section class="inline-detail" id="inlineDetailPanel">
+      <button class="inline-detail-back" id="detailBackBtn" type="button"><i data-lucide="arrow-left"></i>Back</button>
+      <h2 class="inline-detail-title" id="detailTitle">Stock detail</h2>
+
+      <div class="detail-grid" id="detailGrid"></div>
+
+      <div class="field-row" style="align-items:flex-end; margin-bottom:16px;">
+        <div class="field" style="max-width:200px; margin-bottom:0;">
+          <label>Set today's price (₹)</label>
+          <input type="number" id="detailPriceInput" min="0" step="0.01">
+        </div>
+        <button class="btn" id="detailFetchLtpBtn" type="button" title="Fetch the latest price" style="height:40px;"><i data-lucide="refresh-cw"></i>Fetch latest price</button>
+      </div>
+
+      <div class="detail-chart-panel" id="detailChartPanel">
+        <div class="detail-chart-head">
+          <h3><i data-lucide="line-chart"></i>How the price has moved since you bought</h3>
+          <span class="detail-chart-range" id="detailChartRange"></span>
+        </div>
+        <div class="detail-chart-body" id="detailChartBody">
+          <div class="chart-loading">Loading price history…</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:14px; margin-bottom:10px;">Every buy and sell for this stock</h3>
+      <div class="panel" style="max-height:320px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;">
+        <table class="ledger-table" id="detailTxnTable">
+          <thead><tr><th>Date</th><th>Type</th><th class="num">Qty</th><th class="num">Price</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
 
     <!-- DASHBOARD -->
     <section class="view active" id="view-dashboard">
@@ -151,12 +185,12 @@
       </div>
 
       <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="chart-no-axes-combined"></i><h2>Portfolio Performance</h2></div>
+        <div class="an-panel-head"><i data-lucide="chart-no-axes-combined"></i><h2>How you're doing overall</h2></div>
         <div class="an-panel-body" id="perfHero"></div>
       </div>
 
       <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="pie-chart"></i><h2>Portfolio Allocation</h2></div>
+        <div class="an-panel-head"><i data-lucide="pie-chart"></i><h2>Where your money is spread</h2></div>
         <div class="an-panel-body alloc-panel-body">
           <div class="alloc-donut-wrap" id="allocDonut"></div>
           <div class="alloc-list" id="allocationList"></div>
@@ -164,21 +198,21 @@
       </div>
 
       <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="bar-chart-3"></i><h2>Holdings Performance</h2></div>
+        <div class="an-panel-head"><i data-lucide="bar-chart-3"></i><h2>How each stock is doing</h2></div>
         <div class="an-panel-body" id="perfBarChart"></div>
       </div>
 
       <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="activity"></i><h2>Performance Insights</h2></div>
+        <div class="an-panel-head"><i data-lucide="activity"></i><h2>Worth knowing</h2></div>
         <div class="an-panel-body insights-grid" id="perfStrip"></div>
       </div>
 
       <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="chart-column"></i><h2>Profit &amp; Loss Breakdown</h2></div>
+        <div class="an-panel-head"><i data-lucide="chart-column"></i><h2>Where your profit comes from</h2></div>
         <div class="an-panel-body">
-          <div class="stat-row"><span class="lbl">Realized P&amp;L</span><span id="anRealized"></span></div>
-          <div class="stat-row"><span class="lbl">Unrealized P&amp;L</span><span id="anUnrealized"></span></div>
-          <div class="stat-row"><span class="lbl">Total P&amp;L</span><span id="anTotal"></span></div>
+          <div class="stat-row"><span class="lbl">Already banked (sold stocks)</span><span id="anRealized"></span></div>
+          <div class="stat-row"><span class="lbl">On paper (if you sold today)</span><span id="anUnrealized"></span></div>
+          <div class="stat-row"><span class="lbl">Grand total</span><span id="anTotal"></span></div>
         </div>
       </div>
     </section>
@@ -302,11 +336,11 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Quantity</label>
+        <label>How many shares</label>
         <input type="number" id="txnQty" min="0" step="1">
       </div>
       <div class="field">
-        <label>Price (₹)</label>
+        <label>Price per share (₹)</label>
         <input type="number" id="txnPrice" min="0" step="0.01">
       </div>
     </div>
@@ -355,42 +389,6 @@
     <div class="modal-actions">
       <button class="btn" id="importCancelBtn">Cancel</button>
       <button class="btn btn-primary" id="importConfirmBtn">Import</button>
-    </div>
-  </div>
-</div>
-
-<!-- Stock detail modal -->
-<div class="modal-overlay" id="detailModalOverlay">
-  <div class="modal modal-wide">
-    <h3 id="detailTitle">Stock detail</h3>
-    <div class="detail-grid" id="detailGrid"></div>
-    <div class="field-row" style="align-items:flex-end; margin-bottom:16px;">
-      <div class="field" style="max-width:180px; margin-bottom:0;">
-        <label>Current price (₹)</label>
-        <input type="number" id="detailPriceInput" min="0" step="0.01">
-      </div>
-      <button class="btn" id="detailFetchLtpBtn" type="button" title="Fetch live LTP" style="height:40px;"><i data-lucide="refresh-cw"></i>Fetch LTP</button>
-    </div>
-
-    <div class="detail-chart-panel" id="detailChartPanel">
-      <div class="detail-chart-head">
-        <h3><i data-lucide="line-chart"></i>Price chart since purchase</h3>
-        <span class="detail-chart-range" id="detailChartRange"></span>
-      </div>
-      <div class="detail-chart-body" id="detailChartBody">
-        <div class="chart-loading">Loading price history…</div>
-      </div>
-    </div>
-
-    <h3 style="font-size:14px; margin-bottom:10px;">Transaction history</h3>
-    <div class="panel" style="max-height:240px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;">
-      <table class="ledger-table" id="detailTxnTable">
-        <thead><tr><th>Date</th><th>Type</th><th class="num">Qty</th><th class="num">Price</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div class="modal-actions">
-      <button class="btn" id="detailCloseBtn">Close</button>
     </div>
   </div>
 </div>

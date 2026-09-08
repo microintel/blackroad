@@ -191,6 +191,23 @@ function getSymbolTransactions(symbol, txnList){
     .sort((a,b) => (a.date === b.date) ? (a.seq - b.seq) : (a.date < b.date ? -1 : 1));
 }
 
+// Rounds a money figure to the nearest paisa. Repeated addition/subtraction
+// of floating-point rupee amounts (the replay below does a lot of it) drifts
+// into values like 149.99999999999997 or 1000.0000000000001 — invisible in
+// a quick glance but wrong under the hood, and occasionally visible as a
+// stray extra digit. Every money figure the calculation engine produces
+// passes through this before it's used again or shown to anyone.
+function round2(n){
+  return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+}
+// Same idea for share quantities, rounded to 6 decimal places — comfortably
+// generous for fractional holdings while still killing dust like
+// 9.999999999999998 so an exact sell-everything transaction doesn't get
+// mistaken for "insufficient quantity" by a hair's-width rounding error.
+function round6(n){
+  return Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
+}
+
 // Core replay: walks a symbol's transactions and derives running state.
 // Returns { quantity, avgPrice, investedValue, realizedPnL, totalBuyQty, totalSellQty, error }
 // error is set (with .atDate / .available) if a SELL would exceed holdings at that point.
@@ -200,27 +217,29 @@ function replaySymbol(symbol, txnList){
 
   for(const t of txns){
     if(t.type === 'BUY'){
-      totalCost += t.quantity * t.price;
-      qty += t.quantity;
-      totalBuyQty += t.quantity;
+      totalCost = round2(totalCost + t.quantity * t.price);
+      qty = round6(qty + t.quantity);
+      totalBuyQty = round6(totalBuyQty + t.quantity);
     } else { // SELL
-      if(t.quantity > qty){
+      // A tiny tolerance instead of a bare ">" comparison, so selling every
+      // last share you hold never gets wrongly rejected over float dust.
+      if(round6(t.quantity - qty) > 1e-6){
         return { error: { available: qty, txnId: t.id, date: t.date } };
       }
       const avgCostAtSale = qty > 0 ? totalCost / qty : 0;
-      const costBasis = avgCostAtSale * t.quantity;
-      const saleValue = t.quantity * t.price;
-      realizedPnL += (saleValue - costBasis);
-      totalCost -= costBasis;
-      qty -= t.quantity;
-      totalSellQty += t.quantity;
+      const costBasis = round2(avgCostAtSale * t.quantity);
+      const saleValue = round2(t.quantity * t.price);
+      realizedPnL = round2(realizedPnL + (saleValue - costBasis));
+      totalCost = round2(totalCost - costBasis);
+      qty = round6(qty - t.quantity);
+      totalSellQty = round6(totalSellQty + t.quantity);
     }
   }
 
   return {
     quantity: qty,
-    avgPrice: qty > 0 ? totalCost / qty : 0,
-    investedValue: qty > 0 ? totalCost : 0,
+    avgPrice: qty > 0 ? round2(totalCost / qty) : 0,
+    investedValue: qty > 0 ? round2(totalCost) : 0,
     realizedPnL,
     totalBuyQty,
     totalSellQty,
@@ -243,17 +262,17 @@ function getCurrentPrice(symbol){
 }
 
 function calculateCurrentValue(symbol){
-  return calculateRemainingQuantity(symbol) * getCurrentPrice(symbol);
+  return round2(calculateRemainingQuantity(symbol) * getCurrentPrice(symbol));
 }
 
 function calculateUnrealizedPnL(symbol){
-  return calculateCurrentValue(symbol) - calculateInvestedValue(symbol);
+  return round2(calculateCurrentValue(symbol) - calculateInvestedValue(symbol));
 }
 
 function calculateUnrealizedPnLPercent(symbol){
   const invested = calculateInvestedValue(symbol);
   if(invested <= 0) return 0;
-  return (calculateUnrealizedPnL(symbol) / invested) * 100;
+  return round2((calculateUnrealizedPnL(symbol) / invested) * 100);
 }
 
 // Full derived holding object for a symbol (only symbols with quantity > 0
@@ -262,9 +281,9 @@ function calculateStockHolding(symbol){
   const r = replaySymbol(symbol);
   const name = getSymbolName(symbol);
   const currentPrice = getCurrentPrice(symbol);
-  const currentValue = r.quantity * currentPrice;
-  const unrealizedPnL = currentValue - r.investedValue;
-  const unrealizedPnLPct = r.investedValue > 0 ? (unrealizedPnL / r.investedValue) * 100 : 0;
+  const currentValue = round2(r.quantity * currentPrice);
+  const unrealizedPnL = round2(currentValue - r.investedValue);
+  const unrealizedPnLPct = r.investedValue > 0 ? round2((unrealizedPnL / r.investedValue) * 100) : 0;
   return {
     symbol, name,
     quantity: r.quantity,
@@ -301,22 +320,22 @@ function getActiveHoldings(){
 function calculatePortfolioWeight(symbol){
   const totals = calculatePortfolioTotals();
   if(totals.currentValue <= 0) return 0;
-  return (calculateCurrentValue(symbol) / totals.currentValue) * 100;
+  return round2((calculateCurrentValue(symbol) / totals.currentValue) * 100);
 }
 
 function calculatePortfolioTotals(){
   const holdings = getActiveHoldings();
-  const investedValue = holdings.reduce((s,h) => s + h.investedValue, 0);
-  const currentValue = holdings.reduce((s,h) => s + h.currentValue, 0);
-  const unrealizedPnL = currentValue - investedValue;
-  const unrealizedPnLPct = investedValue > 0 ? (unrealizedPnL / investedValue) * 100 : 0;
+  const investedValue = round2(holdings.reduce((s,h) => s + h.investedValue, 0));
+  const currentValue = round2(holdings.reduce((s,h) => s + h.currentValue, 0));
+  const unrealizedPnL = round2(currentValue - investedValue);
+  const unrealizedPnLPct = investedValue > 0 ? round2((unrealizedPnL / investedValue) * 100) : 0;
 
   // Realized P&L is summed across ALL symbols ever traded, not just active ones,
   // so a fully-sold stock's profit is never dropped from the total.
-  const realizedPnL = getAllSymbols().reduce((s, sym) => s + calculateRealizedPnL(sym), 0);
+  const realizedPnL = round2(getAllSymbols().reduce((s, sym) => s + calculateRealizedPnL(sym), 0));
 
-  const totalPnL = realizedPnL + unrealizedPnL;
-  const totalPnLPct = investedValue > 0 ? (totalPnL / investedValue) * 100 : 0;
+  const totalPnL = round2(realizedPnL + unrealizedPnL);
+  const totalPnLPct = investedValue > 0 ? round2((totalPnL / investedValue) * 100) : 0;
 
   return {
     investedValue, currentValue, unrealizedPnL, unrealizedPnLPct,

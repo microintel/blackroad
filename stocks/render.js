@@ -4,17 +4,22 @@
    NAVIGATION
 ------------------------------------------------------------------*/
 const viewTitles = {
-  dashboard: ['Dashboard', 'Your holdings, calculated from transaction history'],
-  holdings: ['Holdings', 'Everything currently in your portfolio'],
-  transactions: ['Transactions', 'The full record — the source of truth for every calculation'],
-  analytics: ['Analytics', 'Allocation and performance across your holdings'],
+  dashboard: ['Dashboard', "Your holdings, worked out from what you've bought and sold"],
+  holdings: ['Holdings', 'Everything you currently own'],
+  transactions: ['Transactions', "Every buy and sell you've made — this is where your holdings come from"],
+  analytics: ['Analytics', 'How your money is spread out, and how it\'s doing'],
   settings: ['Settings', 'Back up your data or start fresh']
 };
 
 let currentView = 'dashboard';
 
 function switchView(view){
-  if(view === currentView) return;
+  // If the stock detail panel is open, tapping any tab should always
+  // return to that tab's normal content first — even if it's the tab
+  // already selected underneath the detail panel.
+  const wasShowingDetail = typeof inlineDetailOpen !== 'undefined' && inlineDetailOpen;
+  if(wasShowingDetail && typeof closeInlineDetail === 'function') closeInlineDetail();
+  if(view === currentView && !wasShowingDetail) return;
   currentView = view;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
@@ -48,22 +53,22 @@ function renderDashboard(){
         </div>
       </div>
       <div class="statement-aside">
-        Total P&amp;L
+        Total profit or loss
         <span class="n ${pnlClass(t.totalPnL)}">${fmtSigned(t.totalPnL, true)}</span>
-        realized + unrealized combined
+        money already banked + what you'd make selling today
       </div>
     </div>
     <div class="stat-strip">
       <div class="stat-item">
-        <div class="lbl">Total invested</div>
+        <div class="lbl">Money you've put in</div>
         <div class="val sm">${fmtMoney(t.investedValue, true)}</div>
       </div>
       <div class="stat-item">
-        <div class="lbl">Realized P&amp;L</div>
+        <div class="lbl">Already banked</div>
         <div class="val sm ${pnlClass(t.realizedPnL)}">${fmtSigned(t.realizedPnL, true)}</div>
       </div>
       <div class="stat-item">
-        <div class="lbl">Unrealized P&amp;L</div>
+        <div class="lbl">If you sold today</div>
         <div class="val sm ${pnlClass(t.unrealizedPnL)}">${fmtSigned(t.unrealizedPnL, true)} <span style="font-family:var(--sans); font-size:12px; font-weight:500;">(${fmtPct(t.unrealizedPnLPct)})</span></div>
       </div>
       <div class="stat-item">
@@ -108,17 +113,17 @@ function holdingCardHTML(h, full){
         </div>
       </div>
       <div class="hc-value-row">
-        <div><span class="k">Current value</span><span class="v">${fmtMoney(h.currentValue, true)}</span></div>
-        ${full ? `<div><span class="k">Invested</span><span class="v">${fmtMoney(h.investedValue, true)}</span></div>` : ''}
+        <div><span class="k">Worth now</span><span class="v">${fmtMoney(h.currentValue, true)}</span></div>
+        ${full ? `<div><span class="k">Money put in</span><span class="v">${fmtMoney(h.investedValue, true)}</span></div>` : ''}
       </div>
       <div class="hc-meta">
-        <span>Qty <b>${h.quantity}</b></span>
-        <span>Avg <b>${fmtMoney(h.avgPrice)}</b></span>
-        <span>LTP <b>${fmtMoney(h.currentPrice)}</b></span>
+        <span>Shares <b>${h.quantity}</b></span>
+        <span>Bought at <b>${fmtMoney(h.avgPrice)}</b></span>
+        <span>Now <b>${fmtMoney(h.currentPrice)}</b></span>
       </div>
       ${full ? `<div class="hc-weight">
         <div class="weight-bar-full"><div style="width:${Math.min(100,weight)}%"></div></div>
-        <span>${weight.toFixed(1)}% of portfolio</span>
+        <span>${weight.toFixed(1)}% of your portfolio</span>
       </div>` : ''}
     </div>
   `;
@@ -200,19 +205,19 @@ function renderTransactions(){
   document.getElementById('txnSummaryGrid').innerHTML = `
     <div class="metric-card">
       <div class="metric-icon accent"><i data-lucide="history"></i></div>
-      <div class="metric-body"><div class="metric-label">Total Transactions</div><div class="metric-value">${totalCount}</div></div>
+      <div class="metric-body"><div class="metric-label">All transactions</div><div class="metric-value">${totalCount}</div></div>
     </div>
     <div class="metric-card">
       <div class="metric-icon gain"><i data-lucide="trending-up"></i></div>
-      <div class="metric-body"><div class="metric-label">Buy Orders</div><div class="metric-value">${buyCount}</div></div>
+      <div class="metric-body"><div class="metric-label">Times you bought</div><div class="metric-value">${buyCount}</div></div>
     </div>
     <div class="metric-card">
       <div class="metric-icon loss"><i data-lucide="trending-down"></i></div>
-      <div class="metric-body"><div class="metric-label">Sell Orders</div><div class="metric-value">${sellCount}</div></div>
+      <div class="metric-body"><div class="metric-label">Times you sold</div><div class="metric-value">${sellCount}</div></div>
     </div>
     <div class="metric-card">
       <div class="metric-icon amber"><i data-lucide="indian-rupee"></i></div>
-      <div class="metric-body"><div class="metric-label">Total Value</div><div class="metric-value">${fmtMoney(totalValue, true)}</div></div>
+      <div class="metric-body"><div class="metric-label">Total money moved</div><div class="metric-value">${fmtMoney(totalValue, true)}</div></div>
     </div>
   `;
 
@@ -259,11 +264,11 @@ function renderAnalytics(){
     <div class="perf-hero-split">
       <div class="phs-item">
         <div class="phs-icon"><i data-lucide="badge-check"></i></div>
-        <div class="phs-body"><div class="phs-label">Realized P&amp;L</div><div class="phs-value ${pnlClass(totals.realizedPnL)}">${fmtSigned(totals.realizedPnL, true)}</div></div>
+        <div class="phs-body"><div class="phs-label">Already banked</div><div class="phs-value ${pnlClass(totals.realizedPnL)}">${fmtSigned(totals.realizedPnL, true)}</div></div>
       </div>
       <div class="phs-item">
         <div class="phs-icon"><i data-lucide="activity"></i></div>
-        <div class="phs-body"><div class="phs-label">Unrealized P&amp;L</div><div class="phs-value ${pnlClass(totals.unrealizedPnL)}">${fmtSigned(totals.unrealizedPnL, true)}</div></div>
+        <div class="phs-body"><div class="phs-label">If you sold today</div><div class="phs-value ${pnlClass(totals.unrealizedPnL)}">${fmtSigned(totals.unrealizedPnL, true)}</div></div>
       </div>
     </div>
   `;
@@ -297,7 +302,7 @@ function renderAnalytics(){
     barDiv.innerHTML = `<div class="empty-state" style="padding:20px 0;">
       <div class="es-icon"><i data-lucide="bar-chart-3"></i></div>
       <div class="es-title">No performance data yet</div>
-      <div class="es-body">Once you hold at least one stock, its P&amp;L% shows up here.</div>
+      <div class="es-body">Once you hold at least one stock, how it's doing shows up here.</div>
     </div>`;
   } else {
     barDiv.innerHTML = buildPerfBarChart(holdings);
@@ -311,9 +316,9 @@ function renderAnalytics(){
 
   if(holdings.length === 0){
     perfStrip.innerHTML = `
-      <div class="insight-card"><div class="insight-icon"><i data-lucide="trophy"></i></div><div class="insight-label">Best Performing Stock</div><div class="insight-name">No holdings yet</div></div>
-      <div class="insight-card"><div class="insight-icon"><i data-lucide="triangle-alert"></i></div><div class="insight-label">Worst Performing Stock</div><div class="insight-name">No holdings yet</div></div>
-      <div class="insight-card"><div class="insight-icon"><i data-lucide="scale"></i></div><div class="insight-label">Largest Holding</div><div class="insight-name">No holdings yet</div></div>
+      <div class="insight-card"><div class="insight-icon"><i data-lucide="trophy"></i></div><div class="insight-label">Your best performer</div><div class="insight-name">No holdings yet</div></div>
+      <div class="insight-card"><div class="insight-icon"><i data-lucide="triangle-alert"></i></div><div class="insight-label">Your worst performer</div><div class="insight-name">No holdings yet</div></div>
+      <div class="insight-card"><div class="insight-icon"><i data-lucide="scale"></i></div><div class="insight-label">Your biggest holding</div><div class="insight-name">No holdings yet</div></div>
     `;
   } else {
     const best = holdings.slice().sort((a,b) => b.unrealizedPnLPct - a.unrealizedPnLPct)[0];
@@ -323,19 +328,19 @@ function renderAnalytics(){
     perfStrip.innerHTML = `
       <div class="insight-card">
         <div class="insight-icon"><i data-lucide="trophy"></i></div>
-        <div class="insight-label">Best Performing Stock</div>
+        <div class="insight-label">Your best performer</div>
         <div class="insight-name">${escHtml(best.name)}</div>
         <div class="insight-value ${pnlClass(best.unrealizedPnLPct)}">${fmtPct(best.unrealizedPnLPct)}</div>
       </div>
       <div class="insight-card">
         <div class="insight-icon"><i data-lucide="triangle-alert"></i></div>
-        <div class="insight-label">Worst Performing Stock</div>
+        <div class="insight-label">Your worst performer</div>
         <div class="insight-name">${escHtml(worst.name)}</div>
         <div class="insight-value ${pnlClass(worst.unrealizedPnLPct)}">${fmtPct(worst.unrealizedPnLPct)}</div>
       </div>
       <div class="insight-card">
         <div class="insight-icon"><i data-lucide="scale"></i></div>
-        <div class="insight-label">Largest Holding</div>
+        <div class="insight-label">Your biggest holding</div>
         <div class="insight-name">${escHtml(largest.name)}</div>
         <div class="insight-value">${fmtMoney(largest.currentValue, true)}</div>
       </div>

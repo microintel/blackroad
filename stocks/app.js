@@ -77,16 +77,16 @@ async function fetchChartHistory(symbol){
 // Fetches LTP for one symbol (used by the "Fetch LTP" button in the
 // stock detail modal). Falls back silently to manual entry on failure.
 async function refreshSinglePrice(symbol){
-  showToast('Fetching LTP…');
+  showToast('Getting the latest price…');
   try{
     const ltp = await fetchLTP(symbol);
     prices[symbol] = ltp;
     saveStateGuarded();
     renderDetailModal();
     renderAll();
-    showToast(`LTP updated: ${fmtMoney(ltp)}`);
+    showToast(`Price updated: ${fmtMoney(ltp)}`);
   }catch(err){
-    showToast('Could not fetch LTP — enter price manually');
+    showToast("Couldn't fetch the price — enter it manually");
   }
 }
 
@@ -236,8 +236,8 @@ document.getElementById('txnSaveBtn').addEventListener('click', () => {
   const date = document.getElementById('txnDate').value;
   const name = document.getElementById('txnName').value.trim();
   const symbol = document.getElementById('txnSymbol').value.trim().toUpperCase();
-  const quantity = parseFloat(document.getElementById('txnQty').value);
-  const price = parseFloat(document.getElementById('txnPrice').value);
+  const quantity = round6(parseFloat(document.getElementById('txnQty').value));
+  const price = round2(parseFloat(document.getElementById('txnPrice').value));
   const notes = document.getElementById('txnNotes').value.trim();
 
   if(!date || !name || !symbol || !quantity || quantity <= 0 || isNaN(price) || price < 0){
@@ -249,7 +249,7 @@ document.getElementById('txnSaveBtn').addEventListener('click', () => {
   const candidate = { id: id || genId(), seq: id ? transactions.find(t=>t.id===id).seq : ++seqCounter, date, type, symbol, name, quantity, price, notes };
   const check = validateTransaction(candidate, id);
   if(!check.ok){
-    errEl.textContent = `Insufficient quantity. Available quantity: ${check.available}`;
+    errEl.textContent = `You don't have that many shares to sell — you only hold ${check.available}.`;
     errEl.style.display = 'block';
     return;
   }
@@ -420,17 +420,41 @@ importModal.addEventListener('click', e => {
 });
 
 /* ---------------------------------------------------------------
-   STOCK DETAIL MODAL
+   STOCK DETAIL — opens inline in the page (no popup window).
+   Tapping a holding swaps the current tab's content out for the
+   detail panel; the Back button (or switching tabs) brings it back.
 ------------------------------------------------------------------*/
-const detailModal = document.getElementById('detailModalOverlay');
+const inlineDetailPanel = document.getElementById('inlineDetailPanel');
 let detailSymbol = null;
+let inlineDetailOpen = false;
 
 function openDetailModal(symbol){
   detailSymbol = symbol;
   renderDetailModal();
-  detailModal.classList.add('active');
+  inlineDetailOpen = true;
+  const activeView = document.getElementById('view-' + currentView);
+  if(activeView) activeView.classList.remove('active');
+  inlineDetailPanel.classList.add('active');
+  document.getElementById('viewTitle').textContent = 'Stock detail';
+  document.getElementById('viewSub').textContent = "Everything about this one holding, in one place";
+  window.scrollTo(0, 0);
   loadDetailChart(symbol);
 }
+
+// Called both by the Back button and by switchView() (render.js) so
+// jumping to another tab while the detail panel is open always lands
+// back on the right tab instead of leaving things in a stuck state.
+function closeInlineDetail(){
+  if(!inlineDetailOpen) return;
+  inlineDetailOpen = false;
+  inlineDetailPanel.classList.remove('active');
+  const activeView = document.getElementById('view-' + currentView);
+  if(activeView) activeView.classList.add('active');
+  document.getElementById('viewTitle').textContent = viewTitles[currentView][0];
+  document.getElementById('viewSub').textContent = viewTitles[currentView][1];
+  window.scrollTo(0, 0);
+}
+document.getElementById('detailBackBtn').addEventListener('click', closeInlineDetail);
 
 // Loads the "price chart since purchase" panel in the stock detail modal:
 // fetches the symbol's price history, clips it to the user's earliest
@@ -495,11 +519,11 @@ function renderChartInteractive(container, fullHistory, meta){
   container.innerHTML = `
     <div class="chart-stats-row">
       <div class="chart-stat">
-        <span class="chart-stat-label">Growth since buy</span>
+        <span class="chart-stat-label">Grown by</span>
         <span class="chart-stat-value ${pnlClass(h.unrealizedPnLPct)}">${fmtPct(h.unrealizedPnLPct)}</span>
       </div>
       <div class="chart-stat">
-        <span class="chart-stat-label">Profit</span>
+        <span class="chart-stat-label">Profit if sold today</span>
         <span class="chart-stat-value ${pnlClass(h.unrealizedPnL)}">${fmtSigned(h.unrealizedPnL, true)}</span>
       </div>
     </div>
@@ -510,7 +534,7 @@ function renderChartInteractive(container, fullHistory, meta){
       <div class="chart-drag-band" id="chartDragBand"></div>
     </div>
     <div class="chart-zoom-row">
-      <span class="chart-zoom-hint" id="chartZoomHint">Drag across the chart to zoom in</span>
+      <span class="chart-zoom-hint" id="chartZoomHint">Drag, pinch, or scroll to zoom in</span>
       <button type="button" class="chart-reset-btn" id="chartResetZoomBtn" style="display:none;">Reset zoom</button>
     </div>
   `;
@@ -523,6 +547,12 @@ function renderChartInteractive(container, fullHistory, meta){
   const resetBtn = document.getElementById('chartResetZoomBtn');
   const zoomHint = document.getElementById('chartZoomHint');
 
+  // The zoomed-in window is tracked as a pair of indices into fullHistory
+  // (not just "whatever's on screen"), so drag, pinch, and scroll zoom can
+  // all build on top of each other instead of fighting over what "current"
+  // means.
+  let rangeStart = 0, rangeEnd = fullHistory.length - 1;
+
   function draw(slice){
     current = slice;
     svgHolder.innerHTML = buildPriceLineChart(slice, { buyDate: meta.buyDate });
@@ -531,11 +561,47 @@ function renderChartInteractive(container, fullHistory, meta){
     const isZoomed = slice.length < fullHistory.length;
     rangeEl.innerHTML = `${fmtDate(slice[0].date)} → ${fmtDate(slice[slice.length-1].date)}
       <span class="${pnlClass(pct)}">${fmtPct(pct)}</span>
-      ${isZoomed ? '<span class="chart-range-note">· zoomed</span>' : (meta.sourceStartNote || '')}`;
+      ${isZoomed ? '<span class="chart-range-note">· zoomed in</span>' : (meta.sourceStartNote || '')}`;
     resetBtn.style.display = isZoomed ? '' : 'none';
     zoomHint.style.display = isZoomed ? 'none' : '';
   }
-  draw(fullHistory);
+
+  // Clamps a candidate [s, e] index range to fullHistory's bounds, enforces
+  // a minimum span (so you can't zoom into a single dot), and redraws.
+  function setRange(s, e){
+    const minSpan = Math.min(3, fullHistory.length - 1);
+    s = Math.max(0, Math.min(s, fullHistory.length - 1));
+    e = Math.max(0, Math.min(e, fullHistory.length - 1));
+    if(e - s < minSpan){
+      const mid = (s + e) / 2;
+      s = mid - minSpan / 2;
+      e = s + minSpan;
+      if(s < 0){ e -= s; s = 0; }
+      if(e > fullHistory.length - 1){ s -= (e - (fullHistory.length - 1)); e = fullHistory.length - 1; }
+      s = Math.max(0, s);
+    }
+    rangeStart = Math.round(s);
+    rangeEnd = Math.round(e);
+    draw(fullHistory.slice(rangeStart, rangeEnd + 1));
+  }
+
+  // Zooms in/out by `factor` (< 1 zooms in, > 1 zooms out) while keeping
+  // whatever point sits at `frac` (0..1 across the current view) fixed in
+  // place — used by both scroll-wheel and pinch zoom.
+  function zoomAtFraction(frac, factor){
+    const spanNow = rangeEnd - rangeStart;
+    const anchorIdx = rangeStart + frac * spanNow;
+    let newSpan = spanNow * factor;
+    newSpan = Math.max(3, Math.min(fullHistory.length - 1, newSpan));
+    let s = anchorIdx - frac * newSpan;
+    let e = s + newSpan;
+    if(s < 0){ e -= s; s = 0; }
+    if(e > fullHistory.length - 1){ s -= (e - (fullHistory.length - 1)); e = fullHistory.length - 1; }
+    s = Math.max(0, s);
+    setRange(s, e);
+  }
+
+  setRange(0, fullHistory.length - 1);
 
   function svgEl(){ return svgHolder.querySelector('svg'); }
 
@@ -579,6 +645,7 @@ function renderChartInteractive(container, fullHistory, meta){
 
   wrap.addEventListener('pointerdown', e => {
     if(e.pointerType === 'mouse' && e.button !== 0) return;
+    if(e.pointerType === 'touch' && !e.isPrimary) return; // let a second finger start a pinch, not a drag
     wrap.setPointerCapture(e.pointerId);
     pointerDownClientX = e.clientX;
     dragging = true;
@@ -593,6 +660,7 @@ function renderChartInteractive(container, fullHistory, meta){
   });
 
   wrap.addEventListener('pointermove', e => {
+    if(pinchStartDist) return; // a pinch is in progress — let the touch handlers drive the zoom
     const svg = svgEl();
     if(!svg) return;
     const rect = svg.getBoundingClientRect();
@@ -618,7 +686,7 @@ function renderChartInteractive(container, fullHistory, meta){
     const i1 = fracToIndex(Math.min(f1, f2));
     const i2 = fracToIndex(Math.max(f1, f2));
     if(i2 - i1 >= 3){
-      draw(current.slice(i1, i2 + 1));
+      setRange(rangeStart + i1, rangeStart + i2);
     }
   }
   wrap.addEventListener('pointerup', endDrag);
@@ -628,24 +696,71 @@ function renderChartInteractive(container, fullHistory, meta){
     dragBand.style.display = 'none';
   });
   wrap.addEventListener('pointerleave', () => { if(!dragging) hideTooltip(); });
-  wrap.addEventListener('dblclick', () => draw(fullHistory));
-  resetBtn.addEventListener('click', () => draw(fullHistory));
+  wrap.addEventListener('dblclick', () => setRange(0, fullHistory.length - 1));
+  resetBtn.addEventListener('click', () => setRange(0, fullHistory.length - 1));
+
+  // Scroll-wheel / trackpad zoom (desktop): zoom in around the cursor.
+  wrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    const frac = clientToFrac(e.clientX);
+    const factor = e.deltaY < 0 ? 0.85 : (1 / 0.85);
+    zoomAtFraction(frac, factor);
+  }, { passive: false });
+
+  // Two-finger pinch zoom (touch): zoom around the midpoint between fingers.
+  let pinchStartDist = null;
+  let pinchStartRange = null;
+  function touchDist(t0, t1){
+    return Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+  }
+  wrap.addEventListener('touchstart', e => {
+    if(e.touches.length === 2){
+      dragging = false;
+      pointerDownClientX = null;
+      dragBand.style.display = 'none';
+      hideTooltip();
+      pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+      pinchStartRange = { start: rangeStart, end: rangeEnd };
+    }
+  }, { passive: true });
+  wrap.addEventListener('touchmove', e => {
+    if(e.touches.length === 2 && pinchStartDist && pinchStartRange){
+      e.preventDefault();
+      const dist = touchDist(e.touches[0], e.touches[1]);
+      const scale = dist / pinchStartDist; // fingers spreading apart -> zoom in
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const frac = clientToFrac(midX);
+      const spanNow = pinchStartRange.end - pinchStartRange.start;
+      const anchorIdx = pinchStartRange.start + frac * spanNow;
+      let newSpan = spanNow / Math.max(0.05, scale);
+      newSpan = Math.max(3, Math.min(fullHistory.length - 1, newSpan));
+      let s = anchorIdx - frac * newSpan;
+      let e2 = s + newSpan;
+      if(s < 0){ e2 -= s; s = 0; }
+      if(e2 > fullHistory.length - 1){ s -= (e2 - (fullHistory.length - 1)); e2 = fullHistory.length - 1; }
+      s = Math.max(0, s);
+      setRange(s, e2);
+    }
+  }, { passive: false });
+  wrap.addEventListener('touchend', e => {
+    if(e.touches.length < 2){ pinchStartDist = null; pinchStartRange = null; }
+  });
 }
 function renderDetailModal(){
   const h = calculateStockHolding(detailSymbol);
   document.getElementById('detailTitle').textContent = `${h.name} (${h.symbol})`;
   document.getElementById('detailGrid').innerHTML = `
-    <div><div class="k">Quantity held</div><div class="v">${h.quantity}</div></div>
-    <div><div class="k">Average buy price</div><div class="v">${fmtMoney(h.avgPrice)}</div></div>
-    <div><div class="k">Current price</div><div class="v">${fmtMoney(h.currentPrice)}</div></div>
-    <div><div class="k">Portfolio weight</div><div class="v">${calculatePortfolioWeight(h.symbol).toFixed(1)}%</div></div>
-    <div><div class="k">Invested cost</div><div class="v">${fmtMoney(h.investedValue, true)}</div></div>
-    <div><div class="k">Current value</div><div class="v">${fmtMoney(h.currentValue, true)}</div></div>
-    <div><div class="k">Unrealized P&amp;L</div><div class="v ${pnlClass(h.unrealizedPnL)}">${fmtSigned(h.unrealizedPnL, true)}</div></div>
-    <div><div class="k">Unrealized P&amp;L %</div><div class="v ${pnlClass(h.unrealizedPnLPct)}">${fmtPct(h.unrealizedPnLPct)}</div></div>
-    <div><div class="k">Total bought</div><div class="v">${h.totalBuyQty}</div></div>
-    <div><div class="k">Total sold</div><div class="v">${h.totalSellQty}</div></div>
-    <div><div class="k">Realized P&amp;L (this stock)</div><div class="v ${pnlClass(h.realizedPnL)}">${fmtSigned(h.realizedPnL, true)}</div></div>
+    <div><div class="k">Shares you own</div><div class="v">${h.quantity}</div></div>
+    <div><div class="k">Average price you paid</div><div class="v">${fmtMoney(h.avgPrice)}</div></div>
+    <div><div class="k">Price today</div><div class="v">${fmtMoney(h.currentPrice)}</div></div>
+    <div><div class="k">Share of your portfolio</div><div class="v">${calculatePortfolioWeight(h.symbol).toFixed(1)}%</div></div>
+    <div><div class="k">Money you put in</div><div class="v">${fmtMoney(h.investedValue, true)}</div></div>
+    <div><div class="k">What it's worth now</div><div class="v">${fmtMoney(h.currentValue, true)}</div></div>
+    <div><div class="k">Profit if you sold today</div><div class="v ${pnlClass(h.unrealizedPnL)}">${fmtSigned(h.unrealizedPnL, true)}</div></div>
+    <div><div class="k">Growth so far</div><div class="v ${pnlClass(h.unrealizedPnLPct)}">${fmtPct(h.unrealizedPnLPct)}</div></div>
+    <div><div class="k">Shares bought in total</div><div class="v">${h.totalBuyQty}</div></div>
+    <div><div class="k">Shares sold in total</div><div class="v">${h.totalSellQty}</div></div>
+    <div><div class="k">Profit already banked on this stock</div><div class="v ${pnlClass(h.realizedPnL)}">${fmtSigned(h.realizedPnL, true)}</div></div>
   `;
   document.getElementById('detailPriceInput').value = h.currentPrice;
 
@@ -671,8 +786,6 @@ document.getElementById('detailPriceInput').addEventListener('change', (e) => {
 document.getElementById('detailFetchLtpBtn').addEventListener('click', () => {
   if(detailSymbol) refreshSinglePrice(detailSymbol);
 });
-document.getElementById('detailCloseBtn').addEventListener('click', () => detailModal.classList.remove('active'));
-detailModal.addEventListener('click', e => { if(e.target === detailModal) detailModal.classList.remove('active'); });
 
 /* ---------------------------------------------------------------
    TRANSACTION FILTERS

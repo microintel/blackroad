@@ -189,6 +189,28 @@
     .view{max-width:1140px; margin:0 auto;}
   }
 
+  /* ---------- Stock detail — inline panel, not a popup ----------
+     Sits in the same spot the tabs do, so tapping a holding just
+     swaps the page content in place instead of opening a window. */
+  .inline-detail{padding:24px 28px; display:none; animation:detailFadeIn .18s ease;}
+  .inline-detail.active{display:block;}
+  @keyframes detailFadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  @media (min-width: 861px){
+    .inline-detail{max-width:1140px; margin:0 auto;}
+  }
+  .inline-detail-back{
+    display:inline-flex; align-items:center; gap:6px; background:none; border:none;
+    color:var(--muted); font-family:var(--sans); font-size:13.5px; font-weight:600;
+    padding:8px 0; margin-bottom:6px; cursor:pointer;
+  }
+  .inline-detail-back:hover{color:var(--text);}
+  .inline-detail-back i{width:16px; height:16px;}
+  .inline-detail-title{font-family:var(--serif); font-size:22px; margin:0 0 18px 0; line-height:1.25;}
+  @media (max-width:860px){
+    .inline-detail{padding:14px 14px 24px 14px;}
+    .inline-detail-title{font-size:19px;}
+  }
+
   /* ---------- Dashboard ---------- */
   /* ---------- Dashboard: statement-style hero (not a card grid) ---------- */
   .statement{
