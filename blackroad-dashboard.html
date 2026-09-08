@@ -3145,14 +3145,32 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
    ============================================================ */
 (function(){
   "use strict";
-  const MF_DB_NAME = window.BRAuth ? "sip-compounder::" + BRAuth.scopeSuffix() : "sip-compounder";
   const MF_DB_VERSION = 2;
   let mfDbPromise = null;
+  let mfDbNameUsed = null;
+
+  // Computed fresh on every open (not cached once at parse time). On first
+  // paint, BRAuth may not have finished resolving the logged-in user yet,
+  // so scopeSuffix() can briefly return the wrong (e.g. guest) scope. If we
+  // locked that name in permanently, the dashboard would keep talking to an
+  // empty database until a full page reload — even though a fresh page
+  // load (like opening stepUp/index.html directly) resolves auth first and
+  // works fine. Recomputing here means a later refresh (auto-retry below,
+  // tab focus, etc.) picks up the correct scope once auth is ready.
+  function mfCurrentDbName(){
+    return window.BRAuth ? "sip-compounder::" + BRAuth.scopeSuffix() : "sip-compounder";
+  }
 
   function mfOpenDB(){
+    const name = mfCurrentDbName();
+    // If the resolved scope changed since we last opened (e.g. auth
+    // finished resolving after our first attempt), drop the stale
+    // connection promise so we reconnect to the correctly-scoped DB.
+    if(mfDbPromise && mfDbNameUsed !== name) mfDbPromise = null;
     if(mfDbPromise) return mfDbPromise;
+    mfDbNameUsed = name;
     mfDbPromise = new Promise((resolve, reject) => {
-      const req = indexedDB.open(MF_DB_NAME, MF_DB_VERSION);
+      const req = indexedDB.open(name, MF_DB_VERSION);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
         if(!db.objectStoreNames.contains("settings")) db.createObjectStore("settings", { keyPath:"id" });
@@ -3307,6 +3325,12 @@ async function refreshMutualFundsSummary(){
 
 // Initial load
 refreshMutualFundsSummary();
+// Auto-retry shortly after load in case BRAuth's user/scope was still
+// resolving on first paint (see mfCurrentDbName above) — this way the
+// dashboard tile/summary correct themselves on their own instead of only
+// updating once the user taps something that happens to trigger a
+// focus/visibilitychange event.
+setTimeout(refreshMutualFundsSummary, 1500);
 // Re-sync whenever the user comes back to this tab (pages/mutual-funds.html
 // doesn't broadcast a change event, so focus/visibility keeps this in sync)
 window.addEventListener('focus', refreshMutualFundsSummary);
