@@ -1026,19 +1026,20 @@ footer{
 #refreshIcon.br-spin, .br-spin{ display:inline-block; animation:brSpinIcon .8s linear infinite; }
 @keyframes brSpinIcon{ to{ transform:rotate(360deg); } }
 
-.notif-list{ display:flex; flex-direction:column; gap:10px; }
+.notif-list{ display:flex; flex-direction:column; gap:12px; }
 .notif-item{
   display:flex; align-items:center; gap:14px;
-  padding:14px 16px; border-radius:14px;
+  padding:16px 18px; border-radius:16px;
   background:var(--surface); box-shadow:var(--shadow-sm);
   transition:transform .15s var(--ease), box-shadow .15s var(--ease);
 }
 .notif-item:hover{ transform:translateY(-2px); box-shadow:var(--shadow); }
+.notif-item .row-icon{ width:38px; height:38px; font-size:15px; }
 .notif-item-body{ flex:1; min-width:0; }
-.notif-item-title{ font-size:13.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.notif-item-sub{ font-size:12px; color:var(--text-faint); margin-top:2px; }
-.notif-item-right{ text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0; }
-.notif-item-right b{ font-size:13.5px; font-family:'JetBrains Mono',monospace; }
+.notif-item-title{ font-size:14.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.notif-item-sub{ font-size:12.5px; color:var(--text-faint); margin-top:5px; line-height:1.5; }
+.notif-item-right{ text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:7px; flex-shrink:0; }
+.notif-item-right b{ font-size:14.5px; font-family:'JetBrains Mono',monospace; }
 .notif-item-right .tag{ font-weight:600; }
 
 .tag.cached{ color:var(--text-faint); }
@@ -1079,8 +1080,10 @@ footer{
 .skel-row .skel-amt{ width:64px; height:14px; border-radius:6px; flex-shrink:0; }
 
 @media (max-width:940px){
-  .notif-item{ padding:12px 14px; }
-  .notif-item-title{ font-size:13px; white-space:normal; }
+  .notif-item{ padding:15px 16px; gap:12px; }
+  .notif-item-title{ font-size:14px; white-space:normal; }
+  .notif-list{ gap:11px; }
+  .panel{ margin-bottom:18px; }
   .style-picker.compact{ display:none; } /* keep the mobile topbar uncluttered — theme still switches via toggle */
 }
 </style>
@@ -1136,17 +1139,12 @@ footer{
             <span class="pi"><i class="bi bi-graph-up-arrow"></i></span>
             <div><h3>Stocks — Live LTP</h3><span id="stocksSubtext">Loading…</span></div>
           </div>
-          <div class="panel-total"><b class="mono" id="stocksDayPnl">₹0</b><small>Today's P&amp;L</small></div>
+          <div class="panel-total"><b class="mono" id="stocksDayPnl">₹0</b><small>Live P&amp;L</small></div>
         </div>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead><tr><th>Stock</th><th>Qty</th><th>Avg</th><th>LTP</th><th>Day Chg</th><th>Day P&amp;L</th><th>Overall</th></tr></thead>
-            <tbody id="stocksNotifBody"><tr><td colspan="7">
-              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
-              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
-              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
-            </td></tr></tbody>
-          </table>
+        <div class="notif-list" id="stocksNotifBody">
+          <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
         </div>
       </section>
 
@@ -1159,15 +1157,10 @@ footer{
           </div>
           <div class="panel-total"><b class="mono" id="mfDayPnl">₹0</b><small>Today's P&amp;L</small></div>
         </div>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead><tr><th>Fund</th><th>NAV</th><th>Day Chg</th><th>Day P&amp;L</th><th>Invested</th><th>Overall</th></tr></thead>
-            <tbody id="mfNotifBody"><tr><td colspan="6">
-              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
-              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
-              <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
-            </td></tr></tbody>
-          </table>
+        <div class="notif-list" id="mfNotifBody">
+          <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line w70"></div><div class="skel skel-line w35"></div></div><div class="skel skel-amt"></div></div>
         </div>
       </section>
 
@@ -1256,7 +1249,6 @@ function formatPct(n) {
   const num = Number(n) || 0;
   return (num >= 0 ? '+' : '') + num.toFixed(2) + '%';
 }
-function todayISO() { return new Date().toISOString().slice(0, 10); }
 function daysUntil(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   if (isNaN(d)) return null;
@@ -1356,10 +1348,15 @@ function escapeHtml(s) {
   global.NotifStocksStore = { getHoldings };
 })(window);
 
-/* Live LTP + daily-close history — same Vercel endpoint the Stocks
-   app itself uses to refresh prices (indian-stock-ltp). */
+/* Live LTP — same Vercel endpoint the Stocks app itself uses to refresh
+   prices (indian-stock-ltp). We deliberately do NOT touch the /api/chart
+   history endpoint here anymore — comparing against a "previous close"
+   pulled from daily-close history was fragile (date-format/timezone
+   mismatches produced a misleading "day P&L"). Instead this mirrors
+   exactly what the Stocks dashboard page itself does: fetch the live LTP
+   and compute profit as currentValue - investedValue, same as the
+   "If you sold today" figure on the dashboard. */
 const LTP_API_BASE = 'https://indian-stock-ltp.vercel.app/api/ltp';
-const CHART_API_BASE = 'https://indian-stock-ltp.vercel.app/api/chart';
 
 async function fetchLTP(symbol) {
   const res = await fetch(`${LTP_API_BASE}?symbol=${encodeURIComponent(symbol)}`);
@@ -1367,28 +1364,16 @@ async function fetchLTP(symbol) {
   if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
   return data.ltp;
 }
-async function fetchPrevClose(symbol) {
-  try {
-    const res = await fetch(`${CHART_API_BASE}?symbol=${encodeURIComponent(symbol)}`);
-    const data = await res.json();
-    if (!res.ok) return null;
-    const hist = Array.isArray(data.history) ? data.history : [];
-    if (!hist.length) return null;
-    const last = hist[hist.length - 1];
-    if (last.date === todayISO() && hist.length > 1) return hist[hist.length - 2].close;
-    return last.close;
-  } catch (e) { return null; }
-}
 
 async function loadStocksNotifications() {
-  const tbody = document.getElementById('stocksNotifBody');
+  const list = document.getElementById('stocksNotifBody');
   const subtext = document.getElementById('stocksSubtext');
   const dayPnlEl = document.getElementById('stocksDayPnl');
-  tbody.innerHTML = `<tr><td colspan="7">${skeletonRows(3)}</td></tr>`;
+  list.innerHTML = skeletonRows(3);
   try {
     const holdings = await NotifStocksStore.getHoldings();
     if (!holdings.length) {
-      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-note"><i class="bi bi-graph-up"></i>No stock holdings yet — <a href="stocks/index.html">add a transaction</a>.</div></td></tr>`;
+      list.innerHTML = `<div class="empty-note"><i class="bi bi-graph-up"></i>No stock holdings yet — <a href="stocks/index.html">add a transaction</a>.</div>`;
       subtext.textContent = 'No holdings';
       dayPnlEl.textContent = formatINR(0);
       dayPnlEl.style.color = '';
@@ -1399,54 +1384,43 @@ async function loadStocksNotifications() {
     const enriched = await Promise.all(holdings.map(async h => {
       let ltp = h.currentPrice, live = false;
       try { const l = await fetchLTP(h.symbol); if (l !== null && l !== undefined) { ltp = l; live = true; } } catch (e) {}
-      const fetchedPrevClose = await fetchPrevClose(h.symbol);
-      const hasPrevClose = fetchedPrevClose !== null && fetchedPrevClose !== undefined;
-      // If today's close/history isn't available yet, fall back to LTP itself
-      // instead of computing a change against missing data (avoids showing a
-      // misleading tiny +/- from floating-point noise when there's really no
-      // "day change" figure to show).
-      const prevClose = hasPrevClose ? fetchedPrevClose : ltp;
-      const dayChange = hasPrevClose ? ltp - prevClose : 0;
-      const dayChangePct = hasPrevClose && prevClose ? (dayChange / prevClose) * 100 : 0;
-      const dayPnl = hasPrevClose ? dayChange * h.quantity : 0;
       const currentValue = ltp * h.quantity;
-      const overallPnl = currentValue - h.investedValue;
-      const overallPnlPct = h.investedValue ? (overallPnl / h.investedValue) * 100 : 0;
-      return { ...h, ltp, dayChangePct, dayPnl, overallPnl, overallPnlPct, currentValue, live, hasPrevClose };
+      const pnl = currentValue - h.investedValue;
+      const pnlPct = h.investedValue ? (pnl / h.investedValue) * 100 : 0;
+      return { ...h, ltp, currentValue, pnl, pnlPct, live };
     }));
 
-    const totalDayPnl = enriched.reduce((s, r) => s + r.dayPnl, 0);
-    dayPnlEl.textContent = formatINR(totalDayPnl);
-    dayPnlEl.style.color = totalDayPnl >= 0 ? 'var(--green)' : 'var(--red)';
+    const totalPnl = enriched.reduce((s, r) => s + r.pnl, 0);
+    dayPnlEl.textContent = formatINR(totalPnl);
+    dayPnlEl.style.color = totalPnl >= 0 ? 'var(--green)' : 'var(--red)';
     const liveCount = enriched.filter(r => r.live).length;
     subtext.textContent = `${enriched.length} holding${enriched.length === 1 ? '' : 's'} · ${liveCount} live`;
 
     const frag = document.createDocumentFragment();
     enriched.sort((a, b) => b.currentValue - a.currentValue).forEach(r => {
-      const dayUp = r.dayPnl >= 0, ovUp = r.overallPnl >= 0;
-      const dayChgCell = r.hasPrevClose
-        ? `<span class="${dayUp ? 'pos' : 'neg'}">${formatPct(r.dayChangePct)}</span>`
-        : `<span style="color:var(--text-faint)" title="Today's close isn't available yet — showing LTP only">—</span>`;
-      const dayPnlCell = r.hasPrevClose
-        ? `<span class="${dayUp ? 'pos' : 'neg'}">${dayUp ? '+' : ''}${formatINR(r.dayPnl)}</span>`
-        : `<span style="color:var(--text-faint)">—</span>`;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="row-name" data-label="Stock"><span class="row-icon"><i class="bi bi-graph-up"></i></span>${escapeHtml(r.name || r.symbol)}</td>
-        <td class="mono-cell" data-label="Qty">${r.quantity}</td>
-        <td class="mono-cell" data-label="Avg">${formatINR(r.avgPrice)}</td>
-        <td class="mono-cell" data-label="LTP">${formatINR(r.ltp)} <span class="tag ${r.live ? 'live' : 'cached'}">${r.live ? 'live' : 'cached'}</span></td>
-        <td class="mono-cell" data-label="Day Chg">${dayChgCell}</td>
-        <td class="mono-cell" data-label="Day P&amp;L">${dayPnlCell}</td>
-        <td class="mono-cell ${ovUp ? 'pos' : 'neg'}" data-label="Overall">${formatPct(r.overallPnlPct)}</td>`;
-      frag.appendChild(tr);
+      const up = r.pnl >= 0;
+      const color = up ? 'var(--green)' : 'var(--red)';
+      const row = document.createElement('a');
+      row.className = 'notif-item';
+      row.href = 'stocks/index.html';
+      row.innerHTML = `
+        <span class="row-icon"><i class="bi bi-graph-up"></i></span>
+        <div class="notif-item-body">
+          <div class="notif-item-title">${escapeHtml(r.name || r.symbol)}</div>
+          <div class="notif-item-sub">${r.quantity} qty · avg ${formatINR(r.avgPrice)} · LTP ${formatINR(r.ltp)} <span class="tag ${r.live ? 'live' : 'cached'}">${r.live ? 'live' : 'cached'}</span></div>
+        </div>
+        <div class="notif-item-right">
+          <b style="color:${color}">${up ? '+' : ''}${formatINR(r.pnl)}</b>
+          <span class="tag" style="color:${color}">${formatPct(r.pnlPct)}</span>
+        </div>`;
+      frag.appendChild(row);
     });
-    tbody.innerHTML = '';
-    tbody.appendChild(frag);
-    return { dayPnl: totalDayPnl };
+    list.innerHTML = '';
+    list.appendChild(frag);
+    return { dayPnl: totalPnl };
   } catch (e) {
     console.error('Notifications: stocks load failed', e);
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-note"><i class="bi bi-wifi-off"></i>Couldn't load stock data.</div></td></tr>`;
+    list.innerHTML = `<div class="empty-note"><i class="bi bi-wifi-off"></i>Couldn't load stock data.</div>`;
     subtext.textContent = 'Load failed';
     return { dayPnl: 0 };
   }
@@ -1542,14 +1516,14 @@ async function fetchMfapiNav(schemeCode) {
 }
 
 async function loadMfNotifications() {
-  const tbody = document.getElementById('mfNotifBody');
+  const list = document.getElementById('mfNotifBody');
   const subtext = document.getElementById('mfSubtext');
   const dayPnlEl = document.getElementById('mfDayPnl');
-  tbody.innerHTML = `<tr><td colspan="6">${skeletonRows(3)}</td></tr>`;
+  list.innerHTML = skeletonRows(3);
   try {
     const summary = await NotifMutualFundStore.getSummary();
     if (!summary.hasData) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-note"><i class="bi bi-pie-chart"></i>No SIPs yet — <a href="stepUp/index.html">add one</a>.</div></td></tr>`;
+      list.innerHTML = `<div class="empty-note"><i class="bi bi-pie-chart"></i>No SIPs yet — <a href="stepUp/index.html">add one</a>.</div>`;
       subtext.textContent = 'No SIPs';
       dayPnlEl.textContent = formatINR(0);
       dayPnlEl.style.color = '';
@@ -1586,26 +1560,29 @@ async function loadMfNotifications() {
 
     const frag = document.createDocumentFragment();
     enriched.sort((a, b) => b.currentValue - a.currentValue).forEach(r => {
-      const dayUp = r.dayPnl >= 0, ovUp = r.pnl >= 0;
-      const navCell = r.latestNav != null ? formatINR(r.latestNav) : '—';
-      const dayChgCell = r.live ? `<span class="${dayUp ? 'pos' : 'neg'}">${formatPct(r.dayChangePct)}</span>` : '<span class="tag cached">no live NAV</span>';
-      const dayPnlCell = r.live ? `<span class="${dayUp ? 'pos' : 'neg'}">${dayUp ? '+' : ''}${formatINR(r.dayPnl)}</span>` : '—';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="row-name" data-label="Fund"><span class="row-icon"><i class="bi bi-pie-chart-fill"></i></span>${escapeHtml(r.name)}</td>
-        <td class="mono-cell" data-label="NAV">${navCell}</td>
-        <td class="mono-cell" data-label="Day Chg">${dayChgCell}</td>
-        <td class="mono-cell" data-label="Day P&amp;L">${dayPnlCell}</td>
-        <td class="mono-cell" data-label="Invested">${formatINR(r.invested)}</td>
-        <td class="mono-cell ${ovUp ? 'pos' : 'neg'}" data-label="Overall">${formatPct(r.pnlPct)}</td>`;
-      frag.appendChild(tr);
+      const up = r.dayPnl >= 0;
+      const color = up ? 'var(--green)' : 'var(--red)';
+      const navText = r.latestNav != null ? formatINR(r.latestNav) : '—';
+      const row = document.createElement('a');
+      row.className = 'notif-item';
+      row.href = 'stepUp/index.html';
+      row.innerHTML = `
+        <span class="row-icon"><i class="bi bi-pie-chart-fill"></i></span>
+        <div class="notif-item-body">
+          <div class="notif-item-title">${escapeHtml(r.name)}</div>
+          <div class="notif-item-sub">NAV ${navText} · Invested ${formatINR(r.invested)}${r.live ? '' : ' <span class="tag cached">no live NAV</span>'}</div>
+        </div>
+        <div class="notif-item-right">
+          ${r.live ? `<b style="color:${color}">${up ? '+' : ''}${formatINR(r.dayPnl)}</b><span class="tag" style="color:${color}">${formatPct(r.dayChangePct)}</span>` : '<b style="color:var(--text-faint)">—</b>'}
+        </div>`;
+      frag.appendChild(row);
     });
-    tbody.innerHTML = '';
-    tbody.appendChild(frag);
+    list.innerHTML = '';
+    list.appendChild(frag);
     return { dayPnl: totalDayPnl };
   } catch (e) {
     console.error('Notifications: MF load failed', e);
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-note"><i class="bi bi-wifi-off"></i>Couldn't load mutual fund data.</div></td></tr>`;
+    list.innerHTML = `<div class="empty-note"><i class="bi bi-wifi-off"></i>Couldn't load mutual fund data.</div>`;
     subtext.textContent = 'Load failed';
     return { dayPnl: 0 };
   }
@@ -1781,7 +1758,7 @@ function renderSummaryTiles({ stocksDayPnl, mfDayPnl, overdueCount }) {
   const total = stocksDayPnl + mfDayPnl;
   const defs = [
     { label: "Today's Total P&L", value: formatINR(total), up: total >= 0, icon: 'bi-graph-up-arrow' },
-    { label: 'Stocks Day P&L', value: formatINR(stocksDayPnl), up: stocksDayPnl >= 0, icon: 'bi-bar-chart-line-fill' },
+    { label: 'Stocks P&L (Live)', value: formatINR(stocksDayPnl), up: stocksDayPnl >= 0, icon: 'bi-bar-chart-line-fill' },
     { label: 'Mutual Funds Day P&L', value: formatINR(mfDayPnl), up: mfDayPnl >= 0, icon: 'bi-pie-chart-fill' },
     { label: 'Dues Needing Attention', value: String(overdueCount), up: overdueCount === 0, icon: 'bi-exclamation-circle-fill' },
   ];
