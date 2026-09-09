@@ -286,8 +286,20 @@
   .badge-sell{background:var(--loss-bg); color:var(--loss);}
 
   /* Icon-only row action buttons (transactions) */
-  .btn-icon{padding:8px; width:38px; height:38px; gap:0; justify-content:center; flex:0 0 auto;}
+  /* Plain icon buttons (edit/delete on a transaction card) sat on the
+     same --panel background as the card itself, with only a barely-
+     there 1px border between them — on a light-on-light or dark-on-dark
+     card the button was effectively invisible. Giving it --panel-2
+     (already the "one step up" surface used everywhere else) plus a
+     visible border makes it read as a tappable control on both themes. */
+  .btn-icon{padding:8px; width:38px; height:38px; gap:0; justify-content:center; flex:0 0 auto; background:var(--panel-2); border-color:var(--line);}
+  .btn-icon:hover{background:var(--overlay-strong);}
   .btn-icon svg{width:15px; height:15px;}
+  /* .btn-icon (above) is later in the cascade than .btn-danger, so without
+     this its neutral border would win out over the danger one on a
+     combined "btn-icon btn-danger" delete button — keep delete visibly red. */
+  .btn-icon.btn-danger{border-color:var(--loss-bg);}
+  .btn-icon.btn-danger:hover{background:var(--loss-bg);}
   @media (max-width:860px){ .btn-icon{width:42px; height:42px;} }
 
   .empty-state{
@@ -429,6 +441,38 @@
   .tc-amount{font-family:var(--serif); font-weight:700; font-size:15px; white-space:nowrap; flex-shrink:0;}
   .tc-meta{display:flex; align-items:center; flex-wrap:wrap; gap:8px 10px; font-size:12.5px; color:var(--muted); margin-top:10px; padding-left:44px;}
   .tc-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:10px;}
+
+  /* ---------- Transactions: view toggle (Cards / P&L) ---------- */
+  .txn-view-toggle{
+    display:flex; padding:3px; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:10px; gap:2px; flex-shrink:0;
+  }
+  .tvt-btn{
+    display:inline-flex; align-items:center; gap:6px; padding:7px 12px; font-size:12.5px;
+    font-weight:600; font-family:var(--sans); color:var(--muted); background:none; border:none;
+    border-radius:7px; cursor:pointer;
+  }
+  .tvt-btn svg{width:13px; height:13px; stroke-width:2.2;}
+  .tvt-btn:hover{color:var(--text);}
+  .tvt-btn.active{background:var(--panel); color:var(--text); box-shadow:var(--shadow-sm);}
+
+  /* ---------- Transactions: compact "symbol + P&L only" list ----------
+     Each row is its own card (matching the spacing/gap language used
+     everywhere else in the app) rather than a dense hairline-divided
+     list, and stacks symbol/amount above date so nothing gets hidden
+     or squeezed on a narrow screen. */
+  .pnl-list{display:flex; flex-direction:column; gap:8px;}
+  .pnl-row{
+    display:flex; flex-direction:column; gap:6px; padding:13px 16px;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+  }
+  .pnl-row-top{display:flex; align-items:center; gap:10px;}
+  .pnl-row-badge{padding:2px 7px; font-size:10px; flex-shrink:0;}
+  .pnl-row-symbol{font-weight:700; font-size:14px; flex:1; min-width:0;}
+  .pnl-row-amt{font-weight:700; font-size:14px; font-variant-numeric:tabular-nums; flex-shrink:0; white-space:nowrap;}
+  .pnl-row-amt.pnl-row-open{font-weight:600; color:var(--text-faint);}
+  .pnl-row-date{font-size:11.5px; color:var(--muted); padding-left:34px;}
 
   /* ---------- Analytics ---------- */
   .analytics-panel{
@@ -736,6 +780,16 @@
     .field-row{flex-direction:column; gap:0;}
     .filters-row{gap:8px;}
     .filters-row select{flex:1; min-width:0;}
+    /* The filter toolbar (search + 3 selects + view toggle) was wrapping
+       everything into one tight, uneven row on narrow screens. Give the
+       search bar its own full-width row, let the three selects share the
+       row below it evenly, and push the view toggle onto its own
+       full-width row as a clean two-button segmented control. */
+    .filter-toolbar .filter-search{flex:1 1 100%;}
+    .filter-toolbar .filter-select-wrap{flex:1 1 0; min-width:0;}
+    .filter-toolbar .filter-select-wrap select{width:100%;}
+    .txn-view-toggle{flex:1 1 100%; order:5;}
+    .tvt-btn{flex:1; justify-content:center; padding:10px 8px;}
     .alloc-row .name{max-width:52%;}
 
     /* --- Tables become native-feeling card lists on mobile --- */

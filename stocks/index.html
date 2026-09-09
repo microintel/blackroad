@@ -170,8 +170,13 @@
             <option value="asc">Oldest first</option>
           </select>
         </div>
+        <div class="txn-view-toggle" id="txnViewToggle" role="group" aria-label="Transaction view">
+          <button type="button" class="tvt-btn active" data-mode="cards" title="Full detail"><i data-lucide="layout-list"></i>Cards</button>
+          <button type="button" class="tvt-btn" data-mode="pnl" title="Symbol and P&amp;L only"><i data-lucide="percent"></i>P&amp;L</button>
+        </div>
       </div>
       <div class="cards-grid" id="txnCards"></div>
+      <div class="pnl-list" id="txnPnlList"></div>
     </section>
 
     <!-- ANALYTICS -->

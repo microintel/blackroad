@@ -795,6 +795,18 @@ document.getElementById('filterType').addEventListener('change', renderTransacti
 document.getElementById('sortOrder').addEventListener('change', renderTransactions);
 document.getElementById('filterSearch').addEventListener('input', renderTransactions);
 
+// Transactions view toggle — full cards vs. compact "symbol + P&L only".
+let txnViewMode = 'cards';
+document.getElementById('txnViewToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tvt-btn');
+  if(!btn || btn.classList.contains('active')) return;
+  document.querySelectorAll('#txnViewToggle .tvt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  txnViewMode = btn.dataset.mode;
+  renderTransactions();
+  if(window.lucide) lucide.createIcons();
+});
+
 /* ---------------------------------------------------------------
    DEMO DATA
 ------------------------------------------------------------------*/

@@ -231,17 +231,59 @@ function renderTransactions(){
   });
 
   const grid = document.getElementById('txnCards');
+  const pnlList = document.getElementById('txnPnlList');
+  const compact = typeof txnViewMode !== 'undefined' && txnViewMode === 'pnl';
+  grid.style.display = compact ? 'none' : '';
+  pnlList.style.display = compact ? '' : 'none';
+
   if(list.length === 0){
     const hasAny = transactions.length > 0;
-    grid.innerHTML = `<div class="empty-state">
+    const emptyHTML = `<div class="empty-state">
       <div class="es-icon"><i data-lucide="receipt-text"></i></div>
       <div class="es-title">${hasAny ? 'No matching transactions' : 'No transactions yet'}</div>
       <div class="es-body">${hasAny ? 'Try adjusting your search or filters to see more activity.' : 'Add your first buy or sell transaction to start tracking your portfolio.'}</div>
       <button class="btn btn-primary" onclick="openTxnModal()"><i data-lucide="plus"></i>Add transaction</button></div>`;
+    grid.innerHTML = emptyHTML;
+    pnlList.innerHTML = emptyHTML;
+    if(window.lucide) lucide.createIcons();
     return;
   }
 
   grid.innerHTML = list.map(txnCardHTML).join('');
+  if(compact){
+    const pnlMap = getTxnPnLMap();
+    pnlList.innerHTML = list.map(t => txnPnlRowHTML(t, pnlMap[t.id])).join('');
+  }
+  // renderTransactions() is called directly (not via renderAll()) by the
+  // search/filter/sort/view-toggle listeners in app.js, so it has to
+  // refresh icons itself — otherwise every freshly-injected <i data-lucide>
+  // (edit/delete pencil & trash, badges, etc.) stays an empty tag and the
+  // button just shows its bare background with nothing on it.
+  if(window.lucide) lucide.createIcons();
+}
+
+/* ---------------------------------------------------------------
+   RENDER: TRANSACTIONS — compact "symbol + P&L only" row
+   Every SELL carries the realized profit/loss it booked; a BUY has
+   no P&L of its own yet under the average-cost method, so it shows
+   as an open position instead of a number.
+------------------------------------------------------------------*/
+function txnPnlRowHTML(t, pnl){
+  const isBuy = t.type === 'BUY';
+  const hasPnL = !isBuy && pnl !== undefined && pnl !== null;
+  const pnlHTML = hasPnL
+    ? `<span class="pnl-row-amt ${pnlClass(pnl)}">${fmtSigned(pnl, true)}</span>`
+    : `<span class="pnl-row-amt pnl-row-open">Open</span>`;
+  return `
+    <div class="pnl-row">
+      <div class="pnl-row-top">
+        <span class="type-badge ${isBuy ? 'buy' : 'sell'} pnl-row-badge">${isBuy ? 'B' : 'S'}</span>
+        <span class="pnl-row-symbol">${escHtml(t.symbol)}</span>
+        ${pnlHTML}
+      </div>
+      <div class="pnl-row-date">${fmtDate(t.date)}</div>
+    </div>
+  `;
 }
 
 /* ---------------------------------------------------------------

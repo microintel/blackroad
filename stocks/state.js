@@ -214,6 +214,11 @@ function round6(n){
 function replaySymbol(symbol, txnList){
   const txns = getSymbolTransactions(symbol, txnList);
   let qty = 0, totalCost = 0, realizedPnL = 0, totalBuyQty = 0, totalSellQty = 0;
+  // Per-transaction realized P&L for this symbol's SELL rows, keyed by
+  // txn id — the compact "P&L view" in Transactions reads this so each
+  // sale can show its own booked profit/loss instead of only the
+  // symbol-wide running total below.
+  const txnPnL = {};
 
   for(const t of txns){
     if(t.type === 'BUY'){
@@ -229,7 +234,9 @@ function replaySymbol(symbol, txnList){
       const avgCostAtSale = qty > 0 ? totalCost / qty : 0;
       const costBasis = round2(avgCostAtSale * t.quantity);
       const saleValue = round2(t.quantity * t.price);
-      realizedPnL = round2(realizedPnL + (saleValue - costBasis));
+      const txnRealized = round2(saleValue - costBasis);
+      realizedPnL = round2(realizedPnL + txnRealized);
+      txnPnL[t.id] = txnRealized;
       totalCost = round2(totalCost - costBasis);
       qty = round6(qty - t.quantity);
       totalSellQty = round6(totalSellQty + t.quantity);
@@ -243,8 +250,21 @@ function replaySymbol(symbol, txnList){
     realizedPnL,
     totalBuyQty,
     totalSellQty,
+    txnPnL,
     error: null
   };
+}
+
+// Bulk map of txnId -> realized P&L for every SELL transaction across all
+// symbols. BUY transactions are intentionally absent (average-cost method
+// only books a profit/loss on a sale, so a buy has no P&L of its own yet).
+function getTxnPnLMap(){
+  const map = {};
+  getAllSymbols().forEach(sym => {
+    const r = replaySymbol(sym);
+    if(r.txnPnL) Object.assign(map, r.txnPnL);
+  });
+  return map;
 }
 
 function calculateAveragePrice(symbol){ return replaySymbol(symbol).avgPrice; }
