@@ -305,53 +305,55 @@
   <div class="modal">
     <h3 id="txnModalTitle">Add transaction</h3>
     <input type="hidden" id="txnId">
-    <div class="field-row">
-      <div class="field">
-        <label>Type</label>
-        <select id="txnType">
-          <option value="BUY">Buy</option>
-          <option value="SELL">Sell</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Date</label>
-        <input type="date" id="txnDate">
-      </div>
-    </div>
-    <div class="field-row" id="buyStockRow">
-      <div class="field">
-        <label>Stock name</label>
-        <input type="text" id="txnName" placeholder="Reliance Industries">
-      </div>
-      <div class="field">
-        <label>Symbol</label>
-        <input type="text" id="txnSymbol" placeholder="RELIANCE">
-      </div>
-    </div>
-    <div class="field" id="sellStockRow" style="display:none;">
-      <label>Stock to sell</label>
-      <div class="stock-picker" id="stockPicker">
-        <div class="stock-picker-input">
-          <i data-lucide="search"></i>
-          <input type="text" id="sellStockSearch" placeholder="Search your holdings…" autocomplete="off">
+    <div class="field-group">
+      <div class="field-row">
+        <div class="field">
+          <label>Type</label>
+          <select id="txnType">
+            <option value="BUY">Buy</option>
+            <option value="SELL">Sell</option>
+          </select>
         </div>
-        <div class="stock-picker-list" id="sellStockList"></div>
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="txnDate">
+        </div>
       </div>
-      <div class="sell-stock-hint" id="sellStockHint"></div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>How many shares</label>
-        <input type="number" id="txnQty" min="0" step="1">
+      <div class="field-row" id="buyStockRow">
+        <div class="field">
+          <label>Stock name</label>
+          <input type="text" id="txnName" placeholder="Reliance Industries">
+        </div>
+        <div class="field">
+          <label>Symbol</label>
+          <input type="text" id="txnSymbol" placeholder="RELIANCE">
+        </div>
       </div>
-      <div class="field">
-        <label>Price per share (₹)</label>
-        <input type="number" id="txnPrice" min="0" step="0.01">
+      <div class="field field-stacked" id="sellStockRow" style="display:none;">
+        <label>Stock to sell</label>
+        <div class="stock-picker" id="stockPicker">
+          <div class="stock-picker-input">
+            <i data-lucide="search"></i>
+            <input type="text" id="sellStockSearch" placeholder="Search your holdings…" autocomplete="off">
+          </div>
+          <div class="stock-picker-list" id="sellStockList"></div>
+        </div>
+        <div class="sell-stock-hint" id="sellStockHint"></div>
       </div>
-    </div>
-    <div class="field">
-      <label>Notes (optional)</label>
-      <input type="text" id="txnNotes" placeholder="">
+      <div class="field-row">
+        <div class="field">
+          <label>How many shares</label>
+          <input type="number" id="txnQty" min="0" step="1">
+        </div>
+        <div class="field">
+          <label>Price per share (₹)</label>
+          <input type="number" id="txnPrice" min="0" step="0.01">
+        </div>
+      </div>
+      <div class="field field-stacked">
+        <label>Notes (optional)</label>
+        <input type="text" id="txnNotes" placeholder="">
+      </div>
     </div>
     <div class="form-error" id="txnError"></div>
     <div class="modal-actions">

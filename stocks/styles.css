@@ -658,6 +658,57 @@
   .form-error{color:var(--loss); font-size:12.5px; margin-top:-6px; margin-bottom:12px; display:none; line-height:1.4;}
   .modal-wide{max-width:620px;}
 
+  /* ---------- Mobile form: native grouped-list style ----------
+     On a phone, boxed labeled inputs stacked one under another reads as
+     a generic desktop form. Below 860px the field-group instead becomes
+     one merged, rounded card — each field a full-width row with its
+     label on the left and the control on the right, divided by hairline
+     borders — the pattern iOS/Android system forms use (Settings,
+     Reminders, Calendar). Desktop keeps the original boxed layout
+     untouched; .field-group has no effect above 860px. */
+  @media (max-width:860px){
+    .field-group{
+      background:var(--panel-2); border:1px solid var(--line); border-radius:14px;
+      overflow:hidden; margin-bottom:14px;
+    }
+    /* Every field becomes its own full-width row (even ones that were
+       paired side-by-side on desktop, e.g. Type+Date) — two short labels
+       and two controls squeezed into one row is exactly the cramped
+       look that was the complaint, so each gets the full width instead. */
+    .field-group .field-row{display:flex; flex-direction:column; gap:0;}
+    .field-group .field{
+      display:flex; align-items:center; justify-content:space-between; gap:14px;
+      margin:0; padding:13px 14px; border-bottom:1px solid var(--line); min-height:24px;
+    }
+    /* Only strip the border on the truly-last row of the whole card
+       (Notes, a direct child of field-group) — a bare :last-child
+       would also match Date/Symbol/Price, which are last only within
+       their own field-row pair, wrongly dropping the divider above
+       the next pair. */
+    .field-group > .field:last-child{border-bottom:none;}
+    .field-group label{
+      margin:0; flex:0 0 auto; font-size:13.5px; font-weight:500; color:var(--text);
+    }
+    .field-group input, .field-group select{
+      border:none; background:none; padding:0; border-radius:0; width:auto; min-width:0;
+      flex:1; text-align:right; color:var(--muted); font-size:14.5px;
+    }
+    .field-group select{
+      appearance:none; -webkit-appearance:none; text-align-last:right; padding-right:14px;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='12'%3E%3Cpath d='M1 1l5 5-5 5' stroke='%239297A1' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right center;
+    }
+    .field-group input:focus, .field-group select:focus{outline:none; box-shadow:none; border:none;}
+    /* Stock picker & Notes stay label-above / control-below (a search
+       box and free text don't suit a squeezed right-aligned row), but
+       drop their own box so they read as part of the same grouped card. */
+    .field-group .field-stacked{flex-direction:column; align-items:stretch; gap:6px;}
+    .field-group .field-stacked label{font-size:11.5px; color:var(--muted); font-weight:600;}
+    .field-group .field-stacked input{text-align:left; color:var(--text);}
+    .field-group .stock-picker-input{background:var(--panel); border-radius:10px;}
+    .field-group .stock-picker-input input{padding:11px 0;}
+  }
+
   /* Stock detail — price chart panel */
   .detail-chart-panel{margin-bottom:20px; padding:14px 16px 8px; background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius);}
   .detail-chart-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px;}
