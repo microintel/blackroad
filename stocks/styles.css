@@ -77,6 +77,21 @@
 
   html{ transition: background 0.2s, color 0.2s; }
 
+  /* Respect the OS-level "reduce motion" preference: kill transitions,
+     animations, and smooth scrolling app-wide instead of picking off
+     individual keyframes one by one. Anything currently using
+     @keyframes (sheet-in modals, tab fade-in, overlay/modal-in) or a
+     CSS transition (buttons, cards, nav, weight bars) is covered by
+     this single rule. */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration:0.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:0.001ms !important;
+      scroll-behavior:auto !important;
+    }
+  }
+
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0; overscroll-behavior-y:contain;}
   html{-webkit-text-size-adjust:100%;}
@@ -99,6 +114,20 @@
   .btn, .nav-btn, .bnav-btn, .fab, .row-click, .weight-bar{transition:transform .12s ease, background-color .15s ease, opacity .12s ease, box-shadow .15s ease;}
   .btn:active, .fab:active{transform:scale(0.96);}
   .bnav-btn:active .ic{transform:scale(0.88);}
+
+  /* ---------- Initial load overlay ---------- */
+  .initial-loader{
+    position:fixed; inset:0; z-index:500; background:var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    opacity:1; transition:opacity .2s ease;
+  }
+  .initial-loader.hide{opacity:0; pointer-events:none;}
+  .initial-loader-spinner{
+    width:28px; height:28px; border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--accent);
+    animation:loaderSpin .7s linear infinite;
+  }
+  @keyframes loaderSpin{to{transform:rotate(360deg);}}
 
   /* ---------- App shell ---------- */
   .app{
@@ -407,9 +436,16 @@
   .holding-card{
     background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-lg);
     box-shadow:var(--shadow-card); padding:16px; cursor:pointer;
+    transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease, background-color .14s ease;
   }
-  .holding-card:hover{border-color:var(--overlay-strong);}
-  .holding-card:active{background:var(--panel-2);}
+  /* Lift-on-hover only where hover actually means something (a mouse) —
+     guarded with (hover:hover) so touch devices don't get a "stuck"
+     hover state after a tap, which is why mobile keeps the flatter
+     active-state feedback below instead. */
+  @media (hover:hover){
+    .holding-card:hover{border-color:var(--overlay-strong); box-shadow:var(--shadow-pop); transform:translateY(-2px);}
+  }
+  .holding-card:active{background:var(--panel-2); transform:translateY(0);}
   .hc-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
   .hc-id{display:flex; align-items:center; gap:10px; min-width:0;}
   .hc-id-text{min-width:0;}
@@ -434,6 +470,10 @@
   .txn-card{
     background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-lg);
     box-shadow:var(--shadow-card); padding:14px 16px;
+    transition:box-shadow .14s ease, border-color .14s ease;
+  }
+  @media (hover:hover){
+    .txn-card:hover{border-color:var(--overlay-strong); box-shadow:var(--shadow-pop);}
   }
   .tc-top{display:flex; align-items:center; justify-content:space-between; gap:10px;}
   .tc-id{display:flex; align-items:center; gap:10px; min-width:0;}
@@ -755,6 +795,78 @@
   .detail-grid .k{font-size:11.5px; color:var(--muted); margin-bottom:2px;}
   .detail-grid .v{font-size:14px; font-weight:600; font-family:var(--serif); line-height:1.3; word-break:break-word;}
 
+  /* ---------- Tag chips (Part 13) ---------- */
+  .tc-tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; padding-left:44px;}
+  .tag-chip{
+    display:inline-flex; align-items:center; font-size:11px; font-weight:600;
+    padding:3px 9px; border-radius:20px; background:var(--accent-2-bg); color:var(--accent-2);
+    letter-spacing:.01em;
+  }
+
+  /* ---------- Portfolio health / monthly report grid (Parts 15, 18) ---------- */
+  .health-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;}
+  .health-item{background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius); padding:12px 13px;}
+  .health-lbl{font-size:10.5px; color:var(--muted); font-weight:600; letter-spacing:.01em; margin-bottom:5px;}
+  .health-val{font-family:var(--serif); font-size:16px; font-weight:600; line-height:1.25; word-break:break-word;}
+  .health-note{
+    display:flex; align-items:flex-start; gap:8px; margin-top:14px; padding:11px 13px;
+    background:var(--accent-soft); color:var(--accent); border-radius:var(--radius-sm); font-size:12.5px; line-height:1.5;
+  }
+  .health-note svg{width:15px; height:15px; flex-shrink:0; margin-top:1px;}
+  .report-summary{margin-top:14px;}
+  @media (max-width:860px){ .health-grid{grid-template-columns:repeat(2, 1fr);} }
+
+  /* ---------- Global search modal (Part 16) ---------- */
+  .search-modal{max-width:560px; padding:0; overflow:hidden; display:flex; flex-direction:column; max-height:min(70vh, 520px);}
+  .search-modal-input{display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--line); flex-shrink:0;}
+  .search-modal-input svg{width:17px; height:17px; color:var(--muted); flex-shrink:0;}
+  .search-modal-input input{flex:1; min-width:0; border:none; background:transparent; font-family:var(--sans); font-size:15px; color:var(--text);}
+  .search-modal-input input:focus{outline:none;}
+  .search-esc-hint{
+    font-family:var(--sans); font-size:10.5px; font-weight:600; color:var(--muted);
+    border:1px solid var(--line); border-radius:5px; padding:2px 6px; flex-shrink:0;
+  }
+  .search-results{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px; flex:1; min-height:0;}
+  .search-group-label{font-size:10.5px; font-weight:700; color:var(--muted); letter-spacing:.03em; text-transform:uppercase; padding:10px 10px 6px 10px;}
+  .search-result{
+    display:flex; align-items:center; gap:11px; padding:10px; border-radius:var(--radius-sm); cursor:pointer;
+  }
+  .search-result:hover{background:var(--panel-2);}
+  .search-result:active{background:var(--overlay);}
+  .search-empty{padding:32px 20px; text-align:center; color:var(--muted); font-size:13px;}
+
+  /* ---------- Toast with an inline "Undo" action (Part 12) ---------- */
+  .toast{display:flex; align-items:center; gap:12px;}
+  .toast-action{
+    background:none; border:none; color:var(--accent); font-family:var(--sans); font-weight:700;
+    font-size:13px; padding:0; flex-shrink:0; white-space:nowrap;
+  }
+  .toast-action:hover{text-decoration:underline;}
+
+  /* ---------- Print-only monthly report (Part 18) ---------- */
+  .print-only{display:none;}
+  @media print{
+    body *{ visibility:hidden; }
+    #printReport, #printReport *{ visibility:visible; }
+    #printReport{
+      display:block; position:absolute; inset:0; padding:0; margin:0;
+      background:#fff; color:#111; font-family:var(--sans);
+    }
+    .pr-title{font-family:var(--serif); font-size:22px; font-weight:700; margin:0 0 2px 0;}
+    .pr-sub{font-size:12px; color:#555; margin-bottom:18px;}
+    .pr-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px 16px; margin-bottom:22px;}
+    .pr-cell{border:1px solid #ddd; border-radius:6px; padding:9px 11px;}
+    .pr-lbl{font-size:9.5px; color:#666; text-transform:uppercase; letter-spacing:.03em; margin-bottom:3px;}
+    .pr-val{font-family:var(--serif); font-size:14px; font-weight:700;}
+    .pr-val.pos{color:#1C9A5B;} .pr-val.neg{color:#D54B5A;}
+    .pr-table{width:100%; border-collapse:collapse; font-size:11px;}
+    .pr-table th{text-align:left; border-bottom:1.5px solid #111; padding:5px 8px; font-size:10px; text-transform:uppercase; letter-spacing:.02em;}
+    .pr-table td{padding:5px 8px; border-bottom:1px solid #ddd;}
+    .pr-table td.num{text-align:right; font-variant-numeric:tabular-nums;}
+    .pr-empty{font-size:12px; color:#666; padding:10px 0;}
+    .pr-footer{margin-top:18px; font-size:10px; color:#888;}
+  }
+
   /* ---------- Mobile bottom nav (native tab bar) ---------- */
   .bottom-nav{
     display:none; position:fixed; bottom:0; left:0; right:0;
@@ -789,7 +901,7 @@
     opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:200;
     box-shadow:var(--shadow-pop);
   }
-  .toast.show{opacity:1;}
+  .toast.show{opacity:1; pointer-events:auto;}
 
   /* Fixed top-left back-to-BlackRoad button (mobile only) */
   .mobile-back-btn{
@@ -884,4 +996,20 @@
       content:''; display:block; width:36px; height:4px; background:var(--line); border-radius:2px; margin:2px auto 14px auto;
     }
     .modal h3{font-size:17px;}
+
+    /* Search is the one modal where a bottom sheet actively fights the
+       keyboard: the input sits near the bottom of the sheet, so the
+       keyboard covers it the instant it opens. Pin it to the top of the
+       screen instead — the input is then always above the keyboard, and
+       only the results list needs to scroll in whatever room is left.
+       100dvh (not 100vh) is what actually shrinks when the keyboard
+       opens on browsers that support the dynamic-viewport units. */
+    #searchModalOverlay{align-items:flex-start;}
+    .search-modal{
+      width:100%; max-width:100%; height:100dvh; max-height:100dvh;
+      border-radius:0; margin:0; padding-top:env(safe-area-inset-top);
+      overflow:hidden; animation:none;
+    }
+    .search-modal::before{display:none;}
+    .search-modal-input{padding:14px 16px;}
   }

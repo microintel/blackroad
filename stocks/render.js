@@ -133,6 +133,7 @@ function txnCardHTML(t){
   const isBuy = t.type === 'BUY';
   const typeIcon = isBuy ? 'arrow-down-left' : 'arrow-up-right';
   const amount = fmtMoney(t.quantity * t.price, true);
+  const tags = extractTags(t.notes);
   return `
     <div class="txn-card">
       <div class="tc-top">
@@ -149,7 +150,9 @@ function txnCardHTML(t){
         <span class="type-badge ${isBuy ? 'buy' : 'sell'}"><i data-lucide="${typeIcon}"></i>${t.type}</span>
         <span>${t.quantity} shares · ${fmtMoney(t.price)}</span>
       </div>
+      ${tags.length ? `<div class="tc-tags">${tags.map(tag => `<span class="tag-chip">#${escHtml(tag)}</span>`).join('')}</div>` : ''}
       <div class="tc-actions">
+        <button class="btn btn-sm btn-icon" onclick="duplicateTransaction('${escAttr(t.id)}')" title="Duplicate" aria-label="Duplicate"><i data-lucide="copy"></i></button>
         <button class="btn btn-sm btn-icon" onclick="openTxnModal('${escAttr(t.id)}')" title="Edit" aria-label="Edit"><i data-lucide="pencil"></i></button>
         <button class="btn btn-sm btn-icon btn-danger" onclick="openDeleteModal('${escAttr(t.id)}')" title="Delete" aria-label="Delete"><i data-lucide="trash-2"></i></button>
       </div>
@@ -188,10 +191,27 @@ function populateStockFilter(){
   sel.value = symbols.includes(current) ? current : '';
 }
 
+// Tag dropdown only makes sense once at least one transaction has a
+// #tag in its notes — otherwise it just clutters the toolbar with an
+// "All tags" option and nothing else to pick.
+function populateTagFilter(){
+  const wrap = document.getElementById('filterTagWrap');
+  const sel = document.getElementById('filterTag');
+  const tags = getAllTags();
+  wrap.style.display = tags.length ? '' : 'none';
+  if(!tags.length) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All tags</option>' +
+    tags.map(tag => `<option value="${escAttr(tag)}">#${escHtml(tag)}</option>`).join('');
+  sel.value = tags.includes(current) ? current : '';
+}
+
 function renderTransactions(){
   populateStockFilter();
+  populateTagFilter();
   const stockFilter = document.getElementById('filterStock').value;
   const typeFilter = document.getElementById('filterType').value;
+  const tagFilter = document.getElementById('filterTag').value;
   const order = document.getElementById('sortOrder').value;
   const searchTerm = document.getElementById('filterSearch').value.trim().toLowerCase();
 
@@ -224,7 +244,12 @@ function renderTransactions(){
   let list = transactions.slice();
   if(stockFilter) list = list.filter(t => t.symbol === stockFilter);
   if(typeFilter) list = list.filter(t => t.type === typeFilter);
-  if(searchTerm) list = list.filter(t => t.name.toLowerCase().includes(searchTerm) || t.symbol.toLowerCase().includes(searchTerm));
+  if(tagFilter) list = list.filter(t => extractTags(t.notes).includes(tagFilter));
+  if(searchTerm) list = list.filter(t =>
+    t.name.toLowerCase().includes(searchTerm) ||
+    t.symbol.toLowerCase().includes(searchTerm) ||
+    (t.notes || '').toLowerCase().includes(searchTerm)
+  );
   list.sort((a,b) => {
     if(a.date === b.date) return order === 'asc' ? a.seq - b.seq : b.seq - a.seq;
     return order === 'asc' ? (a.date < b.date ? -1 : 1) : (a.date > b.date ? -1 : 1);
@@ -355,6 +380,35 @@ function renderAnalytics(){
   document.getElementById('anTotal').innerHTML = `<span class="${pnlClass(totals.totalPnL)}" style="font-weight:700;">${fmtSigned(totals.totalPnL, true)}</span>`;
 
   const perfStrip = document.getElementById('perfStrip');
+
+  // Portfolio health — concentration + profitable/loss-making split.
+  // Every number here is a direct, transparent calculation off the same
+  // holdings list used everywhere else; there's no invented "score".
+  const healthDiv = document.getElementById('portfolioHealth');
+  if(holdings.length === 0){
+    healthDiv.innerHTML = `<div class="empty-state" style="padding:20px 0;">
+      <div class="es-icon"><i data-lucide="shield-check"></i></div>
+      <div class="es-title">Not enough data</div>
+      <div class="es-body">Add transactions to see portfolio health once you're holding something.</div>
+    </div>`;
+  } else {
+    const byValue = holdings.slice().sort((a,b) => b.currentValue - a.currentValue);
+    const profitable = holdings.filter(h => h.unrealizedPnL >= 0).length;
+    const lossMaking = holdings.length - profitable;
+    const largestPct = calculatePortfolioWeight(byValue[0].symbol);
+    const top3Pct = round2(byValue.slice(0,3).reduce((s,h) => s + calculatePortfolioWeight(h.symbol), 0));
+    healthDiv.innerHTML = `
+      <div class="health-grid">
+        <div class="health-item"><div class="health-lbl">Holdings</div><div class="health-val">${holdings.length}</div></div>
+        <div class="health-item"><div class="health-lbl">Profitable</div><div class="health-val pos">${profitable}</div></div>
+        <div class="health-item"><div class="health-lbl">Loss-making</div><div class="health-val ${lossMaking > 0 ? 'neg' : ''}">${lossMaking}</div></div>
+        <div class="health-item"><div class="health-lbl">Largest holding</div><div class="health-val">${largestPct.toFixed(1)}%</div></div>
+        <div class="health-item"><div class="health-lbl">Top 3 holdings</div><div class="health-val">${top3Pct.toFixed(1)}%</div></div>
+        <div class="health-item"><div class="health-lbl">Total invested</div><div class="health-val">${fmtMoney(totals.investedValue, true)}</div></div>
+      </div>
+      <div class="health-note"><i data-lucide="info"></i>${escHtml(byValue[0].name)} makes up ${largestPct.toFixed(1)}% of your portfolio. This is informational only, not investment advice.</div>
+    `;
+  }
 
   if(holdings.length === 0){
     perfStrip.innerHTML = `
@@ -512,6 +566,46 @@ function buildPriceLineChart(history, opts){
   `;
 }
 
+/* ---------------------------------------------------------------
+   RENDER: SETTINGS — Reports panel (Part 18)
+------------------------------------------------------------------*/
+function renderSettingsReports(){
+  const sel = document.getElementById('reportMonthSelect');
+  const summaryEl = document.getElementById('reportSummary');
+  const months = getAvailableMonths();
+
+  if(months.length === 0){
+    sel.innerHTML = '<option value="">No data yet</option>';
+    summaryEl.innerHTML = `<div class="empty-state" style="padding:20px 0;">
+      <div class="es-icon"><i data-lucide="file-text"></i></div>
+      <div class="es-title">Not enough data</div>
+      <div class="es-body">Add transactions to see a monthly report.</div>
+    </div>`;
+    if(window.lucide) lucide.createIcons();
+    return;
+  }
+
+  const monthLabel = (ym) => {
+    const [y,m] = ym.split('-');
+    return new Date(Number(y), Number(m)-1, 1).toLocaleDateString('en-IN', { month:'long', year:'numeric' });
+  };
+  const current = sel.value;
+  sel.innerHTML = months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
+  sel.value = months.includes(current) ? current : months[0];
+
+  const s = calculateMonthlySummary(sel.value);
+  summaryEl.innerHTML = `
+    <div class="health-grid">
+      <div class="health-item"><div class="health-lbl">Invested</div><div class="health-val">${fmtMoney(s.invested, true)}</div></div>
+      <div class="health-item"><div class="health-lbl">Withdrawn</div><div class="health-val">${fmtMoney(s.withdrawn, true)}</div></div>
+      <div class="health-item"><div class="health-lbl">Transactions</div><div class="health-val">${s.transactionCount}</div></div>
+      <div class="health-item"><div class="health-lbl">Realized P&amp;L (this month)</div><div class="health-val ${pnlClass(s.realizedPnLThisMonth)}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
+      <div class="health-item"><div class="health-lbl">Current portfolio</div><div class="health-val">${fmtMoney(s.currentPortfolioValue, true)}</div></div>
+      <div class="health-item"><div class="health-lbl">Unrealized P&amp;L (now)</div><div class="health-val ${pnlClass(s.unrealizedPnL)}">${fmtSigned(s.unrealizedPnL, true)}</div></div>
+    </div>
+  `;
+}
+
 function renderAll(){
   // Only the visible tab needs to be rendered right now — the others
   // will render themselves the moment switchView() makes them active.
@@ -522,7 +616,7 @@ function renderAll(){
     case 'holdings':     renderHoldings();     break;
     case 'transactions': renderTransactions(); break;
     case 'analytics':    renderAnalytics();    break;
-    case 'settings':     break; // static content, nothing to compute
+    case 'settings':     renderSettingsReports(); break;
   }
   if(window.lucide) lucide.createIcons();
 }

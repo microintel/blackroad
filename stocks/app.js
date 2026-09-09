@@ -91,6 +91,34 @@ async function refreshSinglePrice(symbol){
 }
 
 /* ---------------------------------------------------------------
+   DUPLICATE TRANSACTION
+   Opens the normal "Add" modal pre-filled from an existing row (dated
+   today, ready to tweak) rather than silently cloning a record —
+   it goes through the exact same validated save path as any other
+   new transaction, so it can't create an invalid state.
+------------------------------------------------------------------*/
+function duplicateTransaction(id){
+  const t = transactions.find(x => x.id === id);
+  if(!t) return;
+  openTxnModal(); // resets the form to "Add" mode first
+  document.getElementById('txnModalTitle').textContent = 'Duplicate transaction';
+  document.getElementById('txnType').value = t.type;
+  document.getElementById('txnDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('txnName').value = t.name;
+  document.getElementById('txnSymbol').value = t.symbol;
+  document.getElementById('txnQty').value = t.quantity;
+  document.getElementById('txnPrice').value = t.price;
+  document.getElementById('txnNotes').value = t.notes || '';
+  setTxnTypeFields();
+  if(t.type === 'SELL'){
+    const held = calculateStockHolding(t.symbol);
+    sellStockSearch.value = `${t.name} (${t.symbol})`;
+    sellStockHint.textContent = `You hold ${held.quantity} share${held.quantity === 1 ? '' : 's'} of ${t.symbol}.`;
+    sellStockHint.classList.add('show');
+  }
+}
+
+/* ---------------------------------------------------------------
    TRANSACTION MODAL (add / edit)
 ------------------------------------------------------------------*/
 const txnModal = document.getElementById('txnModalOverlay');
@@ -292,12 +320,30 @@ document.getElementById('deleteConfirmBtn').addEventListener('click', () => {
     deleteModal.classList.remove('active');
     return;
   }
+  const idx = transactions.findIndex(t => t.id === pendingDeleteId);
+  const removed = idx !== -1 ? transactions[idx] : null;
   transactions = transactions.filter(t => t.id !== pendingDeleteId);
   pendingDeleteId = null;
   saveStateGuarded();
   deleteModal.classList.remove('active');
   renderAll();
-  showToast('Transaction deleted');
+  if(removed){
+    showToast('Transaction deleted', {
+      label: 'Undo',
+      onClick: () => {
+        // Re-insert at its original position (by id) rather than pushing
+        // to the end, so unrelated transactions' relative order — and
+        // therefore every downstream calculation — is restored exactly.
+        const insertAt = Math.min(idx, transactions.length);
+        transactions.splice(insertAt, 0, removed);
+        saveStateGuarded();
+        renderAll();
+        showToast('Transaction restored');
+      }
+    });
+  } else {
+    showToast('Transaction deleted');
+  }
 });
 
 /* ---------------------------------------------------------------
@@ -794,6 +840,7 @@ document.getElementById('filterStock').addEventListener('change', renderTransact
 document.getElementById('filterType').addEventListener('change', renderTransactions);
 document.getElementById('sortOrder').addEventListener('change', renderTransactions);
 document.getElementById('filterSearch').addEventListener('input', renderTransactions);
+document.getElementById('filterTag').addEventListener('change', renderTransactions);
 
 // Transactions view toggle — full cards vs. compact "symbol + P&L only".
 let txnViewMode = 'cards';
@@ -805,6 +852,85 @@ document.getElementById('txnViewToggle').addEventListener('click', (e) => {
   txnViewMode = btn.dataset.mode;
   renderTransactions();
   if(window.lucide) lucide.createIcons();
+});
+
+/* ---------------------------------------------------------------
+   REPORTS (Settings tab)
+------------------------------------------------------------------*/
+document.getElementById('reportMonthSelect').addEventListener('change', renderSettingsReports);
+document.getElementById('printReportBtn').addEventListener('click', () => {
+  const monthSel = document.getElementById('reportMonthSelect');
+  const ym = monthSel.value;
+  if(!ym){ showToast('No transactions to report on yet'); return; }
+  generatePrintReport(ym);
+  // Let the freshly-built DOM paint before handing off to the browser's
+  // print dialog — printing synchronously right after innerHTML can
+  // occasionally print a stale/empty frame in some browsers.
+  setTimeout(() => window.print(), 50);
+});
+
+// Builds the hidden #printReport DOM for one month, then window.print()
+// (triggered by the caller) hands the rest to the browser's native
+// print/"Save as PDF" flow — no PDF library, no extra dependency, and it
+// always renders the exact same numbers as the on-screen Reports panel
+// because it reads from the same calculateMonthlySummary().
+function generatePrintReport(ym){
+  const s = calculateMonthlySummary(ym);
+  const [y, m] = ym.split('-');
+  const monthLabel = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const generatedAt = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const monthTxns = transactions
+    .filter(t => t.date && t.date.slice(0, 7) === ym)
+    .slice()
+    .sort((a, b) => (a.date === b.date) ? a.seq - b.seq : (a.date < b.date ? -1 : 1));
+  const pnlMap = getTxnPnLMap();
+
+  const rowsHTML = monthTxns.length ? monthTxns.map(t => `
+    <tr>
+      <td>${fmtDate(t.date)}</td>
+      <td>${escHtml(t.type)}</td>
+      <td>${escHtml(t.name)} (${escHtml(t.symbol)})</td>
+      <td class="num">${t.quantity}</td>
+      <td class="num">${fmtMoney(t.price)}</td>
+      <td class="num">${fmtMoney(t.quantity * t.price, true)}</td>
+      <td class="num">${t.type === 'SELL' && pnlMap[t.id] !== undefined ? fmtSigned(pnlMap[t.id], true) : '—'}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="7" class="pr-empty">No transactions this month.</td></tr>`;
+
+  document.getElementById('printReport').innerHTML = `
+    <div class="pr-title">Blackboard's Equity Report — ${monthLabel}</div>
+    <div class="pr-sub">Generated ${generatedAt}</div>
+    <div class="pr-grid">
+      <div class="pr-cell"><div class="pr-lbl">Invested</div><div class="pr-val">${fmtMoney(s.invested, true)}</div></div>
+      <div class="pr-cell"><div class="pr-lbl">Withdrawn</div><div class="pr-val">${fmtMoney(s.withdrawn, true)}</div></div>
+      <div class="pr-cell"><div class="pr-lbl">Transactions</div><div class="pr-val">${s.transactionCount}</div></div>
+      <div class="pr-cell"><div class="pr-lbl">Realized P&amp;L (month)</div><div class="pr-val ${pnlClass(s.realizedPnLThisMonth)}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
+      <div class="pr-cell"><div class="pr-lbl">Current portfolio</div><div class="pr-val">${fmtMoney(s.currentPortfolioValue, true)}</div></div>
+      <div class="pr-cell"><div class="pr-lbl">Unrealized P&amp;L (now)</div><div class="pr-val ${pnlClass(s.unrealizedPnL)}">${fmtSigned(s.unrealizedPnL, true)}</div></div>
+    </div>
+    <table class="pr-table">
+      <thead><tr><th>Date</th><th>Type</th><th>Stock</th><th>Qty</th><th>Price</th><th>Amount</th><th>Realized P&amp;L</th></tr></thead>
+      <tbody>${rowsHTML}</tbody>
+    </table>
+    <div class="pr-footer">Blackboard's Equity Report · This report is informational only, not investment advice.</div>
+  `;
+}
+
+document.getElementById('exportCsvBtn').addEventListener('click', () => {
+  if(transactions.length === 0){ showToast('No transactions to export'); return; }
+  const csv = transactionsToCSV();
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `transactions-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported');
 });
 
 /* ---------------------------------------------------------------
@@ -827,15 +953,166 @@ document.getElementById('demoBtn').addEventListener('click', () => {
 });
 
 /* ---------------------------------------------------------------
+   GLOBAL SEARCH (Ctrl/Cmd+K on desktop, search icon everywhere)
+   Searches across stock name/symbol and transaction name/symbol/notes
+   (which also covers #tags, since a tag is just text inside notes).
+------------------------------------------------------------------*/
+const searchModal = document.getElementById('searchModalOverlay');
+const globalSearchInput = document.getElementById('globalSearchInput');
+const searchResultsEl = document.getElementById('searchResults');
+
+function openSearchModal(){
+  searchModal.classList.add('active');
+  globalSearchInput.value = '';
+  renderSearchResults('');
+  syncSearchModalToViewport();
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', syncSearchModalToViewport);
+  setTimeout(() => globalSearchInput.focus(), 30);
+}
+function closeSearchModal(){
+  searchModal.classList.remove('active');
+  if(window.visualViewport) window.visualViewport.removeEventListener('resize', syncSearchModalToViewport);
+  const modalEl = searchModal.querySelector('.search-modal');
+  if(modalEl) modalEl.style.height = '';
+}
+// 100dvh (set in CSS) already shrinks with the keyboard on browsers that
+// support dynamic-viewport units. This is the fallback for the ones that
+// don't (mainly older Android WebViews): pin the modal's actual pixel
+// height to window.visualViewport.height, which always reflects the
+// space really left on screen once the keyboard is up — so the input
+// and results never end up rendered underneath it.
+function syncSearchModalToViewport(){
+  if(!searchModal.classList.contains('active')) return;
+  const modalEl = searchModal.querySelector('.search-modal');
+  if(!modalEl || !window.visualViewport) return;
+  if(window.matchMedia('(max-width:860px)').matches){
+    modalEl.style.height = window.visualViewport.height + 'px';
+  }
+}
+document.getElementById('globalSearchBtn').addEventListener('click', openSearchModal);
+searchModal.addEventListener('click', e => { if(e.target === searchModal) closeSearchModal(); });
+
+function renderSearchResults(rawTerm){
+  const term = rawTerm.trim().toLowerCase();
+
+  const stockMatches = getAllSymbols()
+    .map(sym => ({ symbol: sym, name: getSymbolName(sym) }))
+    .filter(s => !term || s.name.toLowerCase().includes(term) || s.symbol.toLowerCase().includes(term))
+    .slice(0, 6);
+
+  const txnMatches = (!term ? [] : transactions.filter(t =>
+      t.name.toLowerCase().includes(term) ||
+      t.symbol.toLowerCase().includes(term) ||
+      (t.notes || '').toLowerCase().includes(term)
+    ))
+    .slice()
+    .sort((a,b) => (a.date < b.date ? 1 : -1))
+    .slice(0, 8);
+
+  if(!term && stockMatches.length === 0){
+    searchResultsEl.innerHTML = `<div class="search-empty">Start typing to search your stocks, transactions, notes, and tags.</div>`;
+    return;
+  }
+  if(term && stockMatches.length === 0 && txnMatches.length === 0){
+    searchResultsEl.innerHTML = `<div class="search-empty">No matches for "${escHtml(rawTerm)}".</div>`;
+    return;
+  }
+
+  let html = '';
+  if(stockMatches.length){
+    html += `<div class="search-group-label">Stocks</div>` + stockMatches.map(s => `
+      <div class="search-result" data-kind="stock" data-symbol="${escAttr(s.symbol)}">
+        <div class="stock-avatar"><i data-lucide="building-2"></i></div>
+        <div class="tc-id-text"><div class="stock-name">${escHtml(s.name)}</div><div class="stock-symbol">${escHtml(s.symbol)}</div></div>
+      </div>`).join('');
+  }
+  if(txnMatches.length){
+    html += `<div class="search-group-label">Transactions</div>` + txnMatches.map(t => `
+      <div class="search-result" data-kind="txn" data-symbol="${escAttr(t.symbol)}">
+        <span class="type-badge ${t.type==='BUY'?'buy':'sell'} pnl-row-badge">${t.type==='BUY'?'B':'S'}</span>
+        <div class="tc-id-text">
+          <div class="stock-name">${escHtml(t.name)} <span class="stock-symbol">(${escHtml(t.symbol)})</span></div>
+          <div class="stock-symbol">${fmtDate(t.date)} · ${t.quantity} @ ${fmtMoney(t.price)}${t.notes ? ' · ' + escHtml(t.notes) : ''}</div>
+        </div>
+      </div>`).join('');
+  }
+  searchResultsEl.innerHTML = html;
+  if(window.lucide) lucide.createIcons();
+}
+
+globalSearchInput.addEventListener('input', () => renderSearchResults(globalSearchInput.value));
+searchResultsEl.addEventListener('click', e => {
+  const row = e.target.closest('.search-result');
+  if(!row) return;
+  const symbol = row.dataset.symbol;
+  closeSearchModal();
+  switchView('holdings');
+  openDetailModal(symbol);
+});
+
+/* ---------------------------------------------------------------
+   KEYBOARD SHORTCUTS (desktop)
+   Ctrl/Cmd+K -> search, N -> new transaction, Esc -> close whatever
+   overlay is on top. Ignored while typing in a text field so normal
+   browser/editing shortcuts (and just typing the letter "n") aren't
+   hijacked.
+------------------------------------------------------------------*/
+function isTypingInField(el){
+  if(!el) return false;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+}
+document.addEventListener('keydown', (e) => {
+  const cmdK = (e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey);
+  if(cmdK){
+    e.preventDefault();
+    if(searchModal.classList.contains('active')) closeSearchModal();
+    else openSearchModal();
+    return;
+  }
+  if(e.key === 'Escape'){
+    // Close whichever overlay is actually open, topmost concern first.
+    if(searchModal.classList.contains('active')) return closeSearchModal();
+    if(txnModal.classList.contains('active')) return closeTxnModal();
+    if(deleteModal.classList.contains('active')){ pendingDeleteId = null; return deleteModal.classList.remove('active'); }
+    if(clearModal.classList.contains('active')) return clearModal.classList.remove('active');
+    if(importModal.classList.contains('active')){ pendingImportData = null; return importModal.classList.remove('active'); }
+    if(typeof inlineDetailOpen !== 'undefined' && inlineDetailOpen) return closeInlineDetail();
+    return;
+  }
+  if((e.key === 'n' || e.key === 'N') && !isTypingInField(document.activeElement)){
+    const anyModalOpen = document.querySelector('.modal-overlay.active');
+    if(anyModalOpen) return;
+    e.preventDefault();
+    openTxnModal();
+  }
+});
+
+/* ---------------------------------------------------------------
    TOAST + ESCAPING HELPERS
 ------------------------------------------------------------------*/
 let toastTimer = null;
-function showToast(msg){
+// action = { label, onClick } — optional. Existing showToast('message')
+// calls elsewhere keep working exactly as before.
+function showToast(msg, action){
   const el = document.getElementById('toast');
-  el.textContent = msg;
+  el.innerHTML = '';
+  el.appendChild(document.createTextNode(msg));
+  if(action){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-action';
+    btn.textContent = action.label;
+    btn.addEventListener('click', () => {
+      el.classList.remove('show');
+      clearTimeout(toastTimer);
+      action.onClick();
+    });
+    el.appendChild(btn);
+  }
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => el.classList.remove('show'), action ? 5000 : 2200);
 }
 function escHtml(s){
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -856,6 +1133,11 @@ if(refreshPricesBtn){
 loadState().then(() => {
   renderAll();
   if(window.lucide) lucide.createIcons();
+  const loader = document.getElementById('initialLoader');
+  if(loader){
+    loader.classList.add('hide');
+    setTimeout(() => loader.remove(), 250);
+  }
   // Silently fetch live LTPs for all held symbols on load. If any
   // fetch fails, that symbol just keeps its last known / manual price.
   refreshAllPrices(true);

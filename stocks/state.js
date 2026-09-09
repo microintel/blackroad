@@ -379,6 +379,73 @@ function validateTransaction(candidate, excludeId){
 }
 
 /* ---------------------------------------------------------------
+   TAGS
+   Not a separate stored field (the DB schema stays exactly as-is) —
+   tags are #hashtags parsed out of the existing free-text `notes`
+   field on demand. This keeps old data automatically "tagged" if it
+   already happened to contain a #word, and needs no migration.
+------------------------------------------------------------------*/
+function extractTags(notes){
+  if(!notes) return [];
+  const matches = String(notes).match(/#[a-zA-Z][a-zA-Z0-9_]*/g) || [];
+  return [...new Set(matches.map(m => m.slice(1).toLowerCase()))];
+}
+
+function getAllTags(){
+  const set = new Set();
+  transactions.forEach(t => extractTags(t.notes).forEach(tag => set.add(tag)));
+  return [...set].sort();
+}
+
+/* ---------------------------------------------------------------
+   REPORTS
+   Monthly summary derived the same way everything else is — replaying
+   transactions — restricted to a given calendar month (YYYY-MM).
+------------------------------------------------------------------*/
+function calculateMonthlySummary(yyyyMm){
+  const inMonth = transactions.filter(t => t.date && t.date.slice(0,7) === yyyyMm);
+  const invested = round2(inMonth.filter(t => t.type === 'BUY').reduce((s,t) => s + t.quantity * t.price, 0));
+  const withdrawn = round2(inMonth.filter(t => t.type === 'SELL').reduce((s,t) => s + t.quantity * t.price, 0));
+  // Realized P&L booked specifically within this month (per-symbol replay,
+  // summed only over this month's SELL rows) — not the all-time total.
+  const pnlMap = getTxnPnLMap();
+  const realizedThisMonth = round2(inMonth
+    .filter(t => t.type === 'SELL')
+    .reduce((s,t) => s + (pnlMap[t.id] || 0), 0));
+  const totals = calculatePortfolioTotals();
+  return {
+    month: yyyyMm,
+    invested,
+    withdrawn,
+    transactionCount: inMonth.length,
+    realizedPnLThisMonth: realizedThisMonth,
+    currentPortfolioValue: totals.currentValue,
+    unrealizedPnL: totals.unrealizedPnL
+  };
+}
+
+function getAvailableMonths(){
+  return [...new Set(transactions.map(t => t.date && t.date.slice(0,7)).filter(Boolean))].sort().reverse();
+}
+
+// Simple CSV export of the full transaction ledger (not the calculated
+// holdings — the transactions themselves, since that's the actual source
+// of truth and re-imports cleanly into any spreadsheet).
+function transactionsToCSV(){
+  const header = ['Date','Type','Symbol','Name','Quantity','Price','Amount','Notes'];
+  const rows = transactions.slice()
+    .sort((a,b) => (a.date === b.date) ? a.seq - b.seq : (a.date < b.date ? -1 : 1))
+    .map(t => [
+      t.date, t.type, t.symbol, t.name, t.quantity, t.price,
+      round2(t.quantity * t.price), (t.notes || '').replace(/"/g,'""')
+    ]);
+  const csvLines = [header, ...rows].map(r =>
+    r.map(cell => /[",\n]/.test(String(cell)) ? `"${String(cell).replace(/"/g,'""')}"` : String(cell)).join(',')
+  );
+  return csvLines.join('\r\n');
+}
+
+/* ---------------------------------------------------------------
    FORMATTING
 ------------------------------------------------------------------*/
 const inrFull = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2, minimumFractionDigits:0 });

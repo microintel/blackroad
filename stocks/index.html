@@ -50,6 +50,13 @@
 </head>
 <body>
 
+<!-- Initial load overlay — covers the brief window while transactions/prices
+     are read out of IndexedDB, so the very first paint is never a blank
+     shell with empty cards. Removed by app.js once loadState() resolves. -->
+<div class="initial-loader" id="initialLoader" aria-hidden="true">
+  <div class="initial-loader-spinner"></div>
+</div>
+
 <!-- Fixed top-left back button (mobile only) -->
 <a href="../blackroad-dashboard.html" class="mobile-back-btn" aria-label="Back to BlackRoad" title="Back to BlackRoad">
   <i data-lucide="arrow-left"></i>
@@ -79,6 +86,7 @@
         <div class="sub" id="viewSub">Your holdings, calculated from transaction history</div>
       </div>
       <div class="topbar-actions">
+        <button class="btn btn-icon" id="globalSearchBtn" title="Search (Ctrl+K)" aria-label="Search"><i data-lucide="search"></i></button>
         <button class="btn" id="refreshPricesBtn" title="Get today's prices for everything you hold"><i data-lucide="refresh-cw"></i>Update prices</button>
         <button class="btn btn-primary" id="addTxnBtn"><i data-lucide="plus"></i>Add transaction</button>
       </div>
@@ -170,6 +178,10 @@
             <option value="asc">Oldest first</option>
           </select>
         </div>
+        <div class="filter-select-wrap" id="filterTagWrap" style="display:none;">
+          <i data-lucide="tag" class="fs-icon"></i>
+          <select id="filterTag" aria-label="Filter by tag"><option value="">All tags</option></select>
+        </div>
         <div class="txn-view-toggle" id="txnViewToggle" role="group" aria-label="Transaction view">
           <button type="button" class="tvt-btn active" data-mode="cards" title="Full detail"><i data-lucide="layout-list"></i>Cards</button>
           <button type="button" class="tvt-btn" data-mode="pnl" title="Symbol and P&amp;L only"><i data-lucide="percent"></i>P&amp;L</button>
@@ -220,6 +232,11 @@
           <div class="stat-row"><span class="lbl">Grand total</span><span id="anTotal"></span></div>
         </div>
       </div>
+
+      <div class="analytics-panel an-panel">
+        <div class="an-panel-head"><i data-lucide="shield-check"></i><h2>Portfolio health</h2></div>
+        <div class="an-panel-body" id="portfolioHealth"></div>
+      </div>
     </section>
 
     <!-- SETTINGS -->
@@ -249,6 +266,37 @@
             </div>
             <button class="btn" id="importDataBtn"><i data-lucide="upload"></i>Import</button>
             <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
+          </div>
+        </div>
+      </div>
+
+      <div class="analytics-panel an-panel">
+        <div class="an-panel-head"><i data-lucide="file-text"></i><h2>Reports</h2></div>
+        <div class="an-panel-body settings-body">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-title">Monthly summary</div>
+              <div class="settings-row-sub">Invested, withdrawn, and P&amp;L for a specific month.</div>
+            </div>
+            <div class="filter-select-wrap">
+              <i data-lucide="calendar" class="fs-icon"></i>
+              <select id="reportMonthSelect" aria-label="Select month"></select>
+            </div>
+          </div>
+          <div id="reportSummary" class="report-summary"></div>
+          <div class="settings-row" style="border-top:1px solid var(--line-soft); padding-top:14px; margin-top:2px;">
+            <div>
+              <div class="settings-row-title">Export as CSV</div>
+              <div class="settings-row-sub">Every transaction, in a spreadsheet-friendly file.</div>
+            </div>
+            <button class="btn" id="exportCsvBtn"><i data-lucide="file-down"></i>Export CSV</button>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-title">Print / Save as PDF</div>
+              <div class="settings-row-sub">A clean one-page summary for the selected month — use your browser's "Save as PDF" in the print dialog.</div>
+            </div>
+            <button class="btn" id="printReportBtn"><i data-lucide="printer"></i>Print report</button>
           </div>
         </div>
       </div>
@@ -399,6 +447,24 @@
     </div>
   </div>
 </div>
+
+<!-- Global search modal (⌘K / search icon) -->
+<div class="modal-overlay" id="searchModalOverlay">
+  <div class="modal search-modal">
+    <div class="search-modal-input">
+      <i data-lucide="search"></i>
+      <input type="text" id="globalSearchInput" placeholder="Search stocks, transactions, notes, tags…" autocomplete="off">
+      <kbd class="search-esc-hint">Esc</kbd>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<!-- Print-only report — hidden on screen, filled in and shown only when
+     printReportBtn triggers window.print(). Keeping this as real DOM
+     (rather than a popup window) means it inherits the same fonts/theme
+     variables and needs no extra permissions. -->
+<div id="printReport" class="print-only"></div>
 
 <div class="toast" id="toast"></div>
 
