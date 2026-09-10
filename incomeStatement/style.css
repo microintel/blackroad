@@ -1712,39 +1712,91 @@ button:focus-visible, .entry-head:focus-visible, input:focus-visible, select:foc
 .ratio-card.pos .ratio-card-val{ color:var(--ink-in); }
 .ratio-card.neg .ratio-card-val{ color:var(--ink-out); }
 
-/* ---- Expense category gauges ---- */
+/* ---- Category gauges (expense & income) ----
+   Rendered as full-width stacked rows rather than a multi-column grid:
+   each card can expand to show its transaction/entry breakdown, and a
+   grid would stretch every card in that row to match the tallest one
+   whenever a neighbor expands. A single column avoids that entirely and
+   reads cleanly at any screen width. */
 .cat-gauge-grid{
-  display:grid;
-  grid-template-columns:repeat(2, 1fr);
-  gap:18px 10px;
-}
-@media (min-width:560px){
-  .cat-gauge-grid{ grid-template-columns:repeat(3, 1fr); }
-}
-@media (min-width:820px){
-  .cat-gauge-grid{ grid-template-columns:repeat(4, 1fr); }
-}
-.cat-gauge{
   display:flex;
   flex-direction:column;
-  align-items:center;
-  text-align:center;
+  gap:10px;
 }
-.cat-gauge .gauge-half{ width:104px; height:52px; border-radius:104px 104px 0 0; }
-.cat-gauge .gauge-half-inner{ width:74px; height:37px; border-radius:74px 74px 0 0; }
-.cat-gauge .gauge-readout{ margin-top:-24px; }
-.cat-gauge .gauge-readout .gauge-pct{ font-family:var(--font-mono); font-weight:700; font-size:0.95rem; color:var(--text); }
-.cat-gauge-name{
-  margin-top:6px;
-  font-size:0.76rem;
+.cat-bar-card{
+  border:1px solid var(--line-soft);
+  border-radius:var(--radius-sm);
+  background:var(--panel-2, rgba(255,255,255,0.03));
+  padding:12px 14px;
+  cursor:pointer;
+  transition:background .15s ease;
+}
+.cat-bar-card:hover{ background:var(--panel-3, rgba(255,255,255,0.05)); }
+.cat-bar-card.open{ background:var(--panel-3, rgba(255,255,255,0.05)); }
+.cat-bar-top{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+.cat-bar-name{
+  font-size:0.85rem;
   font-weight:600;
   color:var(--text);
-  max-width:100%;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-.cat-gauge-amt{ font-size:0.68rem; color:var(--text-faint); font-family:var(--font-mono); }
+.cat-bar-amt{
+  font-family:var(--font-mono);
+  font-size:0.76rem;
+  color:var(--text-faint);
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.cat-bar-track{
+  height:8px;
+  border-radius:var(--radius-pill);
+  background:var(--line-soft);
+  overflow:hidden;
+}
+.cat-bar-fill{
+  height:100%;
+  border-radius:var(--radius-pill);
+  transition:width .3s ease;
+}
+.cat-txn-list{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid var(--line-soft);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.cat-txn-row{
+  display:flex;
+  align-items:baseline;
+  gap:6px;
+  font-size:0.78rem;
+  color:var(--text-dim);
+}
+.cat-txn-idx{ color:var(--text-faint); flex-shrink:0; }
+.cat-txn-note{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--text);
+}
+.cat-txn-amt{
+  font-family:var(--font-mono);
+  font-weight:600;
+  color:var(--text);
+  flex-shrink:0;
+}
+.cat-txn-pct{ color:var(--text-faint); flex-shrink:0; }
 
 /* =========================================================
    Dashboard page only — everything below is scoped under
