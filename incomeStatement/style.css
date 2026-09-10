@@ -1550,7 +1550,7 @@ button:focus-visible, .entry-head:focus-visible, input:focus-visible, select:foc
    the live theme colors for free; only the monthly trend uses
    Chart.js, matching the bar chart already on the dashboard.
 ========================================================= */
-.stats-shell{ max-width:900px; }
+.stats-shell{ max-width:1120px; margin:0 auto; }
 
 /* ---- Financial health score ---- */
 .score-panel{ overflow:hidden; }

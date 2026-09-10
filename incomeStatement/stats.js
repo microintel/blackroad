@@ -221,8 +221,11 @@ function renderCategoryGauges(sortedCats, totalExpense, catTxns) {
   grid.style.display = "flex";
   empty.style.display = "none";
 
+  const maxAmt = sortedCats[0][1]; // sorted descending, so this is the largest category
+
   grid.innerHTML = sortedCats.map(([name, amt], i) => {
     const pct = totalExpense > 0 ? (amt / totalExpense) * 100 : 0;
+    const barPct = maxAmt > 0 ? (amt / maxAmt) * 100 : 0; // relative to the top category, so small ones stay visible
     const color = CAT_PALETTE[i % CAT_PALETTE.length];
     const isOpen = expandedCats.has(name);
 
@@ -250,7 +253,7 @@ function renderCategoryGauges(sortedCats, totalExpense, catTxns) {
           <span class="cat-bar-amt">${fmtMoney(amt)} =&gt; ${pct.toFixed(1)}%</span>
         </div>
         <div class="cat-bar-track">
-          <div class="cat-bar-fill" style="width:${pct}%; background:${color}"></div>
+          <div class="cat-bar-fill" style="width:${barPct}%; background:${color}"></div>
         </div>
         ${isOpen ? `<div class="cat-txn-list">${txnRows}</div>` : ""}
       </div>`;
@@ -293,8 +296,11 @@ function renderIncomeCategoryGauges(sortedCats, totalIncome, catTxns) {
   grid.style.display = "flex";
   empty.style.display = "none";
 
+  const maxAmt = sortedCats[0][1]; // sorted descending, so this is the largest category
+
   grid.innerHTML = sortedCats.map(([name, amt], i) => {
     const pct = totalIncome > 0 ? (amt / totalIncome) * 100 : 0;
+    const barPct = maxAmt > 0 ? (amt / maxAmt) * 100 : 0; // relative to the top category, so small ones stay visible
     const color = CAT_PALETTE[i % CAT_PALETTE.length];
     const isOpen = expandedIncCats.has(name);
 
@@ -322,7 +328,7 @@ function renderIncomeCategoryGauges(sortedCats, totalIncome, catTxns) {
           <span class="cat-bar-amt">${fmtMoney(amt)} =&gt; ${pct.toFixed(1)}%</span>
         </div>
         <div class="cat-bar-track">
-          <div class="cat-bar-fill" style="width:${pct}%; background:${color}"></div>
+          <div class="cat-bar-fill" style="width:${barPct}%; background:${color}"></div>
         </div>
         ${isOpen ? `<div class="cat-txn-list">${txnRows}</div>` : ""}
       </div>`;
