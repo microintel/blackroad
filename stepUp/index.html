@@ -197,6 +197,14 @@
             </span>
           </div>
           <div class="ledger-row">
+            <span class="ledger-label"><span class="card-icon-wrap purple"><i class="bi bi-pie-chart-fill"></i></span>NAV Units Held</span>
+            <span class="ledger-leader"></span>
+            <span class="ledger-value">
+              <span class="card-value purple" id="c-units">0.0000</span>
+              <span class="card-sub" id="c-units-sub"></span>
+            </span>
+          </div>
+          <div class="ledger-row">
             <span class="ledger-label"><span class="card-icon-wrap green"><i class="bi bi-speedometer2"></i></span>XIRR / Annualized</span>
             <span class="ledger-leader"></span>
             <span class="ledger-value"><span class="card-value green" id="c-xirr">—</span></span>
@@ -314,6 +322,12 @@
         <h2><i class="bi bi-clock-history section-icon"></i>History</h2>
         <span id="entry-count" class="entry-count-badge"></span>
       </div>
+
+      <div class="range-pills history-mode-toggle" id="history-mode-toggle">
+        <button class="range-pill active" data-mode="daily"><i class="bi bi-clock-history"></i> Daily History</button>
+        <button class="range-pill" data-mode="units"><i class="bi bi-graph-up-arrow"></i> Units Purchase History</button>
+      </div>
+
       <div class="history-controls">
         <div class="search-wrap">
           <i class="bi bi-search search-icon"></i>
@@ -325,19 +339,47 @@
           <span class="sort-arrow"></span>
         </button>
       </div>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th><th>Date</th><th>1D Return</th><th>1D Amount</th><th>SIP</th>
-              <th>Portfolio</th><th>Invested</th><th>P&amp;L</th><th style="text-align:right;">Act</th>
-            </tr>
-          </thead>
-          <tbody id="history-body">
-            <tr><td colspan="9"><div class="empty"><i class="bi bi-inbox"></i><span>No entries yet.</span></div></td></tr>
-          </tbody>
-        </table>
+
+      <!-- Daily change history -->
+      <div id="daily-history-wrap">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Date</th><th>1D Return</th><th>1D Amount</th><th>SIP</th>
+                <th>Portfolio</th><th>Invested</th><th>P&amp;L</th><th style="text-align:right;">Act</th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr><td colspan="9"><div class="empty"><i class="bi bi-inbox"></i><span>No entries yet.</span></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="history-load-more-wrap" id="history-load-more-wrap" style="display:none;">
+          <span class="history-shown-label" id="history-shown-label"></span>
+          <button class="btn btn-secondary btn-sm" id="history-load-more-btn">
+            <i class="bi bi-arrow-down-circle"></i> Load 20 more
+          </button>
+        </div>
       </div>
+
+      <!-- Units (SIP NAV) purchase history -->
+      <div id="units-history-wrap" style="display:none;">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Date</th><th>Status</th><th>Amount</th><th>NAV</th>
+                <th>Units Bought</th><th style="text-align:right;">Units Held</th>
+              </tr>
+            </thead>
+            <tbody id="units-history-body">
+              <tr><td colspan="7"><div class="empty"><i class="bi bi-inbox"></i><span>No SIP set up yet.</span></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

@@ -756,11 +756,19 @@ tbody td { padding: 12px 16px; white-space: nowrap; }
 /* ══════════════════════════════════════════════════════
    History Controls
 ══════════════════════════════════════════════════════ */
+.history-mode-toggle { padding: 14px 18px 0; }
+
 .history-controls {
   display: flex; gap: 10px; padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap; align-items: center;
 }
+
+.history-load-more-wrap {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 16px 18px; flex-wrap: wrap;
+}
+.history-shown-label { color: var(--muted); font-size: .72rem; font-family: var(--mono); }
 
 .search-wrap { flex: 1; position: relative; min-width: 130px; }
 .search-icon {

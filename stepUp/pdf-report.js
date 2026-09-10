@@ -14,8 +14,9 @@
    "Developed by Microintel" on every page.
 ══════════════════════════════════════════════════════ */
 
-import { recalcAll, periodGrowth } from './calc.js';
+import { recalcAll, periodGrowth, buildSipLedger, navOnOrBefore } from './calc.js';
 import { fmt, todayStr, toast } from './helpers.js';
+import { fetchSchemeFromMfapi, buildFundGrowthSeries } from './fund-sync.js';
 
 const PROJECT_NAME = 'StepUP';
 const REPORT_TITLE = "Blackboard's Mutual Fund Report";
@@ -310,6 +311,31 @@ export async function generatePdfReport(entries, settings, fundName) {
     : [{ fromDate: settings.startDate, amount: settings.sipAmount || 0 }];
   const skipped = (settings.skippedSipDates || []).slice().sort();
 
+  /* ── Real NAV history for the linked fund, fetched fresh from mfapi.in,
+     so every instalment's units are priced off the fund's ACTUAL NAV for
+     that exact date — not the app's synthetic tracked value. Falls back
+     to the synthetic NAV only if no fund is linked, or the fetch fails
+     (e.g. offline) — report generation still proceeds either way. ── */
+  let navSeries = null;
+  let navIsLive = false;
+  if (settings.linkedFund && settings.linkedFund.schemeCode) {
+    try {
+      const fresh = await fetchSchemeFromMfapi(settings.linkedFund.schemeCode);
+      navSeries = buildFundGrowthSeries(fresh.navHistory).series.map(r => ({ date: r.date, nav: r.nav }));
+      navIsLive = true;
+    } catch (err) {
+      console.warn('[PDF] Could not fetch live NAV history, falling back to tracked NAV:', err);
+    }
+  }
+
+  const ledger      = buildSipLedger(calc, settings, navSeries);
+  const lastLedger  = ledger.length ? ledger[ledger.length - 1] : null;
+  const unitsHeld   = lastLedger ? lastLedger.unitsRunningTotal : last.unitsHeld;
+  const currentNav  = navIsLive
+    ? (navOnOrBefore(navSeries, last.date)?.nav ?? last.navValue)
+    : last.navValue;
+  const navNote     = navIsLive ? '' : ' (simulated — no fund linked)';
+
   /* ── Header: project name + fund name ── */
   doc.setFont('NotoSans', 'bold');
   doc.setFontSize(18);
@@ -349,6 +375,7 @@ export async function generatePdfReport(entries, settings, fundName) {
     ['Return %',             (ret >= 0 ? '+' : '') + ret.toFixed(2) + '%'],
     ['SIP Instalments Made', String(sipCount)],
     ['Skipped Instalments',  String(skipped.length)],
+    ['Total NAV Units Held', unitsHeld.toFixed(4) + ` (NAV ₹${currentNav.toFixed(2)})${navNote}`],
   ];
   doc.setFontSize(10);
   summary.forEach(([label, value]) => {
@@ -475,6 +502,61 @@ export async function generatePdfReport(entries, settings, fundName) {
     y += 34;
   }
 
+  /* ── SIP Instalment Ledger — every scheduled instalment from the very
+     first SIP to today, in order, whatever happened to it: paid (with the
+     NAV units it bought that day), skipped, missed, or still upcoming. ── */
+  doc.addPage(); y = 50;
+  doc.setFont('NotoSans', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(20, 20, 20);
+  doc.text('SIP Instalment Ledger', margin, y);
+  y += 14;
+  doc.setFont('NotoSans', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(120, 120, 120);
+  doc.text(
+    navIsLive
+      ? 'Every instalment since the SIP started — paid, skipped, missed or upcoming — priced at the fund\'s actual NAV for that date (mfapi.in).'
+      : 'Every instalment since the SIP started — paid, skipped, missed or upcoming — with simulated NAV units bought on each (no fund linked).',
+    margin, y
+  );
+  y += 10;
+
+  const STATUS_COLOR = {
+    paid:     [22, 163, 74],
+    skipped:  [220, 38, 38],
+    missed:   [217, 119, 6],
+    upcoming: [120, 120, 120],
+  };
+  const STATUS_LABEL = { paid: 'Paid', skipped: 'Skipped', missed: 'Missed', upcoming: 'Upcoming' };
+
+  const lw = pageW - margin * 2;
+  const ledgerWidths = [lw * 0.12, lw * 0.14, lw * 0.20, lw * 0.14, lw * 0.20, lw * 0.20];
+
+  const ledgerRows = ledger.map(r => {
+    const stepTag = r.stepChange > 0 ? ' ▲' : r.stepChange < 0 ? ' ▼' : '';
+    const stepColor = r.stepChange > 0 ? [22, 163, 74] : r.stepChange < 0 ? [220, 38, 38] : [20, 20, 20];
+    return [
+      r.date,
+      { text: STATUS_LABEL[r.status], color: STATUS_COLOR[r.status] },
+      { text: fmt(r.amount) + stepTag, color: stepTag ? stepColor : [20, 20, 20] },
+      r.status === 'paid' ? `₹${r.navValue.toFixed(2)}` : '—',
+      r.status === 'paid' ? r.units.toFixed(4) : '—',
+      r.unitsRunningTotal.toFixed(4),
+    ];
+  });
+
+  y = drawTable(doc, {
+    startY: y, margin, pageW, pageH,
+    head: ['Date', 'Status', 'Amount', 'NAV', 'Units Bought', 'Units Held'],
+    rows: ledgerRows,
+    widths: ledgerWidths,
+    aligns: ['left', 'left', 'right', 'right', 'right', 'right'],
+    fontSize: 8,
+    rowH: 15,
+  });
+  y += 22;
+
   /* ── Daily change history (newest first) ── */
   if (y > pageH - 100) { doc.addPage(); y = 50; }
   doc.setFont('NotoSans', 'bold');
@@ -484,7 +566,7 @@ export async function generatePdfReport(entries, settings, fundName) {
   y += 8;
 
   const usableW = pageW - margin * 2;
-  const widths  = [usableW * 0.14, usableW * 0.14, usableW * 0.17, usableW * 0.19, usableW * 0.19, usableW * 0.17];
+  const widths  = [usableW * 0.12, usableW * 0.12, usableW * 0.14, usableW * 0.13, usableW * 0.16, usableW * 0.17, usableW * 0.16];
 
   const rows = [...calc]
     .sort((a, b) => b.date.localeCompare(a.date))
@@ -498,6 +580,7 @@ export async function generatePdfReport(entries, settings, fundName) {
         e.date,
         { text: pctText, color: pctColor },
         e.sipAdded ? `+${fmt(e.sipTotal)}` : '—',
+        e.sipAdded ? e.sipUnits.toFixed(4) : '—',
         fmt(e.investedAmount),
         fmt(e.portfolioValue),
         { text: pnlText, color: pnlColor },
@@ -506,11 +589,11 @@ export async function generatePdfReport(entries, settings, fundName) {
 
   drawTable(doc, {
     startY: y, margin, pageW, pageH,
-    head: ['Date', 'Daily Change', 'SIP Added', 'Invested', 'Portfolio Value', 'P&L'],
+    head: ['Date', 'Daily Change', 'SIP Added', 'Units Bought', 'Invested', 'Portfolio Value', 'P&L'],
     rows,
     widths,
-    aligns: ['left', 'right', 'right', 'right', 'right', 'right'],
-    fontSize: 8.5,
+    aligns: ['left', 'right', 'right', 'right', 'right', 'right', 'right'],
+    fontSize: 8,
     rowH: 15,
   });
 

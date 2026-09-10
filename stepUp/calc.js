@@ -3,7 +3,7 @@
 ══════════════════════════════════════════════════════ */
 
 import { dbPutEntry } from './db.js';
-import { dateToStr }  from './helpers.js';
+import { dateToStr, todayStr } from './helpers.js';
 
 /**
  * Get the actual SIP date for a given year+month,
@@ -96,10 +96,13 @@ export function sipCountBetween(startStr, prevStr, currStr) {
  * Rebuild portfolioValue & investedAmount for all entries in order.
  * Supports step-up SIP (sipSchedule) and skipped months (skippedSipDates).
  */
+const NAV_BASE = 10; // synthetic starting NAV, same face-value convention real funds use
+
 export function recalcAll(raw, cfg) {
   if (!raw.length || !cfg) return [];
   const sorted = [...raw].sort((a, b) => a.date.localeCompare(b.date));
   let portfolioValue = 0, investedAmount = 0, prevDate = null;
+  let navValue = NAV_BASE, unitsHeld = 0;
 
   return sorted.map(entry => {
     const sips = sipsBetween(cfg, prevDate, entry.date);
@@ -115,6 +118,12 @@ export function recalcAll(raw, cfg) {
     portfolioValue = portfolioValue * (1 + entry.percentChange / 100);
     const dailyReturnAmount = portfolioValue - baseBeforeGrowth;
 
+    // NAV tracked independently of cash flow, chained purely off the daily
+    // % change — same day's NAV the SIP for this date is deemed bought at.
+    navValue = entry.nav != null ? entry.nav : navValue * (1 + entry.percentChange / 100);
+    const sipUnits = sipTotal > 0 ? sipTotal / navValue : 0;
+    unitsHeld += sipUnits;
+
     prevDate = entry.date;
     return {
       ...entry,
@@ -125,9 +134,102 @@ export function recalcAll(raw, cfg) {
       portfolioValue:    +portfolioValue.toFixed(4),
       investedAmount:    +investedAmount.toFixed(4),
       dailyReturnAmount: +dailyReturnAmount.toFixed(4),
+      navValue:          +navValue.toFixed(4),
+      sipUnits:          +sipUnits.toFixed(4),
+      unitsHeld:         +unitsHeld.toFixed(4),
     };
   });
 }
+
+/**
+ * Find the fund's real NAV on a given date from a fetched navHistory series
+ * (ascending, ISO dates — the shape buildFundGrowthSeries() returns: [{date,
+ * nav, growth}, ...]). Funds don't declare a NAV on weekends/holidays, so
+ * this returns the closest trading day ON OR BEFORE the target date (the
+ * actual NAV your SIP would have been bought at). Binary search since a
+ * full fund history can run to thousands of rows.
+ */
+export function navOnOrBefore(navSeriesAsc, targetIso) {
+  if (!navSeriesAsc || !navSeriesAsc.length) return null;
+  let lo = 0, hi = navSeriesAsc.length - 1, ans = null;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (navSeriesAsc[mid].date <= targetIso) { ans = navSeriesAsc[mid]; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return ans;
+}
+
+/**
+ * Full instalment-by-instalment SIP ledger, start date → today, covering
+ * EVERY scheduled SIP date — not just the ones a daily entry happens to
+ * exist for. Each row is one instalment:
+ *   { date, amount, status, navValue, units, unitsRunningTotal, stepChange }
+ *
+ * status: 'paid'     — swept into an entry, units computed at that entry's NAV
+ *         'skipped'  — explicitly marked skipped in settings
+ *         'missed'   — date has passed, not skipped, but no entry covers it yet
+ *         'upcoming' — date hasn't arrived yet
+ *
+ * stepChange: amount − previous instalment's amount (0 on the very first
+ * instalment or whenever the amount didn't change) — flags step-ups/downs
+ * inline on the exact date they took effect.
+ *
+ * @param {Array} calc  output of recalcAll()
+ * @param {Object} cfg  SIP settings
+ * @param {Array|null} navSeriesAsc  optional real fund NAV history (ascending,
+ *   ISO dates, from buildFundGrowthSeries().series) — when given, each paid
+ *   instalment's units are computed off the ACTUAL NAV for its exact date
+ *   (fetched from mfapi.in) instead of the app's synthetic tracked NAV.
+ */
+export function buildSipLedger(calc, cfg, navSeriesAsc = null) {
+  if (!cfg || !cfg.startDate) return [];
+  const schedule = (cfg.sipSchedule && cfg.sipSchedule.length)
+    ? cfg.sipSchedule
+    : [{ fromDate: cfg.startDate, amount: cfg.sipAmount || 0 }];
+  const skippedSet = new Set(cfg.skippedSipDates || []);
+
+  /* Every SIP date this app has actually swept into a recorded entry,
+     mapped to the entry's NAV that day (same NAV used for all instalments
+     an entry sweeps up, matching recalcAll's own simplification) — used as
+     a fallback when no real fund NAV history is available for this date. */
+  const paidByDate = new Map();
+  for (const e of calc) {
+    for (const s of (e.sipDetails || [])) {
+      paidByDate.set(s.dateStr, { amount: s.amount, navValue: e.navValue });
+    }
+  }
+
+  const today   = todayStr();
+  const lastCalc = calc.length ? calc[calc.length - 1].date : null;
+  const endStr  = lastCalc && lastCalc > today ? lastCalc : today;
+
+  let prevAmount = null;
+  let unitsRunning = 0;
+
+  return allSipDates(cfg.startDate, endStr).map(({ dateStr }) => {
+    const amount = amountForDate(schedule, dateStr);
+    const stepChange = prevAmount === null ? 0 : +(amount - prevAmount).toFixed(2);
+    prevAmount = amount;
+
+    if (skippedSet.has(dateStr)) {
+      return { date: dateStr, amount, status: 'skipped', navValue: null, units: 0, unitsRunningTotal: unitsRunning, stepChange };
+    }
+
+    const paid = paidByDate.get(dateStr);
+    if (paid) {
+      const real = navSeriesAsc ? navOnOrBefore(navSeriesAsc, dateStr) : null;
+      const navValue = real ? real.nav : paid.navValue;
+      const units = navValue ? +(paid.amount / navValue).toFixed(4) : 0;
+      unitsRunning = +(unitsRunning + units).toFixed(4);
+      return { date: dateStr, amount: paid.amount, status: 'paid', navValue, units, unitsRunningTotal: unitsRunning, stepChange };
+    }
+
+    const status = dateStr <= today ? 'missed' : 'upcoming';
+    return { date: dateStr, amount, status, navValue: null, units: 0, unitsRunningTotal: unitsRunning, stepChange };
+  });
+}
+
 
 /**
  * Growth/Loss broken down by month or year.

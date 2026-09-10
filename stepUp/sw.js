@@ -6,7 +6,7 @@
    Bump CACHE_VER when you deploy new code to force update.
 ══════════════════════════════════════════════════════ */
 
-const CACHE_VER  = 'stepup-v3';
+const CACHE_VER  = 'stepup-v4';
 const CDN_CACHE  = 'stepup-cdn-v3';
 
 /* All local app files */
@@ -98,9 +98,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // ── App shell (same origin): cache-first ───────────────────
+  // ── App shell (same origin): network-first ──────────────────
+  // Always tries the network first so newly deployed HTML/JS/CSS
+  // shows up immediately on a normal reload — cache is only used
+  // as an offline fallback. (Was cache-first, which is why old
+  // layouts kept sticking around until a hard refresh.)
   if (url.origin === self.location.origin) {
-    event.respondWith(cacheFirst(request, CACHE_VER));
+    event.respondWith(networkFirst(request, CACHE_VER));
     return;
   }
 

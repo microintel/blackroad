@@ -18,7 +18,8 @@ import {
 import {
   renderAll, renderTable, renderUserPage,
   setHistorySortDir, setHistorySearchDate, setGrowthGranularity,
-  setMonthlyTrendYearRange,
+  setMonthlyTrendYearRange, setUnitsNavHistory,
+  setHistoryViewMode, loadMoreHistory,
 } from './render.js';
 import {
   readFileAsJson, parseFundFile, buildEntriesFromNavHistory,
@@ -86,6 +87,7 @@ async function switchProfile(id) {
   activeProfile = profiles.find(p => p.id === id);
   localStorage.setItem('sip-active-profile', id);
   settings = null; entries = [];
+  setUnitsNavHistory(null);
   await loadAll();
   applySettingsToUI();
   renderAll(entries, settings);
@@ -702,6 +704,7 @@ async function refreshFundHistorySection({ force = false } = {}) {
 
   const lf = settings && settings.linkedFund;
   if (!lf || !lf.schemeCode) {
+    setUnitsNavHistory(null);
     emptyEl.querySelector('span').textContent =
       'Link a fund on the Add page to see its full NAV track record — however far back it goes.';
     emptyEl.style.display = 'flex';
@@ -721,6 +724,8 @@ async function refreshFundHistorySection({ force = false } = {}) {
     try {
       const fresh = await fetchSchemeFromMfapi(lf.schemeCode);
       fundHistCache = { schemeCode: lf.schemeCode, data: buildFundGrowthSeries(fresh.navHistory) };
+      setUnitsNavHistory(fundHistCache.data.series);
+      renderAll(entries, settings);
     } catch (err) {
       console.error(err);
       loadingEl.style.display = 'none';
@@ -939,14 +944,17 @@ async function syncLinkedFund({ silent = false } = {}) {
   if (!activeProfile || !settings || !settings.linkedFund || !entries.length) return;
   try {
     const fresh = await fetchSchemeFromMfapi(settings.linkedFund.schemeCode);
+    setUnitsNavHistory(buildFundGrowthSeries(fresh.navHistory).series);
     const delta = buildSyncDelta(entries, fresh.navHistory);
 
     if (delta === null) {
       if (!silent) toast("Could not match your last entry to mfapi's history — sync it manually.");
+      renderAll(entries, settings);
       return;
     }
     if (!delta.length) {
       if (!silent) toast('Already up to date ✓');
+      renderAll(entries, settings);
       return;
     }
 
@@ -1213,6 +1221,24 @@ sortBtn.addEventListener('click', () => {
   _sortDir = _sortDir === 'desc' ? 'asc' : 'desc';
   sortBtn.className = `sort-btn sort-${_sortDir}`;
   setHistorySortDir(_sortDir);
+  renderTable(recalcAll(entries, settings), settings);
+});
+
+/* Daily history ↔ Units purchase history toggle */
+document.querySelectorAll('#history-mode-toggle .range-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('#history-mode-toggle .range-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    setHistoryViewMode(pill.dataset.mode);
+  });
+});
+
+/* "Load 20 more" — only the daily table paginates; the units ledger
+   always renders in full (same as it does in the PDF report). Search
+   already runs against the complete data set before this slice happens,
+   so it finds matches that haven't been loaded into view yet. */
+document.getElementById('history-load-more-btn').addEventListener('click', () => {
+  loadMoreHistory();
   renderTable(recalcAll(entries, settings), settings);
 });
 

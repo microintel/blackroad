@@ -3,7 +3,7 @@
 ══════════════════════════════════════════════════════ */
 
 import { fmtK, fmtPct, todayStr } from './helpers.js';
-import { recalcAll, periodGrowth, projectGoalDate } from './calc.js';
+import { recalcAll, periodGrowth, projectGoalDate, buildSipLedger, navOnOrBefore } from './calc.js';
 import { renderLineChart, getActiveRange, renderDonutChart, renderGrowthChart, renderMonthlyLineChart, renderPnlChart } from './charts.js';
 
 let historySortDir      = 'desc';
@@ -11,10 +11,46 @@ let historySearchDate   = '';
 let growthGranularity   = 'month';
 let trendYearRange      = { from: null, to: null };
 
-export function setHistorySortDir(val)     { historySortDir    = val; }
-export function setHistorySearchDate(val)  { historySearchDate = val; }
+/* History tab: which table is showing ('daily' change history, or the
+   'units' SIP NAV purchase ledger — same data the PDF report's "SIP
+   Instalment Ledger" table already shows), plus how many rows of the
+   (much longer-running) daily table are currently rendered. Search/sort
+   always run against the FULL filtered list first — only the already-
+   filtered result is then sliced down to historyRenderLimit rows, so
+   searching still finds entries that haven't been rendered yet. */
+const HISTORY_PAGE_SIZE = 20;
+let historyViewMode      = 'daily';
+let historyRenderLimit   = HISTORY_PAGE_SIZE;
+
+/* Real fund NAV history (ascending, ISO dates), set by app.js whenever it
+   fetches/refreshes the linked fund's NAV from mfapi.in. When present, the
+   NAV Units Held card uses the fund's actual per-date NAV instead of the
+   app's synthetic tracked NAV. Null when no fund is linked. */
+let unitsNavHistory = null;
+export function setUnitsNavHistory(navSeriesAsc) { unitsNavHistory = navSeriesAsc; }
+
+export function setHistorySortDir(val)     { historySortDir    = val; historyRenderLimit = HISTORY_PAGE_SIZE; }
+export function setHistorySearchDate(val)  { historySearchDate = val; historyRenderLimit = HISTORY_PAGE_SIZE; }
 export function setGrowthGranularity(val)  { growthGranularity = val; }
 export function setMonthlyTrendYearRange(from, to) { trendYearRange = { from, to }; }
+
+/**
+ * Switch the History tab between the daily change log and the units
+ * (SIP NAV) purchase ledger. Just flips which of the two already-rendered
+ * table wrappers is visible — renderTable() always keeps both up to date,
+ * so toggling is instant with no re-fetch/re-render needed.
+ */
+export function setHistoryViewMode(mode) {
+  historyViewMode = mode === 'units' ? 'units' : 'daily';
+  const dailyWrap = document.getElementById('daily-history-wrap');
+  const unitsWrap = document.getElementById('units-history-wrap');
+  if (dailyWrap) dailyWrap.style.display = historyViewMode === 'daily' ? '' : 'none';
+  if (unitsWrap) unitsWrap.style.display = historyViewMode === 'units' ? '' : 'none';
+}
+export function getHistoryViewMode() { return historyViewMode; }
+
+/** "Load 20 more" on the daily history table. */
+export function loadMoreHistory() { historyRenderLimit += HISTORY_PAGE_SIZE; }
 
 /**
  * Feeds each dashboard/hero card value & sub-line its own character length
@@ -85,17 +121,19 @@ export function renderDashboard(calc, settings) {
 
   /* ── Reset all cards when no data ── */
   if (!calc.length || !settings) {
-    ['c-invested','c-value','c-pnl','c-ret','c-sips',
+    ['c-invested','c-value','c-pnl','c-ret','c-sips','c-units',
      'c-xirr','c-days','c-next-sip','c-streak','c-avg-day',
      'c-month-growth','c-year-growth','c-avg-growth','c-today-pnl'].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
       el.className = 'card-value' +
         (id === 'c-invested' ? ' blue' :
-         id === 'c-sips'     ? ' amber' : '');
+         id === 'c-sips'     ? ' amber' :
+         id === 'c-units'    ? ' purple' : '');
       el.textContent =
         id === 'c-ret'  ? '0.00%' :
-        id === 'c-days' || id === 'c-sips' || id === 'c-streak' ? '0' : '—';
+        id === 'c-days' || id === 'c-sips' || id === 'c-streak' ? '0' :
+        id === 'c-units' ? '0.0000' : '—';
     });
     const mSub = document.getElementById('c-month-growth-sub');
     if (mSub) mSub.textContent = '';
@@ -111,6 +149,8 @@ export function renderDashboard(calc, settings) {
     if (avgIcon) avgIcon.className = 'card-icon-wrap';
     const sub = document.getElementById('c-sips-sub');
     if (sub) sub.textContent = '';
+    const unitsSub = document.getElementById('c-units-sub');
+    if (unitsSub) unitsSub.textContent = '';
     const nextSub = document.getElementById('c-next-sip-sub');
     if (nextSub) nextSub.textContent = '';
     const todaySub = document.getElementById('c-today-pnl-sub');
@@ -188,6 +228,26 @@ export function renderDashboard(calc, settings) {
     ? `stepped`
     : `×₹${settings.sipAmount.toLocaleString('en-IN')}`;
   document.getElementById('c-sips-sub').textContent = subLabel;
+
+  /* ── 5b. NAV Units Held — total units bought across all SIPs so far.
+     Uses the linked fund's real per-date NAV when available (fetched from
+     mfapi.in), falling back to the app's synthetic tracked NAV (₹10 base)
+     when no fund is linked. ── */
+  const unitsEl = document.getElementById('c-units');
+  if (unitsEl) {
+    let unitsHeld = last.unitsHeld, navValue = last.navValue, isLive = false;
+    if (unitsNavHistory) {
+      const ledger = buildSipLedger(calc, settings, unitsNavHistory);
+      if (ledger.length) {
+        unitsHeld = ledger[ledger.length - 1].unitsRunningTotal;
+        navValue  = navOnOrBefore(unitsNavHistory, last.date)?.nav ?? navValue;
+        isLive    = true;
+      }
+    }
+    unitsEl.textContent = unitsHeld.toFixed(4);
+    const unitsSub = document.getElementById('c-units-sub');
+    if (unitsSub) unitsSub.textContent = `NAV ₹${navValue.toFixed(2)}${isLive ? '' : ' (sim)'}`;
+  }
 
   /* ── 6. XIRR — true money-weighted annualized return ──
      Real brokerages build the actual cash-flow ledger:
@@ -449,25 +509,46 @@ export function renderDashboard(calc, settings) {
 /* ══════════════════════════════════════════════════════
    History Table
 ══════════════════════════════════════════════════════ */
-export function renderTable(calc, settings) {
-  const tbody = document.getElementById('history-body');
-  document.getElementById('entry-count').textContent = calc.length ? `${calc.length} entries` : '';
 
+/* Status label for the units ledger's "Status" column — same vocabulary
+   buildSipLedger() and the PDF report's ledger table already use. */
+const LEDGER_STATUS_LABEL = { paid: 'Paid', skipped: 'Skipped', missed: 'Missed', upcoming: 'Upcoming' };
+
+export function renderTable(calc, settings) {
+  /* Search + sort always run against the FULL data set first — the
+     render-limit slice (daily table only) happens last, so typing a date
+     into search still finds/jumps straight to matches that were never
+     rendered yet, no matter how far back they are. */
   let filtered = calc;
   if (historySearchDate) filtered = calc.filter(e => e.date === historySearchDate);
-
   const sorted = [...filtered];
   if (historySortDir === 'asc') sorted.sort((a, b) => a.date.localeCompare(b.date));
   else                          sorted.sort((a, b) => b.date.localeCompare(a.date));
+
+  renderDailyHistoryTable(sorted, settings);
+  renderUnitsHistoryTable(calc, settings);
+
+  document.getElementById('entry-count').textContent = historyViewMode === 'units'
+    ? ''
+    : (calc.length ? `${calc.length} entries` : '');
+}
+
+function renderDailyHistoryTable(sorted, settings) {
+  const tbody = document.getElementById('history-body');
+  const loadMoreWrap = document.getElementById('history-load-more-wrap');
+  const shownLabel   = document.getElementById('history-shown-label');
 
   if (!sorted.length) {
     tbody.innerHTML = `<tr><td colspan="9"><div class="empty">${
       historySearchDate ? 'No entry found for this date.' : 'No entries yet — add your first daily % change.'
     }</div></td></tr>`;
+    if (loadMoreWrap) loadMoreWrap.style.display = 'none';
     return;
   }
 
-  tbody.innerHTML = sorted.map((e, i) => {
+  const visible = sorted.slice(0, historyRenderLimit);
+
+  tbody.innerHTML = visible.map((e, i) => {
     const pct      = e.percentChange;
     const pnl      = e.portfolioValue - e.investedAmount;
     const retAmt   = e.dailyReturnAmount ?? 0;
@@ -487,6 +568,50 @@ export function renderTable(calc, settings) {
         <button class="btn-icon" onclick="startEdit(${e.id})" title="Edit">✏️</button>
         <button class="btn-icon" onclick="deleteEntry(${e.id})" title="Delete" style="color:var(--red)">🗑</button>
       </td>
+    </tr>`;
+  }).join('');
+
+  if (loadMoreWrap) {
+    const remaining = sorted.length - visible.length;
+    loadMoreWrap.style.display = remaining > 0 ? 'flex' : 'none';
+    if (shownLabel) shownLabel.textContent = `Showing ${visible.length} of ${sorted.length}`;
+  }
+}
+
+/* Units (SIP NAV) purchase history — the same ledger the PDF report's
+   "SIP Instalment Ledger" table builds via buildSipLedger(), now also
+   shown live in the History tab. Search-by-date/sort apply here too. */
+function renderUnitsHistoryTable(calc, settings) {
+  const tbody = document.getElementById('units-history-body');
+  if (!tbody) return;
+
+  if (!settings || !settings.startDate) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><i class="bi bi-inbox"></i><span>No SIP set up yet.</span></div></td></tr>`;
+    return;
+  }
+
+  let ledger = buildSipLedger(calc, settings, unitsNavHistory);
+  if (historySearchDate) ledger = ledger.filter(r => r.date === historySearchDate);
+  if (historySortDir === 'asc') ledger.sort((a, b) => a.date.localeCompare(b.date));
+  else                          ledger.sort((a, b) => b.date.localeCompare(a.date));
+
+  if (!ledger.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">${
+      historySearchDate ? 'No instalment found for this date.' : 'No SIP instalments yet.'
+    }</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = ledger.map((r, i) => {
+    const stepTag = r.stepChange > 0 ? ' ▲' : r.stepChange < 0 ? ' ▼' : '';
+    return `<tr>
+      <td class="mono" style="color:var(--muted)">${i + 1}</td>
+      <td>${r.date}</td>
+      <td><span class="sip-badge ${r.status === 'paid' ? 'sip-yes' : r.status === 'skipped' ? 'sip-no' : ''}">${LEDGER_STATUS_LABEL[r.status]}</span></td>
+      <td class="mono">${fmtK(r.amount)}${stepTag}</td>
+      <td class="mono">${r.status === 'paid' ? '₹' + r.navValue.toFixed(2) : '—'}</td>
+      <td class="mono ${r.status === 'paid' ? 'pct-up' : ''}">${r.status === 'paid' ? r.units.toFixed(4) : '—'}</td>
+      <td class="mono" style="text-align:right;">${r.unitsRunningTotal.toFixed(4)}</td>
     </tr>`;
   }).join('');
 }
