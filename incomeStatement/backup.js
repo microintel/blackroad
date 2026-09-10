@@ -24,6 +24,7 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
     income: String(e.income),
     date: e.date,
     from: e.from,
+    category: e.category || "",
     expense: String(e.expense),
     investment: String(e.investment || 0),
     balance: String(e.balance),
@@ -76,6 +77,7 @@ document.getElementById("importFile").addEventListener("change", async (ev) => {
       income: Number(raw.income) || 0,
       date: raw.date || todayISO(),
       from: raw.from || "Imported",
+      category: raw.category || "",
       transactions: (raw.transactions || []).map((t) => ({
         id: uid(),
         amount: Number(t.amount) || 0,

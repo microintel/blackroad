@@ -189,6 +189,7 @@ function renderEntry(e) {
           <div class="entry-row-bottom">
             <div class="entry-date">${e.date || ""}</div>
             <div class="entry-meta-pills">
+              <span class="entry-inc-cat${e.category ? "" : " uncategorized"}">${e.category ? escapeHTML(e.category) : "Uncategorized"}</span>
               <span class="entry-expense">-${fmtMoney(e.expense)}</span>
               ${Number(e.investment) > 0 ? `<span class="entry-investment">${fmtMoney(e.investment)} inv</span>` : ""}
               <span class="entry-balance ${balanceClass}">${fmtMoney(e.balance)}</span>
@@ -224,12 +225,66 @@ document.querySelectorAll("[data-close]").forEach((btn) => {
 /* -- Income dialog -- */
 let editingIncomeId = null;
 
+const incCategorySelect = document.getElementById("incCategorySelect");
+const incCategoryInput  = document.getElementById("incCategory");
+
+// Populate the predefined income-category dropdown once at load time
+// (Salary, Return, Interest, Profit, ... plus a free-text "Others").
+DEFAULT_INCOME_CATEGORIES.forEach((cat) => {
+  const opt = document.createElement("option");
+  opt.value = cat;
+  opt.textContent = cat;
+  incCategorySelect.appendChild(opt);
+});
+const INC_CUSTOM_OPTION_VALUE = "__custom__";
+(() => {
+  const opt = document.createElement("option");
+  opt.value = INC_CUSTOM_OPTION_VALUE;
+  opt.textContent = "Other (type your own)…";
+  incCategorySelect.appendChild(opt);
+})();
+
+// Same picker pattern as the expense category picker below: a value that
+// matches a preset selects it, anything else (including a blank value,
+// which covers every entry logged before categories existed) falls back
+// to the free-text field so it's always editable either way.
+function setIncomeCategoryPicker(value) {
+  const trimmed = (value || "").trim();
+  const isPreset = DEFAULT_INCOME_CATEGORIES.some((c) => c.toLowerCase() === trimmed.toLowerCase());
+  if (!trimmed) {
+    incCategorySelect.value = "";
+    incCategoryInput.style.display = "none";
+    incCategoryInput.value = "";
+  } else if (isPreset) {
+    const match = DEFAULT_INCOME_CATEGORIES.find((c) => c.toLowerCase() === trimmed.toLowerCase());
+    incCategorySelect.value = match;
+    incCategoryInput.style.display = "none";
+    incCategoryInput.value = match;
+  } else {
+    incCategorySelect.value = INC_CUSTOM_OPTION_VALUE;
+    incCategoryInput.style.display = "block";
+    incCategoryInput.value = trimmed;
+  }
+}
+
+incCategorySelect.addEventListener("change", () => {
+  if (incCategorySelect.value === INC_CUSTOM_OPTION_VALUE) {
+    incCategoryInput.style.display = "block";
+    incCategoryInput.value = "";
+    incCategoryInput.focus();
+  } else {
+    incCategoryInput.style.display = "none";
+    incCategoryInput.value = incCategorySelect.value;
+  }
+});
+
 function openIncomeDialog(id) {
   editingIncomeId = id || null;
   const title = document.getElementById("incomeDialogTitle");
   const form = document.getElementById("incomeForm");
   form.reset();
   document.getElementById("incDate").value = todayISO();
+  setIncomeCategoryPicker("");
 
   if (id) {
     const e = ENTRIES.find((x) => x.id === id);
@@ -237,6 +292,7 @@ function openIncomeDialog(id) {
     document.getElementById("incAmount").value = e.income;
     document.getElementById("incFrom").value = e.from;
     document.getElementById("incDate").value = e.date;
+    setIncomeCategoryPicker(e.category); // works fine for entries with no category yet — picker just stays blank
   } else {
     title.textContent = "Add income";
   }
@@ -254,18 +310,22 @@ document.getElementById("incomeForm").addEventListener("submit", async (ev) => {
   }
   const amount = parseFloat(document.getElementById("incAmount").value) || 0;
   const from = document.getElementById("incFrom").value.trim();
+  const category = incCategorySelect.value === INC_CUSTOM_OPTION_VALUE
+    ? incCategoryInput.value.trim()
+    : incCategorySelect.value;
   const date = document.getElementById("incDate").value;
 
   if (editingIncomeId) {
     const e = ENTRIES.find((x) => x.id === editingIncomeId);
     e.income = amount;
     e.from = from;
+    e.category = category;
     e.date = date;
     recalcEntry(e);
     await putEntry(e);
     showToast("Income entry updated");
   } else {
-    const entry = recalcEntry({ income: amount, from, date, expense: 0, transactions: [] });
+    const entry = recalcEntry({ income: amount, from, category, date, expense: 0, transactions: [] });
     await putEntry(entry);
     showToast("Income entry added");
   }

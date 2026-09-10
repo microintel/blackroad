@@ -24,6 +24,12 @@ let lastSortedCats = [];
 let lastTotalExpense = 0;
 let lastCatTxns = new Map();
 
+/* Same pattern as above, for income-by-category gauges. */
+const expandedIncCats = new Set();
+let lastSortedIncCats = [];
+let lastTotalIncome = 0;
+let lastIncCatTxns = new Map();
+
 /* chartjs-plugin-zoom self-registers via UMD in most builds, but register
    explicitly too so the zoomable monthly chart works regardless of build. */
 if (window.Chart && window.ChartZoom && !Chart.registry.plugins.get("zoom")) {
@@ -62,12 +68,22 @@ function renderStats() {
   let totalIncome = 0, totalExpense = 0, txnCount = 0;
   const catTotals = new Map();
   const catTxns = new Map(); // category -> [{ note, amount, date }]
+  const incomeCatTotals = new Map();
+  const incomeCatTxns = new Map(); // income category -> [{ note, amount, date }]
   const monthly = new Map(); // key -> { income, expense }
   const txnDates = [];
 
   ENTRIES.forEach((e) => {
     totalIncome += Number(e.income) || 0;
     totalExpense += Number(e.expense) || 0;
+
+    const incCat = e.category || "Uncategorized"; // entries logged before categories existed still show up here
+    const incAmt = Number(e.income) || 0;
+    if (incAmt > 0) {
+      incomeCatTotals.set(incCat, (incomeCatTotals.get(incCat) || 0) + incAmt);
+      if (!incomeCatTxns.has(incCat)) incomeCatTxns.set(incCat, []);
+      incomeCatTxns.get(incCat).push({ note: e.from || incCat, amount: incAmt, date: e.date });
+    }
 
     const mk = monthKeyOf(e.date);
     if (mk) {
@@ -117,13 +133,16 @@ function renderStats() {
   const sortedCats = [...catTotals.entries()].sort((a, b) => b[1] - a[1]);
   const topCat = sortedCats[0];
   const topCatShare = topCat && totalExpense > 0 ? topCat[1] / totalExpense : 0;
+  const topIncCat = [...incomeCatTotals.entries()].sort((a, b) => b[1] - a[1])[0];
 
   renderSummaryChart(totalIncome, totalExpense, totalBalance);
   renderRatios({
     savingsRate, expenseRatio, avgTxn, avgMonthlyIncome, avgMonthlyExpense,
-    avgMonthlySavings, avgDailySpend, topCat, txnCount, monthsCount
+    avgMonthlySavings, avgDailySpend, topCat, topIncCat, txnCount, monthsCount
   });
   renderCategoryGauges(sortedCats, totalExpense, catTxns);
+  const sortedIncCats = [...incomeCatTotals.entries()].sort((a, b) => b[1] - a[1]);
+  renderIncomeCategoryGauges(sortedIncCats, totalIncome, incomeCatTxns);
   renderMonthlyChart(monthly);
 }
 
@@ -166,6 +185,11 @@ function renderRatios(s) {
       label: "Top category", ico: "bi-tags-fill",
       val: s.topCat ? escapeHTML(s.topCat[0]) : "—",
       sub: s.topCat ? fmtMoney(s.topCat[1]) + " spent" : "No expenses yet"
+    },
+    {
+      label: "Top income category", ico: "bi-arrow-down-left",
+      val: s.topIncCat ? escapeHTML(s.topIncCat[0]) : "—",
+      sub: s.topIncCat ? fmtMoney(s.topIncCat[1]) + " received" : "No income yet"
     },
   ];
 
@@ -243,6 +267,75 @@ document.getElementById("catGaugeGrid").addEventListener("click", (e) => {
   if (expandedCats.has(cat)) expandedCats.delete(cat);
   else expandedCats.add(cat);
   renderCategoryGauges(lastSortedCats, lastTotalExpense, lastCatTxns);
+});
+
+/* ---------------- Income category gauges ----------------
+   Same expandable-bar pattern as the expense gauges above, just driven
+   by each income entry's own category (Salary, Return, Interest,
+   Profit, or a custom one) instead of a transaction's category. Entries
+   with no category yet are grouped under "Uncategorized" so they're
+   still visible — and easy to spot for editing from the Statement tab. */
+
+function renderIncomeCategoryGauges(sortedCats, totalIncome, catTxns) {
+  const grid = document.getElementById("incCatGaugeGrid");
+  const empty = document.getElementById("incCatGaugeEmpty");
+  if (!grid || !empty) return; // page not upgraded with this section yet
+
+  lastSortedIncCats = sortedCats;
+  lastTotalIncome = totalIncome;
+  lastIncCatTxns = catTxns;
+
+  if (sortedCats.length === 0 || totalIncome <= 0) {
+    grid.style.display = "none";
+    empty.style.display = "block";
+    return;
+  }
+  grid.style.display = "flex";
+  empty.style.display = "none";
+
+  grid.innerHTML = sortedCats.map(([name, amt], i) => {
+    const pct = totalIncome > 0 ? (amt / totalIncome) * 100 : 0;
+    const color = CAT_PALETTE[i % CAT_PALETTE.length];
+    const isOpen = expandedIncCats.has(name);
+
+    let txnRows = "";
+    if (isOpen) {
+      const txns = (catTxns.get(name) || []).slice().sort((a, b) => b.amount - a.amount);
+      txnRows = txns.map((t, idx) => {
+        const tPct = amt > 0 ? (t.amount / amt) * 100 : 0;
+        return `
+          <div class="cat-txn-row">
+            <span class="cat-txn-idx">${idx + 1}.</span>
+            <span class="cat-txn-note">${escapeHTML(t.note)}</span>
+            <span>:</span>
+            <span class="cat-txn-amt">${fmtMoney(t.amount)}</span>
+            <span class="cat-txn-pct">(${tPct.toFixed(1)}%)</span>
+          </div>`;
+      }).join("");
+      if (!txnRows) txnRows = `<div class="cat-txn-row">No income logged in this category.</div>`;
+    }
+
+    return `
+      <div class="cat-bar-card${isOpen ? " open" : ""}" data-cat="${escapeHTML(name)}">
+        <div class="cat-bar-top">
+          <span class="cat-bar-name">${escapeHTML(name)}</span>
+          <span class="cat-bar-amt">${fmtMoney(amt)} =&gt; ${pct.toFixed(1)}%</span>
+        </div>
+        <div class="cat-bar-track">
+          <div class="cat-bar-fill" style="width:${pct}%; background:${color}"></div>
+        </div>
+        ${isOpen ? `<div class="cat-txn-list">${txnRows}</div>` : ""}
+      </div>`;
+  }).join("");
+}
+
+document.getElementById("incCatGaugeGrid") && document.getElementById("incCatGaugeGrid").addEventListener("click", (e) => {
+  const card = e.target.closest(".cat-bar-card");
+  if (!card) return;
+  const cat = card.dataset.cat;
+  if (expandedIncCats.has(cat)) expandedIncCats.delete(cat);
+  else expandedIncCats.add(cat);
+  renderIncomeCategoryGauges(lastSortedIncCats, lastTotalIncome, lastIncCatTxns);
 });
 
 /* ---------------- Financial summary (Income / Expense / Balance totals) ---------------- */

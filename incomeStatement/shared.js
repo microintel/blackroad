@@ -269,6 +269,20 @@ const DEFAULT_CATEGORIES = [
   "Travel", "Vehicle", "Wine / Cigarette", "Zomato", "Zepto", "Others",
 ];
 
+/* ---------------- Predefined income categories ----------------
+   Curated defaults offered in the category picker when adding income
+   (Salary, Return, Interest, Profit, ...). People can still type their
+   own via "Others" — same pattern as DEFAULT_CATEGORIES above, just for
+   the income side. Entries logged before this existed simply have no
+   category yet; they still show up everywhere (grouped under
+   "Uncategorized") and can be given one at any time from the Edit
+   income dialog. */
+
+const DEFAULT_INCOME_CATEGORIES = [
+  "Salary", "Return", "Interest", "Profit", "Bonus", "Business",
+  "Freelance", "Gift", "Investment", "Rent", "Others",
+];
+
 function escapeHTML(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -289,7 +303,8 @@ function showToast(msg) {
 function matchesSearch(entry, term) {
   if (!term) return { entryMatch: true, txnMatches: entry.transactions || [] };
   const t = term.toLowerCase();
-  const entryMatch = (entry.from || "").toLowerCase().includes(t);
+  const entryMatch = (entry.from || "").toLowerCase().includes(t) ||
+    (entry.category || "").toLowerCase().includes(t);
   const txnMatches = (entry.transactions || []).filter((tr) =>
     (tr.description || "").toLowerCase().includes(t) ||
     (tr.category || "").toLowerCase().includes(t)

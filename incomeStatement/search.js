@@ -110,6 +110,7 @@ function primeSearchCache(entries) {
     entry._id = entryIdx;
     entry._fromNorm = norm(entry.from);
     tokenize(entry.from).forEach((w) => entryTrie.insert(w, entryIdx));
+    tokenize(entry.category).forEach((w) => entryTrie.insert(w, entryIdx));
 
     FLAT_ITEMS.push({
       kind: "income",
@@ -117,7 +118,7 @@ function primeSearchCache(entries) {
       entryId: entry.id,
       txnId: null,
       desc: entry.from || "Income",
-      category: null,
+      category: entry.category || "",
       amount: Number(entry.income) || 0,
       date: entry.date || "",
       _fromNorm: entry._fromNorm,
@@ -175,6 +176,7 @@ function populateFilterOptions() {
   const categories = new Set();
   ENTRIES.forEach((e) => {
     if (e.from) sources.add(e.from);
+    if (e.category) categories.add(e.category);
     (e.transactions || []).forEach((t) => { if (t.category) categories.add(t.category); });
   });
   buildChipGroup(filterSourceEl, [...sources].sort(), pendingSources);

@@ -7,6 +7,7 @@
 ========================================================= */
 
 let catChart = null;
+let incCatChart = null;
 let ENTRIES = [];
 
 async function refresh() {
@@ -28,6 +29,7 @@ function renderDashboard() {
   let totalIncome = 0, totalExpense = 0, totalInvestment = 0, totalCount = 0;
   const catTotals = new Map();
   const sourceTotals = new Map();
+  const incomeCatTotals = new Map();
 
   ENTRIES.forEach((e) => {
     totalIncome += Number(e.income) || 0;
@@ -35,6 +37,8 @@ function renderDashboard() {
     totalInvestment += Number(e.investment) || 0;
     totalCount += (e.transactions || []).length;
     sourceTotals.set(e.from || "Other", (sourceTotals.get(e.from || "Other") || 0) + (Number(e.income) || 0));
+    const incCat = e.category || "Uncategorized"; // entries logged before categories existed still show up here
+    incomeCatTotals.set(incCat, (incomeCatTotals.get(incCat) || 0) + (Number(e.income) || 0));
     (e.transactions || []).forEach((t) => {
       if (isInvestmentCategory(t.category)) return; // investments aren't spend — kept out of the expense chart
       const cat = t.category || "uncategorized";
@@ -70,36 +74,56 @@ function renderDashboard() {
   }
 
   // ---- Expense by category chart ----
-  const chartEmpty = document.getElementById("catChartEmpty");
-  const canvas = document.getElementById("catChart");
-  const chartInner = document.getElementById("catChartInner");
-  if (catTotals.size === 0) {
-    chartEmpty.style.display = "block";
-    chartInner.style.display = "none";
-    if (catChart) { catChart.destroy(); catChart = null; }
-    return;
-  }
-  chartEmpty.style.display = "none";
-  chartInner.style.display = "block";
+  catChart = renderCategoryBarChart({
+    totals: catTotals,
+    chart: catChart,
+    emptyEl: document.getElementById("catChartEmpty"),
+    innerEl: document.getElementById("catChartInner"),
+    canvasEl: document.getElementById("catChart"),
+    palette: ["#b5583f", "#6f7bb3", "#4f8f6b", "#c99a4f", "#8a6bb0", "#5c9bc9", "#c96c8c"]
+  });
 
-  // sort categories highest-spend first so the biggest bars are on top
-  const sortedCats = [...catTotals.entries()].sort((a, b) => b[1] - a[1]);
-  const labels = sortedCats.map(([name]) => name);
-  const data = sortedCats.map(([, val]) => val);
-  const palette = ["#b5583f", "#6f7bb3", "#4f8f6b", "#c99a4f", "#8a6bb0", "#5c9bc9", "#c96c8c"];
+  // ---- Income by category chart ----
+  incCatChart = renderCategoryBarChart({
+    totals: incomeCatTotals,
+    chart: incCatChart,
+    emptyEl: document.getElementById("incCatChartEmpty"),
+    innerEl: document.getElementById("incCatChartInner"),
+    canvasEl: document.getElementById("incCatChart"),
+    palette: ["#3ecf8e", "#5b9dff", "#e3ac54", "#7fd0d9", "#c07fe0", "#8fbf5e", "#e08fa8"]
+  });
+}
+
+/* Shared horizontal bar-chart renderer for both the expense-by-category
+   and income-by-category dashboard panels. Grows one row per category
+   (the outer .chart-wrap scrolls once there are more than fit), and
+   redraws with theme-correct colors whenever called. Returns the (new
+   or destroyed) Chart.js instance so the caller can keep it in its own
+   module-level variable. */
+function renderCategoryBarChart({ totals, chart, emptyEl, innerEl, canvasEl, palette }) {
+  if (totals.size === 0) {
+    emptyEl.style.display = "block";
+    innerEl.style.display = "none";
+    if (chart) chart.destroy();
+    return null;
+  }
+  emptyEl.style.display = "none";
+  innerEl.style.display = "block";
+
+  // sort categories highest-first so the biggest bars are on top
+  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const labels = sorted.map(([name]) => name);
+  const data = sorted.map(([, val]) => val);
   const cs = getComputedStyle(document.documentElement);
   const dimColor = cs.getPropertyValue("--text-dim").trim() || "#8891a3";
   const textColor = cs.getPropertyValue("--text").trim() || "#e6e9ef";
   const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(255,255,255,0.08)";
 
-  // one row per category, so the chart grows with the data instead of
-  // squeezing everything into a fixed-size wheel — the outer .chart-wrap
-  // scrolls once there are more rows than fit comfortably
   const rowHeight = 30;
-  chartInner.style.height = Math.max(160, labels.length * rowHeight) + "px";
+  innerEl.style.height = Math.max(160, labels.length * rowHeight) + "px";
 
-  if (catChart) catChart.destroy();
-  catChart = new Chart(canvas.getContext("2d"), {
+  if (chart) chart.destroy();
+  return new Chart(canvasEl.getContext("2d"), {
     type: "bar",
     data: {
       labels,

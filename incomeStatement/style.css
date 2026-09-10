@@ -1241,6 +1241,18 @@ body{ padding-left: var(--rail-w); }
   white-space:nowrap;
 }
 .entry-balance.zero{ color:var(--ink-out); background:var(--ink-out-bg); }
+.entry-inc-cat{
+  font-family:var(--font-mono);
+  font-size:0.72rem;
+  font-weight:600;
+  color:var(--ink-in);
+  background:var(--ink-in-bg);
+  padding:4px 9px;
+  border-radius:var(--radius-pill);
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.entry-inc-cat.uncategorized{ color:var(--text-faint); background:var(--panel-2, rgba(255,255,255,0.05)); }
 .entry-investment{
   font-family:var(--font-mono);
   font-size:0.72rem;

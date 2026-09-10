@@ -76,6 +76,7 @@ function periodTotals(key) {
   let income = 0, expense = 0, txnCount = 0;
   const sourceTotals = new Map();   // e.from -> income sum   (income source)
   const categoryTotals = new Map(); // t.category -> expense sum (per-transaction)
+  const incomeCategoryTotals = new Map(); // e.category -> income sum (per income entry)
 
   ENTRIES.forEach((e) => {
     if (periodKeyOf(e.date) !== key) return;
@@ -87,6 +88,8 @@ function periodTotals(key) {
     if (eIncome > 0) {
       const src = e.from || "Other";
       sourceTotals.set(src, (sourceTotals.get(src) || 0) + eIncome);
+      const incCat = e.category || "Uncategorized"; // entries logged before categories existed still show up here
+      incomeCategoryTotals.set(incCat, (incomeCategoryTotals.get(incCat) || 0) + eIncome);
     }
 
     (e.transactions || []).forEach((t) => {
@@ -103,7 +106,7 @@ function periodTotals(key) {
   const topCategory = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1])[0] || null;
   const topSource = [...sourceTotals.entries()].sort((a, b) => b[1] - a[1])[0] || null;
 
-  return { income, expense, net, rate, txnCount, sourceTotals, categoryTotals, topCategory, topSource };
+  return { income, expense, net, rate, txnCount, sourceTotals, categoryTotals, incomeCategoryTotals, topCategory, topSource };
 }
 
 /* ---------------- Populate the period pickers ---------------- */
@@ -192,26 +195,40 @@ function renderCompare() {
    instead of over all-time. */
 
 function renderCategoryBreakdown(keyA, keyB, a, b) {
-  const wrap = document.getElementById("cmpCatList");
-  const empty = document.getElementById("cmpCatEmpty");
+  renderCatBreakdownInto({
+    listEl: document.getElementById("cmpCatList"),
+    emptyEl: document.getElementById("cmpCatEmpty"),
+    totalsA: a.categoryTotals,
+    totalsB: b.categoryTotals
+  });
+  renderCatBreakdownInto({
+    listEl: document.getElementById("cmpIncCatList"),
+    emptyEl: document.getElementById("cmpIncCatEmpty"),
+    totalsA: a.incomeCategoryTotals,
+    totalsB: b.incomeCategoryTotals
+  });
+}
 
-  const cats = new Set([...a.categoryTotals.keys(), ...b.categoryTotals.keys()]);
+function renderCatBreakdownInto({ listEl, emptyEl, totalsA, totalsB }) {
+  if (!listEl || !emptyEl) return; // page not upgraded with this section yet
+
+  const cats = new Set([...totalsA.keys(), ...totalsB.keys()]);
   if (cats.size === 0) {
-    wrap.innerHTML = "";
-    empty.style.display = "block";
+    listEl.innerHTML = "";
+    emptyEl.style.display = "block";
     return;
   }
-  empty.style.display = "none";
+  emptyEl.style.display = "none";
 
   const rows = [...cats].map((cat) => {
-    const av = a.categoryTotals.get(cat) || 0;
-    const bv = b.categoryTotals.get(cat) || 0;
+    const av = totalsA.get(cat) || 0;
+    const bv = totalsB.get(cat) || 0;
     return { cat, av, bv, total: av + bv };
   }).sort((x, y) => y.total - x.total).slice(0, 8);
 
   const maxVal = Math.max(...rows.map((r) => Math.max(r.av, r.bv)), 1);
 
-  wrap.innerHTML = rows.map((r) => `
+  listEl.innerHTML = rows.map((r) => `
     <div class="cmp-cat-row">
       <div class="cmp-cat-name">${escapeHTML(r.cat)}</div>
       <div class="cmp-cat-bars">
