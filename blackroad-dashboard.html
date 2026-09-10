@@ -1412,6 +1412,17 @@ footer{
 
         <div class="lane" style="margin:26px 0;"></div>
 
+        <h4 class="sub-head"><i class="bi bi-soundwave"></i> Sound</h4>
+        <div class="settings-row">
+          <div>
+            <b>Touch sound</b>
+            <p>Play a click sound when you tap or click, while running as the installed app.</p>
+          </div>
+          <button class="switch" id="touchSoundSwitch"><span class="knob"></span></button>
+        </div>
+
+        <div class="lane" style="margin:26px 0;"></div>
+
         <h4 class="sub-head"><i class="bi bi-cloud-arrow-up"></i> Backup &amp; Restore</h4>
         <div class="settings-row">
           <div>
@@ -3040,6 +3051,45 @@ autoBackupSwitch.addEventListener('click', async ()=>{
   if(lastBackup) document.getElementById('lastBackupText').textContent = `Last backup: ${lastBackup}`;
   const auto = await safeGet('autoBackup', false);
   if(auto === '1') autoBackupSwitch.classList.add('on');
+})();
+
+/* ============================================================
+   TOUCH / CLICK SOUND — plays click.mp3 (root file) on tap/click
+   anywhere in the app, but only while running as the installed
+   PWA (standalone display mode). Toggled from Settings > Sound;
+   preference is saved per-user via window.storage, same as the
+   other settings switches above.
+   ============================================================ */
+const touchSoundSwitch = document.getElementById('touchSoundSwitch');
+const clickSoundAudio = new Audio('click.mp3');
+clickSoundAudio.preload = 'auto';
+let touchSoundOn = false;
+
+function isStandalonePWA(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function playTouchSound(){
+  if(!touchSoundOn || !isStandalonePWA()) return;
+  try{
+    clickSoundAudio.currentTime = 0;
+    clickSoundAudio.play().catch(()=>{ /* ignore autoplay/interrupt errors */ });
+  }catch(e){ /* no-op */ }
+}
+document.addEventListener('click', playTouchSound, true);
+
+touchSoundSwitch.addEventListener('click', async ()=>{
+  touchSoundOn = touchSoundSwitch.classList.toggle('on');
+  await safeSet('touchSound', touchSoundOn ? '1' : '0', false);
+  showToast(touchSoundOn ? 'Touch sound enabled' : 'Touch sound disabled', touchSoundOn ? 'bi-volume-up-fill' : 'bi-volume-mute-fill');
+});
+
+(async ()=>{
+  const savedTouchSound = await safeGet('touchSound', false);
+  if(savedTouchSound === '1'){
+    touchSoundOn = true;
+    touchSoundSwitch.classList.add('on');
+  }
 })();
 
 /* ============================================================
