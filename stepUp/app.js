@@ -1185,10 +1185,17 @@ document.getElementById('btn-import-fund').addEventListener('click', async () =>
     entries = await dbGetEntries(activeProfile.id);
     entries.sort((a, b) => a.date.localeCompare(b.date));
 
+    // Units Held must reflect this fund's OWN real NAV right away — not the
+    // ₹10 synthetic base calc.js falls back to — so seed it straight from the
+    // file we already have in hand instead of waiting on a network sync to
+    // mfapi.in (refreshFundHistorySection below), which may be slow or offline.
+    const importedSeries = buildFundGrowthSeries(fund.navHistory);
+    fundHistCache = { schemeCode: fund.schemeCode, data: importedSeries };
+    setUnitsNavHistory(importedSeries.series);
+
     applySettingsToUI();
     renderFundLinkStatus();
     renderAll(entries, settings);
-    fundHistCache = { schemeCode: null, data: null };
     refreshFundHistorySection();
     fileInput.value = '';
     toast(`Linked ${fund.schemeName || fund.schemeCode} — ${built.length} entries imported ✓`);
