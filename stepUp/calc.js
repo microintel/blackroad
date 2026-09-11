@@ -331,11 +331,22 @@ export function buildSipLedger(calc, cfg, navSeriesAsc = null) {
     // Confirmed allocation — the real, held instalment. Use the user's
     // recorded NAV/units first (their actual AMC/broker data); fall back
     // to the fund's own real NAV history if they only entered a date.
+    //
+    // EXCEPTION: alloc.legacy === true rows were auto-grandfathered by the
+    // one-time migration (buildLegacyAllocations) BEFORE the fund's real
+    // NAV was reliably threaded through — their recorded nav/units may just
+    // be the old synthetic ₹10-base calculation, never something the user
+    // actually confirmed. For those, prefer the fund's real NAV history
+    // whenever it's available, and only fall back to the recorded legacy
+    // value if there's no real history to check against.
     if (alloc && alloc.status === 'allocated') {
       const real = navSeriesAsc ? navOnOrBefore(navSeriesAsc, dateStr) : null;
-      const navValue   = alloc.nav != null ? alloc.nav : (real ? real.nav : null);
+      const trustRecorded = alloc.legacy !== true;
+      const navValue   = trustRecorded && alloc.nav != null ? alloc.nav
+                        : (real ? real.nav : (alloc.nav != null ? alloc.nav : null));
       const allocAmount = alloc.amount != null ? alloc.amount : amount;
-      const units = alloc.units != null ? alloc.units : (navValue ? +(allocAmount / navValue).toFixed(4) : 0);
+      const units = trustRecorded && alloc.units != null ? alloc.units
+                  : (navValue ? +(allocAmount / navValue).toFixed(4) : (alloc.units != null ? alloc.units : 0));
       unitsRunning = +(unitsRunning + units).toFixed(4);
       return {
         date: dateStr, amount: allocAmount, status: 'allocated',
@@ -487,6 +498,7 @@ export async function saveCalcEntries(calc, profileId) {
       id:             e.id,
       date:           e.date,
       percentChange:  e.percentChange,
+      nav:            e.nav != null ? e.nav : null,
       portfolioValue: e.portfolioValue,
       investedAmount: e.investedAmount,
     });

@@ -1160,7 +1160,7 @@ document.getElementById('btn-import-fund').addEventListener('click', async () =>
 
     await dbClearEntries(activeProfile.id);
     for (const e of built) {
-      await dbPutEntry(activeProfile.id, { date: e.date, percentChange: e.percentChange, portfolioValue: 0, investedAmount: 0 });
+      await dbPutEntry(activeProfile.id, { date: e.date, percentChange: e.percentChange, nav: e.nav, portfolioValue: 0, investedAmount: 0 });
     }
 
     settings = {
@@ -1224,7 +1224,7 @@ async function syncLinkedFund({ silent = false } = {}) {
     }
 
     for (const e of delta) {
-      await dbPutEntry(activeProfile.id, { date: e.date, percentChange: e.percentChange, portfolioValue: 0, investedAmount: 0 });
+      await dbPutEntry(activeProfile.id, { date: e.date, percentChange: e.percentChange, nav: e.nav, portfolioValue: 0, investedAmount: 0 });
     }
     entries = await dbGetEntries(activeProfile.id);
     entries.sort((a, b) => a.date.localeCompare(b.date));

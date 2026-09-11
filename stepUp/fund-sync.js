@@ -39,12 +39,19 @@ export function readFileAsJson(file) {
 }
 
 /**
- * Build { date, percentChange } entries from an ASCENDING navHistory array
- * (DD-MM-YYYY dates), starting at the first date >= startDateIso (inclusive).
+ * Build { date, percentChange, nav } entries from an ASCENDING navHistory
+ * array (DD-MM-YYYY dates), starting at the first date >= startDateIso
+ * (inclusive).
  *
  * The first included day gets percentChange 0 — it's the baseline the first
  * SIP instalment lands on. Every day after is chained off the previous
  * day's actual NAV, exactly like the app's manual "daily % change" entries.
+ *
+ * Each entry also carries the fund's ACTUAL NAV for that date (nav) so
+ * calc.js can price units off the real, fixed NAV instead of re-deriving a
+ * synthetic one by chaining percentChange off the ₹10 base — same source
+ * data, just handed over directly instead of losing precision by
+ * round-tripping through a % figure.
  */
 export function buildEntriesFromNavHistory(navHistoryAsc, startDateIso) {
   const startIdx = navHistoryAsc.findIndex(r => ddmmyyyyToIso(r.date) >= startDateIso);
@@ -56,7 +63,7 @@ export function buildEntriesFromNavHistory(navHistoryAsc, startDateIso) {
     if (isNaN(nav)) continue;
     const dateIso = ddmmyyyyToIso(navHistoryAsc[i].date);
     const pct = prevNav === null ? 0 : ((nav / prevNav) - 1) * 100;
-    out.push({ date: dateIso, percentChange: +pct.toFixed(4) });
+    out.push({ date: dateIso, percentChange: +pct.toFixed(4), nav });
     prevNav = nav;
   }
   return out;
@@ -180,7 +187,8 @@ export async function fetchSchemeFromMfapi(schemeCode) {
  * and a freshly-fetched ascending navHistory (DD-MM-YYYY) for the SAME fund,
  * return only the NEW entries beyond the last local entry's date, chained
  * off the actual NAV on that date (matched by date, not by the stored %,
- * so rounding never drifts).
+ * so rounding never drifts). Each returned entry also carries that day's
+ * actual NAV (nav) — see buildEntriesFromNavHistory() above for why.
  *
  * Returns null if the last local entry's date isn't present in the fetched
  * history — the caller should surface a warning rather than guess.
@@ -198,7 +206,7 @@ export function buildSyncDelta(localEntriesAsc, navHistoryAsc) {
     if (isNaN(nav)) continue;
     const dateIso = ddmmyyyyToIso(navHistoryAsc[i].date);
     const pct = ((nav / prevNav) - 1) * 100;
-    out.push({ date: dateIso, percentChange: +pct.toFixed(4) });
+    out.push({ date: dateIso, percentChange: +pct.toFixed(4), nav });
     prevNav = nav;
   }
   return out;
