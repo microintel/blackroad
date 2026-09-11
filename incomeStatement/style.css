@@ -1674,129 +1674,96 @@ button:focus-visible, .entry-head:focus-visible, input:focus-visible, select:foc
   flex-shrink:0;
 }
 
-/* ---- Ratio / average cards ---- */
+/* ---- Ratio / average cards ----
+   Each tile carries a colored accent stripe on its leading edge that
+   picks up the tone of its icon (income/expense/neutral), so the grid
+   reads at a glance instead of every metric looking like an identical
+   grey block. A gentle hover lift signals "this is a real card" even
+   though the tiles aren't clickable — consistent with the rest of the
+   app's card language. One extra column opens up once the panel is
+   wide enough to hold it without crowding. */
 .ratio-grid{
   display:grid;
   grid-template-columns:repeat(2, 1fr);
-  gap:10px;
+  gap:12px;
 }
 @media (min-width:560px){
-  .ratio-grid{ grid-template-columns:repeat(3, 1fr); }
+  .ratio-grid{ grid-template-columns:repeat(3, 1fr); gap:14px; }
+}
+@media (min-width:1100px){
+  .ratio-grid{ grid-template-columns:repeat(4, 1fr); }
 }
 .ratio-card{
-  padding:13px 12px;
+  position:relative;
+  padding:16px 14px 15px 19px;
   background:var(--card-2);
   border:1px solid var(--line-soft);
   border-radius:var(--radius-md);
   display:flex;
   flex-direction:column;
-  gap:5px;
+  gap:10px;
+  overflow:hidden;
+  min-width:0;
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+/* Leading accent stripe — neutral by default, tinted via :has() once the
+   icon inside declares its tone. Browsers without :has() just keep the
+   neutral stripe, which still looks intentional. */
+.ratio-card::before{
+  content:"";
+  position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:var(--line-soft);
+}
+.ratio-card:has(.ratio-ico.tone-in)::before{ background:var(--ink-in); }
+.ratio-card:has(.ratio-ico.tone-out)::before{ background:var(--ink-out); }
+.ratio-card:has(.ratio-ico.tone-accent)::before{ background:var(--accent); }
+.ratio-card:hover{
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-card);
 }
 .ratio-card-label{
-  font-size:0.63rem;
-  letter-spacing:0.04em;
+  font-size:0.64rem;
+  letter-spacing:0.05em;
   text-transform:uppercase;
   color:var(--text-faint);
   display:flex;
   align-items:center;
-  gap:6px;
+  gap:8px;
+  font-weight:700;
 }
-.ratio-card-label i{ font-size:0.72rem; }
+/* Small colored icon chip — mirrors the income/expense chips used
+   elsewhere in the app (e.g. mini-ico) so a metric's "flavor" (income-
+   side, expense-side, or neutral) is readable at a glance instead of
+   every card being an identical grey block. */
+.ratio-ico{
+  width:24px; height:24px;
+  border-radius:8px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:0.72rem;
+  flex-shrink:0;
+}
+.ratio-ico.tone-in{ background:var(--ink-in-bg); color:var(--ink-in); }
+.ratio-ico.tone-out{ background:var(--ink-out-bg); color:var(--ink-out); }
+.ratio-ico.tone-accent{ background:var(--accent-bg); color:var(--accent); }
 .ratio-card-val{
   font-family:var(--font-mono);
-  font-weight:700;
-  font-size:1.05rem;
+  font-weight:800;
+  font-size:1.18rem;
+  line-height:1.2;
   color:var(--text);
+  overflow-wrap:anywhere;
 }
-.ratio-card-sub{ font-size:0.7rem; color:var(--text-faint); }
+.ratio-card-sub{ font-size:0.71rem; line-height:1.4; color:var(--text-faint); }
 .ratio-card.pos .ratio-card-val{ color:var(--ink-in); }
 .ratio-card.neg .ratio-card-val{ color:var(--ink-out); }
 
 /* ---- Category gauges (expense & income) ----
-   Rendered as full-width stacked rows rather than a multi-column grid:
-   each card can expand to show its transaction/entry breakdown, and a
-   grid would stretch every card in that row to match the tallest one
-   whenever a neighbor expands. A single column avoids that entirely and
-   reads cleanly at any screen width. */
-.cat-gauge-grid{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-.cat-bar-card{
-  border:1px solid var(--line-soft);
-  border-radius:var(--radius-sm);
-  background:var(--panel-2, rgba(255,255,255,0.03));
-  padding:12px 14px;
-  cursor:pointer;
-  transition:background .15s ease;
-}
-.cat-bar-card:hover{ background:var(--panel-3, rgba(255,255,255,0.05)); }
-.cat-bar-card.open{ background:var(--panel-3, rgba(255,255,255,0.05)); }
-.cat-bar-top{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom:8px;
-}
-.cat-bar-name{
-  font-size:0.85rem;
-  font-weight:600;
-  color:var(--text);
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-.cat-bar-amt{
-  font-family:var(--font-mono);
-  font-size:0.76rem;
-  color:var(--text-faint);
-  flex-shrink:0;
-  white-space:nowrap;
-}
-.cat-bar-track{
-  height:8px;
-  border-radius:var(--radius-pill);
-  background:var(--line-soft);
-  overflow:hidden;
-}
-.cat-bar-fill{
-  height:100%;
-  border-radius:var(--radius-pill);
-  transition:width .3s ease;
-}
-.cat-txn-list{
-  margin-top:12px;
-  padding-top:12px;
-  border-top:1px solid var(--line-soft);
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-.cat-txn-row{
-  display:flex;
-  align-items:baseline;
-  gap:6px;
-  font-size:0.78rem;
-  color:var(--text-dim);
-}
-.cat-txn-idx{ color:var(--text-faint); flex-shrink:0; }
-.cat-txn-note{
-  flex:1;
-  min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-  color:var(--text);
-}
-.cat-txn-amt{
-  font-family:var(--font-mono);
-  font-weight:600;
-  color:var(--text);
-  flex-shrink:0;
-}
-.cat-txn-pct{ color:var(--text-faint); flex-shrink:0; }
+   The full component styling (rows, chevron disclosure, indented
+   transaction list) lives in stats.html's own <style> block, next to
+   the markup it styles, since these classes are only ever used on
+   the Statistics page. */
 
 /* =========================================================
    Dashboard page only — everything below is scoped under

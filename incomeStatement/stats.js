@@ -10,7 +10,6 @@
 
 let ENTRIES = [];
 let monthlyChart = null;
-let summaryChart = null;
 
 /* Cycle of 7, matching the reference design (education=pink, home=blue, ...) */
 const CAT_PALETTE = ["#ff6b81", "#4dabf7", "#ffcb47", "#2dd4bf", "#a78bfa", "#ffa94d", "#b0b0b0"];
@@ -135,7 +134,7 @@ function renderStats() {
   const topCatShare = topCat && totalExpense > 0 ? topCat[1] / totalExpense : 0;
   const topIncCat = [...incomeCatTotals.entries()].sort((a, b) => b[1] - a[1])[0];
 
-  renderSummaryChart(totalIncome, totalExpense, totalBalance);
+  renderSummaryHero(totalIncome, totalExpense, totalBalance);
   renderRatios({
     savingsRate, expenseRatio, avgTxn, avgMonthlyIncome, avgMonthlyExpense,
     avgMonthlySavings, avgDailySpend, topCat, topIncCat, txnCount, monthsCount
@@ -151,43 +150,43 @@ function renderStats() {
 function renderRatios(s) {
   const cards = [
     {
-      label: "Savings rate", ico: "bi-piggy-bank-fill",
+      label: "Savings rate", ico: "bi-piggy-bank-fill", tone: "in",
       val: s.savingsRate.toFixed(1) + "%", sub: "of income kept",
       cls: s.savingsRate >= 0 ? "pos" : "neg"
     },
     {
-      label: "Expense ratio", ico: "bi-graph-down-arrow",
+      label: "Expense ratio", ico: "bi-graph-down-arrow", tone: "out",
       val: s.expenseRatio.toFixed(1) + "%", sub: "of income spent",
       cls: s.expenseRatio > 100 ? "neg" : ""
     },
     {
-      label: "Avg. monthly income", ico: "bi-arrow-down-left",
+      label: "Avg. monthly income", ico: "bi-arrow-down-left", tone: "in",
       val: fmtMoney(s.avgMonthlyIncome), sub: `over ${s.monthsCount} month${s.monthsCount === 1 ? "" : "s"}`
     },
     {
-      label: "Avg. monthly expense", ico: "bi-arrow-up-right",
+      label: "Avg. monthly expense", ico: "bi-arrow-up-right", tone: "out",
       val: fmtMoney(s.avgMonthlyExpense), sub: `over ${s.monthsCount} month${s.monthsCount === 1 ? "" : "s"}`
     },
     {
-      label: "Avg. monthly savings", ico: "bi-wallet2",
+      label: "Avg. monthly savings", ico: "bi-wallet2", tone: "in",
       val: fmtMoney(s.avgMonthlySavings), sub: "income minus expense",
       cls: s.avgMonthlySavings >= 0 ? "pos" : "neg"
     },
     {
-      label: "Avg. daily spend", ico: "bi-calendar-day",
+      label: "Avg. daily spend", ico: "bi-calendar-day", tone: "out",
       val: fmtMoney(s.avgDailySpend), sub: "across logged days"
     },
     {
-      label: "Avg. per transaction", ico: "bi-receipt",
+      label: "Avg. per transaction", ico: "bi-receipt", tone: "accent",
       val: fmtMoney(s.avgTxn), sub: `${s.txnCount} transaction${s.txnCount === 1 ? "" : "s"}`
     },
     {
-      label: "Top category", ico: "bi-tags-fill",
+      label: "Top category", ico: "bi-tags-fill", tone: "out",
       val: s.topCat ? escapeHTML(s.topCat[0]) : "—",
       sub: s.topCat ? fmtMoney(s.topCat[1]) + " spent" : "No expenses yet"
     },
     {
-      label: "Top income category", ico: "bi-arrow-down-left",
+      label: "Top income category", ico: "bi-arrow-down-left", tone: "in",
       val: s.topIncCat ? escapeHTML(s.topIncCat[0]) : "—",
       sub: s.topIncCat ? fmtMoney(s.topIncCat[1]) + " received" : "No income yet"
     },
@@ -195,7 +194,7 @@ function renderRatios(s) {
 
   document.getElementById("ratioGrid").innerHTML = cards.map((c) => `
     <div class="ratio-card ${c.cls || ""}">
-      <span class="ratio-card-label"><i class="bi ${c.ico}"></i> ${c.label}</span>
+      <span class="ratio-card-label"><span class="ratio-ico tone-${c.tone || "accent"}"><i class="bi ${c.ico}"></i></span>${c.label}</span>
       <span class="ratio-card-val">${c.val}</span>
       <span class="ratio-card-sub">${c.sub}</span>
     </div>
@@ -238,35 +237,37 @@ function renderCategoryGauges(sortedCats, totalExpense, catTxns) {
           <div class="cat-txn-row">
             <span class="cat-txn-idx">${idx + 1}.</span>
             <span class="cat-txn-note">${escapeHTML(t.note)}</span>
-            <span>:</span>
             <span class="cat-txn-amt">${fmtMoney(t.amount)}</span>
-            <span class="cat-txn-pct">(${tPct.toFixed(1)}%)</span>
+            <span class="cat-txn-pct">${tPct.toFixed(1)}%</span>
           </div>`;
       }).join("");
       if (!txnRows) txnRows = `<div class="cat-txn-row">No transaction detail logged for this category.</div>`;
     }
 
     return `
-      <div class="cat-bar-card${isOpen ? " open" : ""}" data-cat="${escapeHTML(name)}">
-        <div class="cat-bar-top">
-          <span class="cat-bar-name">${escapeHTML(name)}</span>
-          <span class="cat-bar-amt">${fmtMoney(amt)} =&gt; ${pct.toFixed(1)}%</span>
+      <div class="cat-row${isOpen ? " open" : ""}" data-cat="${escapeHTML(name)}">
+        <div class="cat-row-top">
+          <span class="cat-row-dot" style="background:${color}"></span>
+          <span class="cat-row-name">${escapeHTML(name)}</span>
+          <span class="cat-row-pct">${pct.toFixed(1)}%</span>
+          <span class="cat-row-amt">${fmtMoney(amt)}</span>
+          <i class="bi bi-chevron-right cat-row-chevron"></i>
         </div>
-        <div class="cat-bar-track">
-          <div class="cat-bar-fill" style="width:${barPct}%; background:${color}"></div>
+        <div class="cat-row-track">
+          <div class="cat-row-fill" style="width:${barPct}%; background:${color}"></div>
         </div>
         ${isOpen ? `<div class="cat-txn-list">${txnRows}</div>` : ""}
       </div>`;
   }).join("");
 }
 
-/* Click any category card to expand/collapse its transaction breakdown
+/* Click any category row to expand/collapse its transaction breakdown
    (highest amount first). Delegated once on the grid so re-rendering the
    inner HTML doesn't lose the listener. */
 document.getElementById("catGaugeGrid").addEventListener("click", (e) => {
-  const card = e.target.closest(".cat-bar-card");
-  if (!card) return;
-  const cat = card.dataset.cat;
+  const row = e.target.closest(".cat-row");
+  if (!row) return;
+  const cat = row.dataset.cat;
   if (expandedCats.has(cat)) expandedCats.delete(cat);
   else expandedCats.add(cat);
   renderCategoryGauges(lastSortedCats, lastTotalExpense, lastCatTxns);
@@ -313,22 +314,24 @@ function renderIncomeCategoryGauges(sortedCats, totalIncome, catTxns) {
           <div class="cat-txn-row">
             <span class="cat-txn-idx">${idx + 1}.</span>
             <span class="cat-txn-note">${escapeHTML(t.note)}</span>
-            <span>:</span>
             <span class="cat-txn-amt">${fmtMoney(t.amount)}</span>
-            <span class="cat-txn-pct">(${tPct.toFixed(1)}%)</span>
+            <span class="cat-txn-pct">${tPct.toFixed(1)}%</span>
           </div>`;
       }).join("");
       if (!txnRows) txnRows = `<div class="cat-txn-row">No income logged in this category.</div>`;
     }
 
     return `
-      <div class="cat-bar-card${isOpen ? " open" : ""}" data-cat="${escapeHTML(name)}">
-        <div class="cat-bar-top">
-          <span class="cat-bar-name">${escapeHTML(name)}</span>
-          <span class="cat-bar-amt">${fmtMoney(amt)} =&gt; ${pct.toFixed(1)}%</span>
+      <div class="cat-row${isOpen ? " open" : ""}" data-cat="${escapeHTML(name)}">
+        <div class="cat-row-top">
+          <span class="cat-row-dot" style="background:${color}"></span>
+          <span class="cat-row-name">${escapeHTML(name)}</span>
+          <span class="cat-row-pct">${pct.toFixed(1)}%</span>
+          <span class="cat-row-amt">${fmtMoney(amt)}</span>
+          <i class="bi bi-chevron-right cat-row-chevron"></i>
         </div>
-        <div class="cat-bar-track">
-          <div class="cat-bar-fill" style="width:${barPct}%; background:${color}"></div>
+        <div class="cat-row-track">
+          <div class="cat-row-fill" style="width:${barPct}%; background:${color}"></div>
         </div>
         ${isOpen ? `<div class="cat-txn-list">${txnRows}</div>` : ""}
       </div>`;
@@ -336,62 +339,60 @@ function renderIncomeCategoryGauges(sortedCats, totalIncome, catTxns) {
 }
 
 document.getElementById("incCatGaugeGrid") && document.getElementById("incCatGaugeGrid").addEventListener("click", (e) => {
-  const card = e.target.closest(".cat-bar-card");
-  if (!card) return;
-  const cat = card.dataset.cat;
+  const row = e.target.closest(".cat-row");
+  if (!row) return;
+  const cat = row.dataset.cat;
   if (expandedIncCats.has(cat)) expandedIncCats.delete(cat);
   else expandedIncCats.add(cat);
   renderIncomeCategoryGauges(lastSortedIncCats, lastTotalIncome, lastIncCatTxns);
 });
 
-/* ---------------- Financial summary (Income / Expense / Balance totals) ---------------- */
+/* ---------------- Overview hero (Income / Expense / Balance headline) ----------------
+   Three big stat tiles plus one shared proportional bar showing how income
+   splits into expense vs. balance — carries more at-a-glance meaning than a
+   generic 3-bar chart did, and reads as the page's headline instead of a
+   plain, low-priority chart competing visually with everything below it. */
 
-function renderSummaryChart(totalIncome, totalExpense, totalBalance) {
-  const canvas = document.getElementById("summaryChart");
-  const inner = document.getElementById("summaryChartInner");
+function renderSummaryHero(totalIncome, totalExpense, totalBalance) {
+  const hero = document.getElementById("summaryHero");
   const empty = document.getElementById("summaryChartEmpty");
 
   if (totalIncome <= 0 && totalExpense <= 0) {
-    inner.style.display = "none";
+    hero.style.display = "none";
     empty.style.display = "block";
-    if (summaryChart) { summaryChart.destroy(); summaryChart = null; }
     return;
   }
-  inner.style.display = "block";
+  hero.style.display = "block";
   empty.style.display = "none";
 
-  const cs = getComputedStyle(document.documentElement);
-  const dimColor = cs.getPropertyValue("--text-dim").trim() || "#8891a3";
-  const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(255,255,255,0.08)";
-  const inColor = cs.getPropertyValue("--ink-in").trim() || "#2196f3";
-  const outColor = cs.getPropertyValue("--ink-out").trim() || "#f44336";
-  const balColor = "#3ecf8e";
+  const expenseShare = totalIncome > 0
+    ? clamp01(totalExpense / totalIncome) * 100
+    : (totalExpense > 0 ? 100 : 0);
+  const balanceShare = Math.max(0, 100 - expenseShare);
 
-  if (summaryChart) summaryChart.destroy();
-  summaryChart = new Chart(canvas.getContext("2d"), {
-    type: "bar",
-    data: {
-      labels: ["Income", "Expense", "Balance"],
-      datasets: [{
-        data: [totalIncome, totalExpense, totalBalance],
-        backgroundColor: [inColor, outColor, balColor],
-        borderRadius: 6,
-        maxBarThickness: 90
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => fmtMoney(ctx.parsed.y) } }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: dimColor, font: { size: 11.5, family: "Inter" } } },
-        y: { beginAtZero: true, grid: { color: lineColor }, ticks: { color: dimColor, font: { size: 9.5, family: "Inter" }, callback: (v) => fmtMoney(v) } }
-      }
-    }
-  });
+  hero.innerHTML = `
+    <div class="fin-hero">
+      <div class="fh-tile in">
+        <div class="fh-top"><span class="fh-ico"><i class="bi bi-arrow-down-left"></i></span><span class="fh-label">Income</span></div>
+        <span class="fh-val">${fmtMoney(totalIncome)}</span>
+      </div>
+      <div class="fh-tile out">
+        <div class="fh-top"><span class="fh-ico"><i class="bi bi-arrow-up-right"></i></span><span class="fh-label">Expense</span></div>
+        <span class="fh-val">${fmtMoney(totalExpense)}</span>
+      </div>
+      <div class="fh-tile bal">
+        <div class="fh-top"><span class="fh-ico"><i class="bi bi-wallet2"></i></span><span class="fh-label">Balance</span></div>
+        <span class="fh-val">${fmtMoney(totalBalance)}</span>
+      </div>
+    </div>
+    <div class="fh-split-track">
+      <div class="fh-split-fill out" style="width:${expenseShare}%"></div>
+      <div class="fh-split-fill bal" style="width:${balanceShare}%"></div>
+    </div>
+    <div class="fh-split-legend">
+      <span><i class="fh-dot out"></i> Expense ${expenseShare.toFixed(1)}% of income</span>
+      <span><i class="fh-dot bal"></i> Balance ${balanceShare.toFixed(1)}% of income</span>
+    </div>`;
 }
 
 /* ---------------- Monthly income / expense / balance chart ---------------- */
@@ -423,15 +424,28 @@ function renderMonthlyChart(monthly) {
   const outColor = cs.getPropertyValue("--ink-out").trim() || "#f27a8a";
   const accentColor = cs.getPropertyValue("--accent").trim() || "#5b9dff";
 
+  // Soft gradient fill under each line (fading to transparent) instead of
+  // flat color or no fill at all — reads as a modern app chart rather than
+  // a bare spreadsheet plot, while staying subtle enough that three
+  // overlapping series don't turn into visual noise.
+  const ctx = canvas.getContext("2d");
+  const plotHeight = (canvas.parentElement && canvas.parentElement.clientHeight) || 300;
+  function fadeFill(hex) {
+    const g = ctx.createLinearGradient(0, 0, 0, plotHeight);
+    g.addColorStop(0, hex + "38");
+    g.addColorStop(1, hex + "00");
+    return g;
+  }
+
   if (monthlyChart) monthlyChart.destroy();
-  monthlyChart = new Chart(canvas.getContext("2d"), {
+  monthlyChart = new Chart(ctx, {
     type: "line",
     data: {
       labels,
       datasets: [
-        { label: "Income", data: incomeData, borderColor: inColor, backgroundColor: inColor, pointBackgroundColor: inColor, tension: 0.3, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 },
-        { label: "Expense", data: expenseData, borderColor: outColor, backgroundColor: outColor, pointBackgroundColor: outColor, tension: 0.3, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 },
-        { label: "Balance", data: balanceData, borderColor: accentColor, backgroundColor: accentColor, pointBackgroundColor: accentColor, tension: 0.3, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5 },
+        { label: "Income", data: incomeData, borderColor: inColor, backgroundColor: fadeFill(inColor), fill: true, pointBackgroundColor: inColor, tension: 0.35, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: "#fff" },
+        { label: "Expense", data: expenseData, borderColor: outColor, backgroundColor: fadeFill(outColor), fill: true, pointBackgroundColor: outColor, tension: 0.35, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: "#fff" },
+        { label: "Balance", data: balanceData, borderColor: accentColor, backgroundColor: fadeFill(accentColor), fill: true, pointBackgroundColor: accentColor, tension: 0.35, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: "#fff" },
       ]
     },
     options: {
@@ -439,8 +453,15 @@ function renderMonthlyChart(monthly) {
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { position: "top", labels: { color: dimColor, font: { size: 10.5, family: "Inter" }, boxWidth: 10, usePointStyle: true, pointStyle: "circle" } },
-        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` } },
+        legend: { position: "top", align: "start", labels: { color: dimColor, font: { size: 10.5, family: "Inter", weight: "600" }, boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", padding: 16 } },
+        tooltip: {
+          backgroundColor: cs.getPropertyValue("--card").trim() || "#1a1b20",
+          titleColor: cs.getPropertyValue("--text").trim() || "#f2f3f5",
+          bodyColor: cs.getPropertyValue("--text").trim() || "#f2f3f5",
+          borderColor: lineColor, borderWidth: 1,
+          padding: 10, boxPadding: 4, usePointStyle: true,
+          callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` }
+        },
         zoom: {
           pan: { enabled: true, mode: "x", modifierKey: null },
           zoom: {
