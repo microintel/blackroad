@@ -516,19 +516,32 @@ export async function generatePdfReport(entries, settings, fundName) {
   doc.setTextColor(120, 120, 120);
   doc.text(
     navIsLive
-      ? 'Every instalment since the SIP started — paid, skipped, missed or upcoming — priced at the fund\'s actual NAV for that date (mfapi.in).'
-      : 'Every instalment since the SIP started — paid, skipped, missed or upcoming — with simulated NAV units bought on each (no fund linked).',
+      ? 'Every instalment since the SIP started — priced at the fund\'s actual NAV for that date (mfapi.in) once allocated, or shown pending until the real AMC/broker allocation is confirmed.'
+      : 'Every instalment since the SIP started — with simulated NAV units bought once allocated, or shown pending until the real AMC/broker allocation is confirmed (no fund linked).',
     margin, y
   );
   y += 10;
 
   const STATUS_COLOR = {
-    paid:     [22, 163, 74],
-    skipped:  [220, 38, 38],
-    missed:   [217, 119, 6],
-    upcoming: [120, 120, 120],
+    allocated:         [22, 163, 74],
+    skipped:           [220, 38, 38],
+    failed:            [153, 27, 27],
+    cancelled:         [120, 120, 120],
+    payment_initiated: [37, 99, 235],
+    paid:              [13, 148, 136],
+    processing:        [217, 119, 6],
+    upcoming:          [120, 120, 120],
   };
-  const STATUS_LABEL = { paid: 'Paid', skipped: 'Skipped', missed: 'Missed', upcoming: 'Upcoming' };
+  const STATUS_LABEL = {
+    allocated:         'Allocated',
+    skipped:           'Skipped',
+    failed:             'Failed',
+    cancelled:          'Cancelled',
+    payment_initiated:  'Payment Initiated',
+    paid:               'Paid',
+    processing:         'Processing',
+    upcoming:           'Upcoming',
+  };
 
   const lw = pageW - margin * 2;
   const ledgerWidths = [lw * 0.12, lw * 0.14, lw * 0.20, lw * 0.14, lw * 0.20, lw * 0.20];
@@ -536,12 +549,13 @@ export async function generatePdfReport(entries, settings, fundName) {
   const ledgerRows = ledger.map(r => {
     const stepTag = r.stepChange > 0 ? ' ▲' : r.stepChange < 0 ? ' ▼' : '';
     const stepColor = r.stepChange > 0 ? [22, 163, 74] : r.stepChange < 0 ? [220, 38, 38] : [20, 20, 20];
+    const isAlloc = r.status === 'allocated';
     return [
       r.date,
-      { text: STATUS_LABEL[r.status], color: STATUS_COLOR[r.status] },
+      { text: STATUS_LABEL[r.status] || r.status, color: STATUS_COLOR[r.status] || [120, 120, 120] },
       { text: fmt(r.amount) + stepTag, color: stepTag ? stepColor : [20, 20, 20] },
-      r.status === 'paid' ? `₹${r.navValue.toFixed(2)}` : '—',
-      r.status === 'paid' ? r.units.toFixed(4) : '—',
+      isAlloc && r.navValue != null ? `₹${r.navValue.toFixed(2)}` : '—',
+      isAlloc ? r.units.toFixed(4) : '—',
       r.unitsRunningTotal.toFixed(4),
     ];
   });

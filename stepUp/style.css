@@ -743,6 +743,9 @@ tbody td { padding: 12px 16px; white-space: nowrap; }
 }
 .sip-yes { background: var(--surface); color: var(--green); }
 .sip-no  { background: var(--surface); color: var(--muted); }
+/* SIP payment → processing → allocation tracking — mid-lifecycle badges */
+.sip-pending  { background: var(--amber-dim); color: var(--amber); }
+.sip-progress { background: var(--blue-dim);  color: var(--blue); }
 .pct-up   { color: var(--green); font-weight: 600; }
 .pct-down { color: var(--red); font-weight: 600; }
 
@@ -925,6 +928,26 @@ tbody td { padding: 12px 16px; white-space: nowrap; }
 .user-row-desc  { font-size: .71rem; color: var(--muted); margin-top: 2px; }
 
 .user-row-arrow { color: var(--muted); font-size: .85rem; flex-shrink: 0; }
+
+/* ── Mobile-only Account options list (tap one → open only that section) ── */
+.account-options-list { display: none; }
+.acct-back-btn {
+  display: none;
+  align-items: center; gap: 4px;
+  width: 100%;
+  background: none; border: none;
+  color: var(--accent); font-family: var(--font);
+  font-size: .85rem; font-weight: 700;
+  cursor: pointer; padding: 8px 2px 14px;
+}
+.acct-back-btn .bi { font-size: .95rem; }
+
+@media (max-width: 899px) {
+  .account-quicknav       { display: none; }
+  .account-options-list   { display: block; }
+  .user-sections-grid .user-section        { display: none; }
+  .user-sections-grid .user-section.acct-open { display: block; }
+}
 
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 2px; }
 .stat-cell { padding: 18px; border-radius: var(--radius-sm); margin: 2px; background: var(--surface2); box-shadow: var(--sh-in-sm); }
@@ -1506,6 +1529,51 @@ html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
 .muted-note {
   font-size: .75rem;
   color: var(--muted);
+}
+
+/* ── SIP payment → processing → NAV allocation tracking ── */
+.sip-alloc-row {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.sip-alloc-row .schedule-info {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sip-alloc-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sip-alloc-status-select {
+  font-family: var(--font);
+  font-size: .72rem;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+}
+.sip-alloc-form {
+  margin-top: 16px;
+  padding: 14px 15px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--sh-out-sm);
+  border: 1px solid var(--border);
+}
+.sip-alloc-form-title {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 12px;
+}
+.sip-alloc-delay-note {
+  font-size: .7rem;
+  color: var(--amber);
 }
 
 @media (max-width: 380px) {

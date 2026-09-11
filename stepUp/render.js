@@ -510,9 +510,31 @@ export function renderDashboard(calc, settings) {
    History Table
 ══════════════════════════════════════════════════════ */
 
-/* Status label for the units ledger's "Status" column — same vocabulary
-   buildSipLedger() and the PDF report's ledger table already use. */
-const LEDGER_STATUS_LABEL = { paid: 'Paid', skipped: 'Skipped', missed: 'Missed', upcoming: 'Upcoming' };
+/* Status label/badge for the units ledger's "Status" column — same
+   vocabulary buildSipLedger() and the PDF report's ledger table use.
+   'allocated' = actual NAV/units confirmed (the real, held instalment);
+   everything else besides 'skipped'/'upcoming' is still pending — see the
+   SIP payment → processing → allocation tracking feature in calc.js. */
+const LEDGER_STATUS_LABEL = {
+  allocated:         'Allocated',
+  payment_initiated: 'Payment Initiated',
+  paid:              'Paid',
+  processing:        'Processing',
+  failed:            'Failed',
+  cancelled:         'Cancelled',
+  skipped:           'Skipped',
+  upcoming:          'Upcoming',
+};
+const LEDGER_STATUS_BADGE = {
+  allocated:         'sip-yes',
+  skipped:           'sip-no',
+  failed:            'sip-no',
+  cancelled:         'sip-no',
+  payment_initiated: 'sip-progress',
+  paid:              'sip-progress',
+  processing:        'sip-pending',
+  upcoming:          '',
+};
 
 export function renderTable(calc, settings) {
   /* Search + sort always run against the FULL data set first — the
@@ -596,22 +618,30 @@ function renderUnitsHistoryTable(calc, settings) {
   else                          ledger.sort((a, b) => b.date.localeCompare(a.date));
 
   if (!ledger.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">${
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty">${
       historySearchDate ? 'No instalment found for this date.' : 'No SIP instalments yet.'
     }</div></td></tr>`;
     return;
   }
 
   tbody.innerHTML = ledger.map((r, i) => {
-    const stepTag = r.stepChange > 0 ? ' ▲' : r.stepChange < 0 ? ' ▼' : '';
+    const stepTag  = r.stepChange > 0 ? ' ▲' : r.stepChange < 0 ? ' ▼' : '';
+    const isAlloc  = r.status === 'allocated';
+    const canEdit  = r.status !== 'skipped' && r.status !== 'upcoming';
+    const actionBtn = canEdit
+      ? `<button class="btn-icon" onclick="openAllocationForm('${r.date}')" title="${isAlloc ? 'Correct allocation' : 'Update allocation'}">
+           <i class="bi ${isAlloc ? 'bi-pencil-square' : 'bi-hourglass-split'}"></i>
+         </button>`
+      : '';
     return `<tr>
       <td class="mono" style="color:var(--muted)">${i + 1}</td>
       <td>${r.date}</td>
-      <td><span class="sip-badge ${r.status === 'paid' ? 'sip-yes' : r.status === 'skipped' ? 'sip-no' : ''}">${LEDGER_STATUS_LABEL[r.status]}</span></td>
+      <td><span class="sip-badge ${LEDGER_STATUS_BADGE[r.status] || ''}">${LEDGER_STATUS_LABEL[r.status] || r.status}</span></td>
       <td class="mono">${fmtK(r.amount)}${stepTag}</td>
-      <td class="mono">${r.status === 'paid' ? '₹' + r.navValue.toFixed(2) : '—'}</td>
-      <td class="mono ${r.status === 'paid' ? 'pct-up' : ''}">${r.status === 'paid' ? r.units.toFixed(4) : '—'}</td>
+      <td class="mono">${isAlloc && r.navValue != null ? '₹' + r.navValue.toFixed(2) : '—'}</td>
+      <td class="mono ${isAlloc ? 'pct-up' : ''}">${isAlloc ? r.units.toFixed(4) : '—'}</td>
       <td class="mono" style="text-align:right;">${r.unitsRunningTotal.toFixed(4)}</td>
+      <td style="text-align:right;">${actionBtn}</td>
     </tr>`;
   }).join('');
 }

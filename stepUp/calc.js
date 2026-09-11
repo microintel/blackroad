@@ -56,11 +56,34 @@ export function amountForDate(sipSchedule, dateStr) {
   return amount;
 }
 
+/* ══════════════════════════════════════════════════════
+   SIP payment → processing → NAV allocation tracking
+   ------------------------------------------------------
+   Every SIP instalment now carries its OWN lifecycle, stored in
+   cfg.sipAllocations = { [sipDueDateStr]: {
+     status,          // scheduled | payment_initiated | paid | processing |
+                       // allocated | failed | cancelled
+     paymentDate, processingDate, allocationDate,  // 'YYYY-MM-DD' | null
+     nav, units, amount,
+     legacy,          // true for instalments grandfathered in by the
+                       // one-time migration (see buildLegacyAllocations)
+   } }.
+
+   Only an instalment whose recorded status is 'allocated' is treated as
+   real, held investment — see sipsBetween() below. The scheduled SIP due
+   date itself is NEVER moved or reinterpreted as the allocation date.
+══════════════════════════════════════════════════════ */
+export const SIP_ALLOCATION_STATUSES =
+  ['scheduled', 'payment_initiated', 'paid', 'processing', 'allocated', 'failed', 'cancelled'];
+
 /**
- * Returns array of { dateStr, amount } for each active SIP between
- * prevStr (exclusive) and currStr (inclusive), skipping any in skippedSipDates.
+ * Original (pre-tracking-feature) sweep logic: every non-skipped SIP date
+ * counts, unconditionally, the moment a covering entry exists. Kept ONLY so
+ * buildLegacyAllocations() can figure out exactly what old data already
+ * had swept in, so it can be grandfathered in byte-for-byte unchanged.
+ * Do not use this for new calculations — see sipsBetween() instead.
  */
-export function sipsBetween(cfg, prevStr, currStr) {
+function legacySipsBetween(cfg, prevStr, currStr) {
   if (!cfg || !cfg.startDate) return [];
   const prev = prevStr ? new Date(prevStr) : null;
   const curr = new Date(currStr);
@@ -86,10 +109,87 @@ export function sipsBetween(cfg, prevStr, currStr) {
     }));
 }
 
+/**
+ * Returns array of { dateStr, amount, navOverride?, unitsOverride? } for
+ * each SIP instalment between prevStr (exclusive) and currStr (inclusive)
+ * that should count as real, held investment.
+ *
+ * An instalment only counts once its recorded allocation status is
+ * 'allocated' — i.e. the user has confirmed the actual AMC/broker
+ * allocation. Everything else (no record yet, payment_initiated, paid,
+ * processing, failed, cancelled) is held OUT of invested amount/units,
+ * exactly per the SIP payment → processing → allocation tracking feature.
+ * Skipped dates are excluded as before.
+ */
+export function sipsBetween(cfg, prevStr, currStr) {
+  if (!cfg || !cfg.startDate) return [];
+  const prev = prevStr ? new Date(prevStr) : null;
+  const curr = new Date(currStr);
+
+  const skipped     = new Set(cfg.skippedSipDates || []);
+  const allocations = cfg.sipAllocations || {};
+  const schedule = (cfg.sipSchedule && cfg.sipSchedule.length)
+    ? cfg.sipSchedule
+    : [{ fromDate: cfg.startDate, amount: cfg.sipAmount || 0 }];
+
+  return allSipDates(cfg.startDate, currStr)
+    .filter(({ date, dateStr }) => {
+      if (date > curr) return false;
+      if (prev) {
+        const p = new Date(prev); p.setHours(0, 0, 0, 0);
+        if (date <= p) return false;
+      }
+      if (skipped.has(dateStr)) return false;
+      const alloc = allocations[dateStr];
+      if (!alloc || alloc.status !== 'allocated') return false;
+      return true;
+    })
+    .map(({ dateStr }) => {
+      const alloc  = allocations[dateStr];
+      const amount = alloc.amount != null ? alloc.amount : amountForDate(schedule, dateStr);
+      const out = { dateStr, amount };
+      if (alloc.nav != null)   out.navOverride   = alloc.nav;
+      if (alloc.units != null) out.unitsOverride = alloc.units;
+      return out;
+    });
+}
+
 /** Legacy helper for entry preview — just counts instalments. */
 export function sipCountBetween(startStr, prevStr, currStr) {
   if (!startStr) return 0;
-  return sipsBetween({ startDate: startStr, skippedSipDates: [] }, prevStr, currStr).length;
+  return legacySipsBetween({ startDate: startStr, skippedSipDates: [] }, prevStr, currStr).length;
+}
+
+/**
+ * One-time migration: figures out exactly which SIP instalments this app's
+ * OLD (pre-tracking-feature) logic had already swept into invested amount —
+ * using the same NAV each instalment was bought at back then — and returns
+ * them as pre-'allocated' allocation records. Merged into cfg.sipAllocations
+ * so existing users' numbers never change; only instalments due AFTER this
+ * update requires the explicit payment → processing → allocation workflow.
+ */
+export function buildLegacyAllocations(raw, cfg) {
+  if (!cfg || !cfg.startDate || !raw || !raw.length) return {};
+  const legacyCalc = recalcAllWith(raw, cfg, legacySipsBetween);
+  const out = {};
+  for (const e of legacyCalc) {
+    for (const s of (e.sipDetails || [])) {
+      if (out[s.dateStr]) continue; // first entry to sweep a date wins, same as old paidByDate map
+      const nav   = e.navValue;
+      const units = nav ? +(s.amount / nav).toFixed(4) : 0;
+      out[s.dateStr] = {
+        status:         'allocated',
+        paymentDate:    s.dateStr,
+        processingDate: null,
+        allocationDate: s.dateStr,
+        nav:            nav != null ? +nav.toFixed(4) : null,
+        units,
+        amount:         s.amount,
+        legacy:         true,
+      };
+    }
+  }
+  return out;
 }
 
 /**
@@ -99,13 +199,24 @@ export function sipCountBetween(startStr, prevStr, currStr) {
 const NAV_BASE = 10; // synthetic starting NAV, same face-value convention real funds use
 
 export function recalcAll(raw, cfg) {
+  return recalcAllWith(raw, cfg, sipsBetween);
+}
+
+/**
+ * Shared engine behind recalcAll() — parameterized on which sweep function
+ * decides which SIP instalments count between two entry dates, so the same
+ * logic can run either the current allocation-aware sipsBetween(), or (only
+ * for one-time migration purposes) the original unconditional
+ * legacySipsBetween(). Not exported — use recalcAll() for real calculations.
+ */
+function recalcAllWith(raw, cfg, sweepFn) {
   if (!raw.length || !cfg) return [];
   const sorted = [...raw].sort((a, b) => a.date.localeCompare(b.date));
   let portfolioValue = 0, investedAmount = 0, prevDate = null;
   let navValue = NAV_BASE, unitsHeld = 0;
 
   return sorted.map(entry => {
-    const sips = sipsBetween(cfg, prevDate, entry.date);
+    const sips = sweepFn(cfg, prevDate, entry.date);
 
     let sipTotal = 0;
     for (const s of sips) {
@@ -119,9 +230,16 @@ export function recalcAll(raw, cfg) {
     const dailyReturnAmount = portfolioValue - baseBeforeGrowth;
 
     // NAV tracked independently of cash flow, chained purely off the daily
-    // % change — same day's NAV the SIP for this date is deemed bought at.
+    // % change — same day's NAV the SIP for this date is deemed bought at,
+    // unless an instalment carries its own actual/recorded NAV or units
+    // (real allocation info the user entered), in which case that wins.
     navValue = entry.nav != null ? entry.nav : navValue * (1 + entry.percentChange / 100);
-    const sipUnits = sipTotal > 0 ? sipTotal / navValue : 0;
+    let sipUnits = 0;
+    for (const s of sips) {
+      if (s.unitsOverride != null)     sipUnits += s.unitsOverride;
+      else if (s.navOverride != null)  sipUnits += s.navOverride > 0 ? s.amount / s.navOverride : 0;
+      else                             sipUnits += navValue > 0 ? s.amount / navValue : 0;
+    }
     unitsHeld += sipUnits;
 
     prevDate = entry.date;
@@ -187,18 +305,8 @@ export function buildSipLedger(calc, cfg, navSeriesAsc = null) {
   const schedule = (cfg.sipSchedule && cfg.sipSchedule.length)
     ? cfg.sipSchedule
     : [{ fromDate: cfg.startDate, amount: cfg.sipAmount || 0 }];
-  const skippedSet = new Set(cfg.skippedSipDates || []);
-
-  /* Every SIP date this app has actually swept into a recorded entry,
-     mapped to the entry's NAV that day (same NAV used for all instalments
-     an entry sweeps up, matching recalcAll's own simplification) — used as
-     a fallback when no real fund NAV history is available for this date. */
-  const paidByDate = new Map();
-  for (const e of calc) {
-    for (const s of (e.sipDetails || [])) {
-      paidByDate.set(s.dateStr, { amount: s.amount, navValue: e.navValue });
-    }
-  }
+  const skippedSet   = new Set(cfg.skippedSipDates || []);
+  const allocations  = cfg.sipAllocations || {};
 
   const today   = todayStr();
   const lastCalc = calc.length ? calc[calc.length - 1].date : null;
@@ -212,21 +320,48 @@ export function buildSipLedger(calc, cfg, navSeriesAsc = null) {
     const stepChange = prevAmount === null ? 0 : +(amount - prevAmount).toFixed(2);
     prevAmount = amount;
 
+    const emptyDates = { paymentDate: null, processingDate: null, allocationDate: null };
+
     if (skippedSet.has(dateStr)) {
-      return { date: dateStr, amount, status: 'skipped', navValue: null, units: 0, unitsRunningTotal: unitsRunning, stepChange };
+      return { date: dateStr, amount, status: 'skipped', navValue: null, units: 0, unitsRunningTotal: unitsRunning, stepChange, ...emptyDates };
     }
 
-    const paid = paidByDate.get(dateStr);
-    if (paid) {
+    const alloc = allocations[dateStr];
+
+    // Confirmed allocation — the real, held instalment. Use the user's
+    // recorded NAV/units first (their actual AMC/broker data); fall back
+    // to the fund's own real NAV history if they only entered a date.
+    if (alloc && alloc.status === 'allocated') {
       const real = navSeriesAsc ? navOnOrBefore(navSeriesAsc, dateStr) : null;
-      const navValue = real ? real.nav : paid.navValue;
-      const units = navValue ? +(paid.amount / navValue).toFixed(4) : 0;
+      const navValue   = alloc.nav != null ? alloc.nav : (real ? real.nav : null);
+      const allocAmount = alloc.amount != null ? alloc.amount : amount;
+      const units = alloc.units != null ? alloc.units : (navValue ? +(allocAmount / navValue).toFixed(4) : 0);
       unitsRunning = +(unitsRunning + units).toFixed(4);
-      return { date: dateStr, amount: paid.amount, status: 'paid', navValue, units, unitsRunningTotal: unitsRunning, stepChange };
+      return {
+        date: dateStr, amount: allocAmount, status: 'allocated',
+        navValue, units, unitsRunningTotal: unitsRunning, stepChange,
+        paymentDate: alloc.paymentDate || null,
+        processingDate: alloc.processingDate || null,
+        allocationDate: alloc.allocationDate || null,
+      };
     }
 
-    const status = dateStr <= today ? 'missed' : 'upcoming';
-    return { date: dateStr, amount, status, navValue: null, units: 0, unitsRunningTotal: unitsRunning, stepChange };
+    // Any other explicit lifecycle status the user set manually
+    // (payment_initiated / paid / processing / failed / cancelled) —
+    // money not yet counted as a real holding.
+    if (alloc && alloc.status) {
+      return {
+        date: dateStr, amount, status: alloc.status, navValue: null, units: 0,
+        unitsRunningTotal: unitsRunning, stepChange,
+        paymentDate: alloc.paymentDate || null,
+        processingDate: alloc.processingDate || null,
+        allocationDate: alloc.allocationDate || null,
+      };
+    }
+
+    // No allocation record at all yet.
+    const status = dateStr <= today ? 'processing' : 'upcoming';
+    return { date: dateStr, amount, status, navValue: null, units: 0, unitsRunningTotal: unitsRunning, stepChange, ...emptyDates };
   });
 }
 

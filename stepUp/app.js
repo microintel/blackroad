@@ -8,7 +8,8 @@ import { openDB, dbGet, dbPut, dbDel, dbAll, dbClr,
          dbGetEntries, dbPutEntry, dbDelEntry, dbClearEntries,
          dbGetAllProfiles, dbPutProfile, dbDelProfile } from './db.js';
 import { toast, todayStr, dateToStr, fmtK }                   from './helpers.js';
-import { recalcAll, saveCalcEntries, sipsBetween, amountForDate, projectGoalScenarios } from './calc.js';
+import { recalcAll, saveCalcEntries, sipsBetween, amountForDate, projectGoalScenarios,
+         buildSipLedger, buildLegacyAllocations, SIP_ALLOCATION_STATUSES } from './calc.js';
 import {
   renderLineChart, applyRangeToMain,
   setActiveRange, wireSelectionDrag,
@@ -89,11 +90,14 @@ async function switchProfile(id) {
   settings = null; entries = [];
   setUnitsNavHistory(null);
   await loadAll();
+  if (settings) settings = normalizeSettings(settings);
+  await migrateSipAllocationsIfNeeded();
   applySettingsToUI();
   renderAll(entries, settings);
   renderProfileSwitcher();
   renderScheduleList();
   renderSkipList();
+  renderSipAllocationSection();
   renderFundLinkStatus();
   if (document.getElementById('page-user').classList.contains('active')) {
     renderUserPage(entries, settings);
@@ -297,11 +301,48 @@ document.querySelectorAll('.nav-item').forEach(btn => {
       renderUserPage(entries, settings);
       renderScheduleList();
       renderSkipList();
+      renderSipAllocationSection();
       renderManageSipsSection();
+      resetAccountDrilldown();
     }
     if (btn.dataset.page === 'page-add')     { initHelper(); renderFundLinkStatus(); }
   });
 });
+
+/* ══════════════════════════════════════════════════════
+   Account page — mobile options list
+   ------------------------------------------------------
+   Below ~900px wide, the Account page shows a grouped list of options
+   (see index.html #account-options-list) instead of every section
+   expanded at once. Tapping an option opens ONLY that section — every
+   other section stays collapsed until "Back" is tapped. Desktop's
+   always-expanded multi-column layout is untouched (CSS media query
+   only applies this below 900px — see style.css).
+══════════════════════════════════════════════════════ */
+function resetAccountDrilldown() {
+  document.querySelectorAll('.user-sections-grid .user-section').forEach(s => s.classList.remove('acct-open'));
+  const list = document.getElementById('account-options-list');
+  const back = document.getElementById('acct-back-btn');
+  if (list) list.style.display = '';
+  if (back) back.style.display = 'none';
+}
+
+function openAccountSection(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  document.querySelectorAll('.user-sections-grid .user-section').forEach(s => s.classList.remove('acct-open'));
+  target.classList.add('acct-open');
+  const list = document.getElementById('account-options-list');
+  const back = document.getElementById('acct-back-btn');
+  if (list) list.style.display = 'none';
+  if (back) back.style.display = 'flex';
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.acct-opt-row').forEach(row => {
+  row.addEventListener('click', () => openAccountSection(row.dataset.target));
+});
+document.getElementById('acct-back-btn')?.addEventListener('click', resetAccountDrilldown);
 
 /* ══════════════════════════════════════════════════════
    Swipe Navigation — removed. Pages now switch only via the
@@ -317,9 +358,31 @@ function normalizeSettings(s) {
     s.sipSchedule = [{ fromDate: s.startDate, amount: s.sipAmount || 0 }];
   }
   if (!s.skippedSipDates) s.skippedSipDates = [];
+  if (!s.sipAllocations) s.sipAllocations = {};
   const last = s.sipSchedule[s.sipSchedule.length - 1];
   s.sipAmount = last ? last.amount : s.sipAmount;
   return s;
+}
+
+/* ══════════════════════════════════════════════════════
+   SIP payment → processing → NAV allocation tracking
+   ------------------------------------------------------
+   One-time, per-profile migration: grandfathers in every SIP instalment
+   this app had already swept into invested amount/units under the OLD
+   (pre-tracking) logic, so existing numbers never change. Must be called
+   only once `settings` AND `entries` for the profile are both loaded —
+   see call sites below (boot, switchProfile, save-settings, import).
+══════════════════════════════════════════════════════ */
+async function migrateSipAllocationsIfNeeded() {
+  if (!settings || !activeProfile) return;
+  if (!settings.sipAllocations) settings.sipAllocations = {};
+  if (settings.sipAllocationsMigrated) return;
+  const legacy = buildLegacyAllocations(entries, settings);
+  if (Object.keys(legacy).length) {
+    settings.sipAllocations = { ...legacy, ...settings.sipAllocations };
+  }
+  settings.sipAllocationsMigrated = true;
+  try { await dbPutSettings(activeProfile.id, settings); } catch (_) { /* best-effort */ }
 }
 
 function currentSipAmount() {
@@ -375,9 +438,11 @@ document.getElementById('btn-save-settings').addEventListener('click', async () 
   }
   normalizeSettings(settings);
   await dbPutSettings(activeProfile.id, settings);
+  await migrateSipAllocationsIfNeeded();
   applySettingsToUI();
   renderScheduleList();
   renderSkipList();
+  renderSipAllocationSection();
   const calc = recalcAll(entries, settings);
   await saveCalcEntries(calc, activeProfile.id);
   entries = await dbGetEntries(activeProfile.id);
@@ -512,6 +577,7 @@ document.getElementById('btn-skip-sip').addEventListener('click', async () => {
   settings.skippedSipDates = [...(settings.skippedSipDates || []), skipDate].sort();
   await dbPutSettings(activeProfile.id, settings);
   renderSkipList();
+  renderSipAllocationSection();
   document.getElementById('skip-sip-date').value = '';
 
   const calc = recalcAll(entries, settings);
@@ -559,6 +625,7 @@ function renderSkipList() {
       settings.skippedSipDates = settings.skippedSipDates.filter(d => d !== btn.dataset.date);
       await dbPutSettings(activeProfile.id, settings);
       renderSkipList();
+      renderSipAllocationSection();
       const calc = recalcAll(entries, settings);
       await saveCalcEntries(calc, activeProfile.id);
       entries = await dbGetEntries(activeProfile.id);
@@ -568,6 +635,197 @@ function renderSkipList() {
     });
   });
 }
+
+/* ══════════════════════════════════════════════════════
+   SIP payment → processing → NAV allocation tracking
+   ------------------------------------------------------
+   Every SIP instalment gets its own lifecycle (see calc.js). This section
+   lists whichever instalments still need attention (anything short of
+   'allocated' or 'skipped') and lets the user record the real payment /
+   allocation details their broker confirms — WITHOUT ever assuming the
+   scheduled SIP date is the actual NAV allocation date. Nothing here
+   touches invested amount/units until the user explicitly confirms
+   allocation (see sipsBetween() in calc.js).
+══════════════════════════════════════════════════════ */
+const ALLOC_STATUS_LABEL = {
+  scheduled:         'Scheduled',
+  payment_initiated: 'Payment Initiated',
+  paid:              'Paid',
+  processing:        'Processing',
+  allocated:         'Allocated',
+  failed:            'Failed',
+  cancelled:         'Cancelled',
+};
+const ALLOC_STATUS_BADGE = {
+  payment_initiated: 'sip-progress',
+  paid:              'sip-progress',
+  processing:        'sip-pending',
+  failed:            'sip-no',
+  cancelled:         'sip-no',
+};
+const ALLOC_PENDING_STATUSES = ['payment_initiated', 'paid', 'processing', 'failed', 'cancelled'];
+
+let allocFormTargetDate = null;
+
+function renderSipAllocationSection() {
+  const el = document.getElementById('sip-alloc-list');
+  if (!el) return;
+  if (!settings || !settings.startDate) {
+    el.innerHTML = '<span class="muted-note">No SIP set up yet.</span>';
+    closeAllocationForm();
+    return;
+  }
+
+  const calc    = recalcAll(entries, settings);
+  const ledger  = buildSipLedger(calc, settings);
+  const pending = ledger.filter(r => ALLOC_PENDING_STATUSES.includes(r.status));
+
+  if (!pending.length) {
+    el.innerHTML = '<span class="muted-note">No pending SIP allocations — you\'re all caught up ✓</span>';
+    closeAllocationForm();
+    return;
+  }
+
+  el.innerHTML = pending.map(r => {
+    const label = ALLOC_STATUS_LABEL[r.status] || r.status;
+    const badge = ALLOC_STATUS_BADGE[r.status] || '';
+    const paidNote = r.paymentDate ? ` · Paid ${r.paymentDate}` : '';
+    return `
+    <div class="schedule-row sip-alloc-row">
+      <div class="schedule-info">
+        <span class="schedule-amt">₹${r.amount.toLocaleString('en-IN')}</span>
+        <span class="schedule-from">Scheduled ${r.date}${paidNote}</span>
+        <span class="sip-badge ${badge}">${label}</span>
+      </div>
+      <div class="sip-alloc-row-actions">
+        <select class="sip-alloc-status-select" data-date="${r.date}" title="Update status">
+          ${ALLOC_PENDING_STATUSES.map(s =>
+            `<option value="${s}" ${r.status === s ? 'selected' : ''}>${ALLOC_STATUS_LABEL[s]}</option>`
+          ).join('')}
+        </select>
+        <button class="btn btn-secondary btn-xs sip-alloc-update-btn" data-date="${r.date}">
+          <i class="bi bi-pencil-square"></i> Update Allocation
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.sip-alloc-status-select').forEach(sel => {
+    sel.addEventListener('change', () => setAllocationStatus(sel.dataset.date, sel.value));
+  });
+  el.querySelectorAll('.sip-alloc-update-btn').forEach(btn => {
+    btn.addEventListener('click', () => openAllocationForm(btn.dataset.date));
+  });
+}
+
+/** Quick status change — no dates/NAV required. Never marks 'allocated'
+ *  (that requires actual allocation details — see openAllocationForm). */
+async function setAllocationStatus(dateStr, status) {
+  if (!settings || !activeProfile) return;
+  if (!settings.sipAllocations) settings.sipAllocations = {};
+  const existing = settings.sipAllocations[dateStr] || {};
+  settings.sipAllocations[dateStr] = {
+    status,
+    paymentDate:    existing.paymentDate    || (status === 'paid' || status === 'payment_initiated' ? dateStr : null),
+    processingDate: status === 'processing' ? (existing.processingDate || todayStr()) : (existing.processingDate || null),
+    allocationDate: existing.allocationDate || null,
+    nav:            existing.nav != null ? existing.nav : null,
+    units:          existing.units != null ? existing.units : null,
+    amount:         existing.amount != null ? existing.amount : amountForDate(settings.sipSchedule, dateStr),
+  };
+  await dbPutSettings(activeProfile.id, settings);
+  renderSipAllocationSection();
+  renderTable(recalcAll(entries, settings), settings); // keep History-page ledger's statuses in sync
+  toast(`Marked ${ALLOC_STATUS_LABEL[status] || status} ✓`);
+}
+
+/** Opens the shared "Update Allocation" form for a given SIP due date —
+ *  used both by the pending list above and by the "edit" action in the
+ *  full SIP ledger on the History page (works for already-allocated
+ *  instalments too, so a wrong NAV/date/units can always be corrected —
+ *  it always UPDATES that one instalment, never creates a new one). */
+function openAllocationForm(dateStr) {
+  if (!settings) return;
+  // Jump to the Account page if this was triggered from elsewhere (e.g.
+  // the History-page SIP ledger's edit button) so the form is visible.
+  const pageUser = document.getElementById('page-user');
+  if (pageUser && !pageUser.classList.contains('active')) {
+    document.querySelector('.nav-item[data-page="page-user"]')?.click();
+  }
+
+  allocFormTargetDate = dateStr;
+  const existing = (settings.sipAllocations && settings.sipAllocations[dateStr]) || {};
+  document.getElementById('sip-alloc-form-date').textContent    = dateStr;
+  document.getElementById('alloc-payment-date').value           = existing.paymentDate    || dateStr;
+  document.getElementById('alloc-allocation-date').value        = existing.allocationDate || '';
+  document.getElementById('alloc-nav').value                    = existing.nav   != null ? existing.nav   : '';
+  document.getElementById('alloc-units').value                  = existing.units != null ? existing.units : '';
+
+  const form = document.getElementById('sip-alloc-form');
+  form.style.display = 'block';
+  setTimeout(() => form.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+}
+
+function closeAllocationForm() {
+  allocFormTargetDate = null;
+  const form = document.getElementById('sip-alloc-form');
+  if (form) form.style.display = 'none';
+}
+
+document.getElementById('btn-cancel-allocation')?.addEventListener('click', closeAllocationForm);
+
+document.getElementById('btn-save-allocation')?.addEventListener('click', async () => {
+  if (!allocFormTargetDate || !settings || !activeProfile) return;
+  if (window.BRAuth && window.BRAuth.isGuestSync()) { toast('Sign in to record allocations — guest mode is view-only.'); return; }
+
+  const dateStr        = allocFormTargetDate;
+  const paymentDate    = document.getElementById('alloc-payment-date').value || null;
+  const allocationDate = document.getElementById('alloc-allocation-date').value || null;
+  const navRaw         = parseFloat(document.getElementById('alloc-nav').value);
+  const unitsRaw       = parseFloat(document.getElementById('alloc-units').value);
+  const nav            = isNaN(navRaw)   ? null : navRaw;
+  const unitsEntered   = isNaN(unitsRaw) ? null : unitsRaw;
+
+  if (!allocationDate) { toast('Enter the actual allocation date.'); return; }
+  if (nav == null && unitsEntered == null) { toast('Enter the actual NAV (or units).'); return; }
+
+  const existing = (settings.sipAllocations && settings.sipAllocations[dateStr]) || {};
+  const amount   = existing.amount != null ? existing.amount : amountForDate(settings.sipSchedule, dateStr);
+  // Preserve actual entered units exactly; only compute units = amount / NAV
+  // when the user didn't supply units directly (per the app's existing
+  // 4-decimal unit precision).
+  const units = unitsEntered != null ? +unitsEntered.toFixed(4)
+              : (nav ? +(amount / nav).toFixed(4) : null);
+
+  if (!settings.sipAllocations) settings.sipAllocations = {};
+  settings.sipAllocations[dateStr] = {
+    status: 'allocated',
+    paymentDate,
+    processingDate: existing.processingDate || null,
+    allocationDate,
+    nav,
+    units,
+    amount,
+  };
+
+  await dbPutSettings(activeProfile.id, settings);
+  closeAllocationForm();
+  renderSipAllocationSection();
+
+  // Same "recalc & save back onto existing entries" pattern used by
+  // step-up/skip — updates the invested amount/units on already-existing
+  // entries in place; never creates a new investment transaction.
+  const calc = recalcAll(entries, settings);
+  await saveCalcEntries(calc, activeProfile.id);
+  entries = await dbGetEntries(activeProfile.id);
+  entries.sort((a, b) => a.date.localeCompare(b.date));
+  renderAll(entries, settings);
+  toast(`Allocation recorded for ${dateStr} ✓`);
+});
+
+/* Re-export for inline onclick handlers generated by render.js's SIP
+   ledger table (History page → Units tab → Action column). */
+window.openAllocationForm = openAllocationForm;
 
 /* ══════════════════════════════════════════════════════
    Daily % Helper
@@ -1084,6 +1342,7 @@ document.getElementById('import-file').addEventListener('change', async e => {
       }
       entries = await dbGetEntries(activeProfile.id);
       entries.sort((a, b) => a.date.localeCompare(b.date));
+      await migrateSipAllocationsIfNeeded();
       await saveCalcEntries(recalcAll(entries, settings), activeProfile.id);
       entries = await dbGetEntries(activeProfile.id);
       entries.sort((a, b) => a.date.localeCompare(b.date));
@@ -1093,6 +1352,7 @@ document.getElementById('import-file').addEventListener('change', async e => {
     renderUserPage(entries, settings);
     renderScheduleList();
     renderSkipList();
+    renderSipAllocationSection();
     toast('Imported ✓');
   } catch { toast('Import failed — invalid JSON.'); }
   e.target.value = '';
@@ -1193,6 +1453,7 @@ document.getElementById('btn-reset-row').addEventListener('click', async () => {
   renderUserPage(entries, settings);
   renderScheduleList();
   renderSkipList();
+  renderSipAllocationSection();
   toast('All data cleared.');
 });
 
@@ -1338,6 +1599,7 @@ window.addEventListener('storage', (e) => {
 
   await loadAll();
   if (settings) settings = normalizeSettings(settings);
+  await migrateSipAllocationsIfNeeded();
   applySettingsToUI();
   document.getElementById('entry-date').value = todayStr();
   renderAll(entries, settings);
@@ -1345,7 +1607,9 @@ window.addEventListener('storage', (e) => {
   wireSelectionDrag();
   renderScheduleList();
   renderSkipList();
+  renderSipAllocationSection();
   renderProfileSwitcher();
   renderFundLinkStatus();
+  resetAccountDrilldown();
   syncLinkedFund({ silent: true });
 })();
