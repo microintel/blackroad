@@ -166,6 +166,26 @@ export function buildFundProjection(series, yearsAhead = 10) {
 }
 
 /**
+ * Look up a fund's actual NAV for a given date from an ASCENDING series of
+ * { date: 'YYYY-MM-DD', nav } (the shape buildFundGrowthSeries() returns).
+ * Funds have no NAV on non-trading days (weekends/holidays), so when the
+ * exact date isn't in the series this falls back to the nearest PRIOR
+ * trading day — the same convention brokers use for allocation.
+ * Returns { nav, actualDate, exact } or null if the date is before the
+ * series starts (or the series is empty).
+ */
+export function findNavForDate(seriesAsc, dateIso) {
+  if (!seriesAsc || !seriesAsc.length) return null;
+  let match = null;
+  for (const row of seriesAsc) {
+    if (row.date > dateIso) break;
+    match = row;
+  }
+  if (!match) return null;
+  return { nav: match.nav, actualDate: match.date, exact: match.date === dateIso };
+}
+
+/**
  * Fetch a scheme's full NAV history from mfapi.in.
  * Returns { schemeCode, schemeName, fundHouse, navHistory } with navHistory
  * sorted ascending, dates in DD-MM-YYYY (matches the uploaded-file format).

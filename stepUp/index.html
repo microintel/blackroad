@@ -687,15 +687,19 @@
     <!-- Quick-jump chips (desktop) — every settings section is one tap
          away, so nothing on this page is "hard to find" behind scrolling. -->
     <nav class="account-quicknav" aria-label="Jump to section">
+      <span class="quicknav-group">SIP Management</span>
       <a class="account-quicknav-chip" href="#sec-my-sips"><i class="bi bi-layers"></i>My SIPs</a>
       <a class="account-quicknav-chip" href="#sec-sip-settings"><i class="bi bi-sliders"></i>SIP Settings</a>
       <a class="account-quicknav-chip" href="#section-stepup"><i class="bi bi-arrow-down-up"></i>Step-Up</a>
       <a class="account-quicknav-chip" href="#sec-skip-month"><i class="bi bi-skip-forward-fill"></i>Skip Month</a>
       <a class="account-quicknav-chip" href="#sec-sip-allocations"><i class="bi bi-hourglass-split"></i>Allocation Tracking</a>
+      <span class="quicknav-group">Planning</span>
       <a class="account-quicknav-chip" href="#sec-goal"><i class="bi bi-flag-fill"></i>Goal</a>
       <a class="account-quicknav-chip" href="#sec-stats"><i class="bi bi-bar-chart-line"></i>Stats</a>
+      <span class="quicknav-group">Data</span>
       <a class="account-quicknav-chip" href="#sec-data"><i class="bi bi-database"></i>Data</a>
       <a class="account-quicknav-chip" href="#sec-danger"><i class="bi bi-exclamation-triangle-fill"></i>Danger Zone</a>
+      <span class="quicknav-group">Help</span>
       <a class="account-quicknav-chip" href="#sec-howto"><i class="bi bi-question-circle"></i>How to Use</a>
     </nav>
 
@@ -811,6 +815,15 @@
 
     <div class="user-sections-grid">
 
+    <!-- Desktop-only: shown until an option is picked from the left nav,
+         same "nothing open until you choose" idea as the mobile options
+         list. Auto-hidden once any .user-section gets .acct-open (see
+         .has-open toggling in app.js / CSS below). -->
+    <div class="acct-empty-state" id="acct-empty-state">
+      <i class="bi bi-hand-index-thumb"></i>
+      <p>Pick an option from the menu to get started</p>
+    </div>
+
     <!-- Manage SIPs -->
     <div class="user-section" id="sec-my-sips">
       <div class="user-section-title"><i class="bi bi-layers"></i> My SIPs</div>
@@ -922,13 +935,14 @@
           <div class="form-row">
             <div class="form-group">
               <label><i class="bi bi-graph-up"></i> Actual NAV (₹)</label>
-              <input type="text" inputmode="decimal" id="alloc-nav" placeholder="e.g. 127.20" />
+              <input type="text" inputmode="decimal" id="alloc-nav" placeholder="auto-fetched, or enter manually" />
             </div>
             <div class="form-group">
               <label><i class="bi bi-pie-chart"></i> Actual Units (optional)</label>
               <input type="text" inputmode="decimal" id="alloc-units" placeholder="auto = amount ÷ NAV" />
             </div>
           </div>
+          <p id="alloc-nav-fetch-status" class="alloc-fetch-status"></p>
           <div style="margin-top:10px;display:flex;gap:8px;">
             <button class="btn btn-primary btn-sm" id="btn-save-allocation">
               <i class="bi bi-check2-circle"></i> Save Allocation
@@ -1156,6 +1170,10 @@
     var acctBtn = document.querySelector('.nav-item[data-page="page-user"]');
     if (acctBtn) acctBtn.click();
     setTimeout(function(){
+      // Open the section (also shows it on desktop, where nothing is
+      // visible until picked from the left nav — see app.js) before
+      // scrolling to it.
+      if (window.openAccountSection) window.openAccountSection('section-stepup');
       var el = document.getElementById('section-stepup');
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 180);
