@@ -418,11 +418,11 @@ function renderMonthlyChart(monthly) {
   const balanceData = keys.map((k) => monthly.get(k).income - monthly.get(k).expense);
 
   const cs = getComputedStyle(document.documentElement);
-  const dimColor = cs.getPropertyValue("--text-dim").trim() || "#8891a3";
-  const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(255,255,255,0.08)";
-  const inColor = cs.getPropertyValue("--ink-in").trim() || "#3ecf8e";
-  const outColor = cs.getPropertyValue("--ink-out").trim() || "#f27a8a";
-  const accentColor = cs.getPropertyValue("--accent").trim() || "#5b9dff";
+  const dimColor = cs.getPropertyValue("--text-dim").trim() || "#9AA8B6";
+  const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(38,52,67,0.6)";
+  const inColor = cs.getPropertyValue("--ink-in").trim() || "#35C98A";
+  const outColor = cs.getPropertyValue("--ink-out").trim() || "#F06B76";
+  const accentColor = cs.getPropertyValue("--accent").trim() || "#5B8DEF";
 
   // Soft gradient fill under each line (fading to transparent) instead of
   // flat color or no fill at all — reads as a modern app chart rather than
@@ -455,9 +455,9 @@ function renderMonthlyChart(monthly) {
       plugins: {
         legend: { position: "top", align: "start", labels: { color: dimColor, font: { size: 10.5, family: "Inter", weight: "600" }, boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", padding: 16 } },
         tooltip: {
-          backgroundColor: cs.getPropertyValue("--card").trim() || "#1a1b20",
-          titleColor: cs.getPropertyValue("--text").trim() || "#f2f3f5",
-          bodyColor: cs.getPropertyValue("--text").trim() || "#f2f3f5",
+          backgroundColor: cs.getPropertyValue("--card").trim() || "#121B25",
+          titleColor: cs.getPropertyValue("--text").trim() || "#F1F5F9",
+          bodyColor: cs.getPropertyValue("--text").trim() || "#F1F5F9",
           borderColor: lineColor, borderWidth: 1,
           padding: 10, boxPadding: 4, usePointStyle: true,
           callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` }

@@ -13,32 +13,32 @@
   /* surfaces — one tonal ladder, low contrast steps.
      Kept off true black/white on purpose: a mid-tone graphite (dark)
      and a warm parchment (light) both read calmer than the extremes. */
-  --base:        #292a2f;   /* app background */
-  --base-raised: #292a2f;   /* sidebar / nav background */
-  --card:        #1a1b20;   /* entry cards, panels, dialogs */
-  --card-2:      #383d47;   /* inputs, chips, hovered rows */
-  --line:        rgba(255,255,255,0.09);
-  --line-soft:   rgba(255,255,255,0.06);
+  --base:        #0B1118;   /* app background */
+  --base-raised: #0E151E;   /* sidebar / nav background */
+  --card:        #121B25;   /* entry cards, panels, dialogs */
+  --card-2:      #182330;   /* inputs, chips, hovered rows */
+  --line:        #263443;
+  --line-soft:   #1D2936;
 
-  --text:        #f2f3f5;
-  --text-dim:    #9297a1;
-  --text-faint:  #5a5f68;
+  --text:        #F1F5F9;
+  --text-dim:    #9AA8B6;
+  --text-faint:  #667585;
 
   --card-text:      var(--text);
   --card-text-dim:  var(--text-dim);
   --card-line:      var(--line);
 
-  --ink-in:  #3ecf8e;   /* income / positive — soft emerald */
-  --ink-in-bg: rgba(62,207,142,0.12);
-  --ink-out: #f27a8a;   /* expense / negative — soft rose */
-  --ink-out-bg: rgba(242,122,138,0.12);
-  --accent:  #5b9dff;   /* interactive / balance — soft azure */
-  --accent-bg: rgba(91,157,255,0.12);
-  --accent2: #e3ac54;   /* secondary flag (counts, misc) — muted gold */
-  --accent2-bg: rgba(227,172,84,0.12);
+  --ink-in:  #35C98A;   /* income / positive — soft emerald */
+  --ink-in-bg: rgba(53,201,138,0.10);
+  --ink-out: #F06B76;   /* expense / negative — soft rose */
+  --ink-out-bg: rgba(240,107,118,0.10);
+  --accent:  #5B8DEF;   /* interactive / balance — soft azure */
+  --accent-bg: rgba(91,141,239,0.11);
+  --accent2: #E0A84E;   /* secondary flag (counts, misc) — muted gold */
+  --accent2-bg: rgba(224,168,78,0.10);
 
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.24), 0 8px 24px -12px rgba(0,0,0,0.5);
-  --shadow-pop:  0 24px 60px -12px rgba(0,0,0,0.6);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.20), 0 8px 24px -12px rgba(0,0,0,0.30);
+  --shadow-pop:  0 24px 60px -12px rgba(0,0,0,0.35);
 
   --radius-lg: 20px;
   --radius-md: 14px;
@@ -60,32 +60,32 @@
    and accent — surfaces, type, and layout stay fixed so the app
    never feels like a different product between themes. */
 html[data-theme="light"]{
-  --base:        #EDE6D6;
-  --base-raised: #F7FCFE;
-  --card:        #F7FCFE;
-  --card-2:      #e2dfd6;
-  --line:        rgba(20,20,20,0.11);
-  --line-soft:   rgba(20,20,20,0.07);
+  --base:        #F4F7FA;
+  --base-raised: #FFFFFF;
+  --card:        #FFFFFF;
+  --card-2:      #F1F5F8;
+  --line:        #DCE3EA;
+  --line-soft:   #E7EDF2;
 
-  --text:        #17181a;
-  --text-dim:    #62666e;
-  --text-faint:  #9a9ea5;
+  --text:        #17212B;
+  --text-dim:    #667482;
+  --text-faint:  #8C98A5;
 
   --card-text:      var(--text);
   --card-text-dim:  var(--text-dim);
   --card-line:      var(--line);
 
-  --ink-in:  #1c9a5b;
-  --ink-in-bg: rgba(28,154,91,0.10);
-  --ink-out: #d54b5a;
-  --ink-out-bg: rgba(213,75,90,0.10);
-  --accent:  #2f6fe0;
-  --accent-bg: rgba(47,111,224,0.10);
-  --accent2: #a97a1c;
-  --accent2-bg: rgba(169,122,28,0.10);
+  --ink-in:  #138A5B;
+  --ink-in-bg: rgba(19,138,91,0.08);
+  --ink-out: #C9434F;
+  --ink-out-bg: rgba(201,67,79,0.08);
+  --accent:  #2457D6;
+  --accent-bg: rgba(36,87,214,0.08);
+  --accent2: #B7791F;
+  --accent2-bg: rgba(183,121,31,0.08);
 
-  --shadow-card: 0 1px 2px rgba(20,20,20,0.04), 0 10px 26px -14px rgba(20,20,20,0.14);
-  --shadow-pop:  0 24px 60px -18px rgba(20,20,20,0.22);
+  --shadow-card: 0 1px 2px rgba(20,32,44,0.05), 0 10px 26px -14px rgba(20,32,44,0.12);
+  --shadow-pop:  0 24px 60px -18px rgba(20,32,44,0.18);
 }
 
 *{ box-sizing:border-box; }
@@ -277,8 +277,8 @@ body{ padding-left: var(--rail-w); }
   flex-shrink:0;
   box-shadow: 0 0 0 1px var(--line-soft) inset;
 }
-.ico-light{ background:rgba(47,111,224,0.13); color:#3f7de8; }
-.ico-dark{ background:rgba(91,157,255,0.14); color:#5b9dff; }
+.ico-light{ background:rgba(36,87,214,0.13); color:#2457D6; }
+.ico-dark{ background:rgba(91,141,239,0.14); color:#5B8DEF; }
 .swatch-check{
   margin-left:auto;
   color:var(--accent);
@@ -670,7 +670,7 @@ body{ padding-left: var(--rail-w); }
   margin:0 0 14px;
   line-height:1.55;
 }
-.danger-zone{ border-color:rgba(242,122,138,0.25); }
+.danger-zone{ border-color:rgba(240,107,118,0.25); }
 .danger-zone h2{ color:var(--ink-out); }
 .panel-title-row{
   display:flex;

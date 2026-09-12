@@ -115,9 +115,9 @@ function renderCategoryBarChart({ totals, chart, emptyEl, innerEl, canvasEl, pal
   const labels = sorted.map(([name]) => name);
   const data = sorted.map(([, val]) => val);
   const cs = getComputedStyle(document.documentElement);
-  const dimColor = cs.getPropertyValue("--text-dim").trim() || "#8891a3";
-  const textColor = cs.getPropertyValue("--text").trim() || "#e6e9ef";
-  const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(255,255,255,0.08)";
+  const dimColor = cs.getPropertyValue("--text-dim").trim() || "#9AA8B6";
+  const textColor = cs.getPropertyValue("--text").trim() || "#F1F5F9";
+  const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(38,52,67,0.6)";
 
   const rowHeight = 30;
   innerEl.style.height = Math.max(160, labels.length * rowHeight) + "px";

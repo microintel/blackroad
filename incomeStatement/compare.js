@@ -295,10 +295,10 @@ function renderChart(keyA, keyB, a, b) {
   empty.style.display = "none";
 
   const style = getComputedStyle(document.documentElement);
-  const inColor = style.getPropertyValue("--ink-in").trim() || "#3ddc84";
-  const outColor = style.getPropertyValue("--ink-out").trim() || "#ff5c5c";
-  const textDim = style.getPropertyValue("--text-dim").trim() || "#8891a3";
-  const lineSoft = style.getPropertyValue("--line-soft").trim() || "rgba(255,255,255,0.08)";
+  const inColor = style.getPropertyValue("--ink-in").trim() || "#35C98A";
+  const outColor = style.getPropertyValue("--ink-out").trim() || "#F06B76";
+  const textDim = style.getPropertyValue("--text-dim").trim() || "#9AA8B6";
+  const lineSoft = style.getPropertyValue("--line-soft").trim() || "rgba(38,52,67,0.6)";
 
   const data = {
     labels: [periodLabel(keyA), periodLabel(keyB)],
@@ -379,11 +379,11 @@ function renderTrendChart() {
   const balanceData = keys.map((k) => series.get(k).income - series.get(k).expense);
 
   const cs = getComputedStyle(document.documentElement);
-  const dimColor = cs.getPropertyValue("--text-dim").trim() || "#8891a3";
-  const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(255,255,255,0.08)";
-  const inColor = cs.getPropertyValue("--ink-in").trim() || "#3ecf8e";
-  const outColor = cs.getPropertyValue("--ink-out").trim() || "#f27a8a";
-  const accentColor = cs.getPropertyValue("--accent").trim() || "#5b9dff";
+  const dimColor = cs.getPropertyValue("--text-dim").trim() || "#9AA8B6";
+  const lineColor = cs.getPropertyValue("--line-soft").trim() || "rgba(38,52,67,0.6)";
+  const inColor = cs.getPropertyValue("--ink-in").trim() || "#35C98A";
+  const outColor = cs.getPropertyValue("--ink-out").trim() || "#F06B76";
+  const accentColor = cs.getPropertyValue("--accent").trim() || "#5B8DEF";
 
   if (trendChart) trendChart.destroy();
   trendChart = new Chart(canvas.getContext("2d"), {
