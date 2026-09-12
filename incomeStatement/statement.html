@@ -71,8 +71,21 @@
   </div>
 </nav>
 
+<!-- ============ Skeleton shown until statement.js finishes loading ============ -->
+<div class="skel-screen" id="ledgerSkeleton" aria-hidden="true" style="padding:20px;">
+  <div class="skel skel-bar" style="width:40%;"></div>
+  <div class="skel skel-bar" style="height:52px;"></div>
+  <div class="skel-panel">
+    <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-row-main"><div class="skel skel-line" style="width:70%;"></div><div class="skel skel-line" style="width:35%;height:8px;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-row-main"><div class="skel skel-line" style="width:55%;"></div><div class="skel skel-line" style="width:30%;height:8px;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-row-main"><div class="skel skel-line" style="width:62%;"></div><div class="skel skel-line" style="width:40%;height:8px;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-row-main"><div class="skel skel-line" style="width:48%;"></div><div class="skel skel-line" style="width:28%;height:8px;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-row-main"><div class="skel skel-line" style="width:58%;"></div><div class="skel skel-line" style="width:33%;height:8px;"></div></div><div class="skel skel-row-amt"></div></div>
+  </div>
+</div>
+
 <!-- ============ STATEMENT (the full income/expense ledger) ============ -->
-<main id="ledger">
+<main id="ledger" hidden>
   <div class="ledger-toolbar">
     <div class="ledger-head">
       <h2>Statement</h2>

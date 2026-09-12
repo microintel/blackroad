@@ -818,9 +818,12 @@ searchClear.addEventListener("click", () => {
     primeSearchCache(ENTRIES);
     populateFilterOptions();
     renderPresetChips();
+    revealPage("searchShell", "searchSkeleton");
     searchInput.focus();
   } catch (err) {
     console.error("BlackRoad DB error:", err);
     showToast("Could not open local database");
+  } finally {
+    revealPage("searchShell", "searchSkeleton");
   }
 })();

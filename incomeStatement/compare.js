@@ -492,5 +492,7 @@ document.getElementById("cmpTrendResetZoom").addEventListener("click", () => {
   } catch (err) {
     console.error("BlackRoad DB error:", err);
     showToast("Could not open local database");
+  } finally {
+    revealPage("compareShell", "compareSkeleton");
   }
 })();

@@ -72,8 +72,27 @@
   </div>
 </nav>
 
+<!-- ============ Skeleton shown until app.js finishes loading IndexedDB ============ -->
+<div class="dashboard-shell skel-screen" id="dashboardSkeleton" aria-hidden="true">
+  <div class="skel skel-bar" style="width:44%;"></div>
+  <div class="skel skel-hero"></div>
+  <div class="skel-stats">
+    <div class="skel skel-stat"></div>
+    <div class="skel skel-stat"></div>
+    <div class="skel skel-stat"></div>
+    <div class="skel skel-stat"></div>
+  </div>
+  <div class="skel-panel">
+    <div class="skel skel-line skel-panel-title"></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-row-main"><div class="skel skel-line" style="width:70%;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-row-main"><div class="skel skel-line" style="width:55%;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-row-main"><div class="skel skel-line" style="width:62%;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-row-main"><div class="skel skel-line" style="width:48%;"></div></div><div class="skel skel-row-amt"></div></div>
+  </div>
+</div>
+
 <!-- ============ DASHBOARD (summary only — full ledger lives on the Statement tab) ============ -->
-<div class="dashboard-shell">
+<div class="dashboard-shell" id="dashboardShell" hidden>
 
   <div class="dashboard-head">
     <h2>Income Statement</h2>

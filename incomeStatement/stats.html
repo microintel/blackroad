@@ -303,8 +303,23 @@
   </div>
 </nav>
 
+<!-- ============ Skeleton shown until stats.js finishes loading ============ -->
+<div class="page-shell stats-shell skel-screen" id="statsSkeleton" aria-hidden="true">
+  <div class="skel skel-bar" style="width:36%;"></div>
+  <div class="skel-panel">
+    <div class="skel skel-line skel-panel-title"></div>
+    <div class="skel skel-chart"></div>
+  </div>
+  <div class="skel-panel">
+    <div class="skel skel-line skel-panel-title"></div>
+    <div class="skel-row"><div class="skel-row-main"><div class="skel skel-line" style="width:60%;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel-row-main"><div class="skel skel-line" style="width:44%;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel-row-main"><div class="skel skel-line" style="width:52%;"></div></div><div class="skel skel-row-amt"></div></div>
+  </div>
+</div>
+
 <!-- ============ STATISTICS PAGE ============ -->
-<div class="page-shell stats-shell">
+<div class="page-shell stats-shell" id="statsShell" hidden>
   <div class="page-header">
     <span class="page-header-ico"><i class="bi bi-pie-chart-fill"></i></span>
     <div>

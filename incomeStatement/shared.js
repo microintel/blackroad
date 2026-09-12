@@ -13,6 +13,16 @@
                        the same way every other store does)
 ========================================================= */
 
+/* Swap a page's skeleton placeholder for its real content once
+   init() has finished loading data — used on every page. Safe to
+   call even if one or both ids are missing. */
+function revealPage(contentId, skeletonId) {
+  const skel = document.getElementById(skeletonId);
+  const content = document.getElementById(contentId);
+  if (skel) skel.hidden = true;
+  if (content) content.hidden = false;
+}
+
 const DB_NAME_BASE = "BlackRoad2";
 // Namespaced per signed-in user so two accounts on the same browser never
 // share entries (see BRAuth.scopeSuffix in ../auth.js).

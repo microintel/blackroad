@@ -397,8 +397,19 @@
   </div>
 </nav>
 
+<!-- ============ Skeleton shown until search.js finishes loading ============ -->
+<div class="page-shell skel-screen" id="searchSkeleton" aria-hidden="true">
+  <div class="skel skel-bar" style="width:30%;"></div>
+  <div class="skel skel-bar" style="height:48px;"></div>
+  <div class="skel-panel">
+    <div class="skel-row"><div class="skel-row-main"><div class="skel skel-line" style="width:64%;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel-row-main"><div class="skel skel-line" style="width:50%;"></div></div><div class="skel skel-row-amt"></div></div>
+    <div class="skel-row"><div class="skel-row-main"><div class="skel skel-line" style="width:58%;"></div></div><div class="skel skel-row-amt"></div></div>
+  </div>
+</div>
+
 <!-- ============ SEARCH PAGE ============ -->
-<div class="page-shell">
+<div class="page-shell" id="searchShell" hidden>
   <div class="page-header">
     <span class="page-header-ico"><i class="bi bi-search"></i></span>
     <div>

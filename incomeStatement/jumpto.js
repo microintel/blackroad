@@ -52,5 +52,7 @@ const jumpList = document.getElementById("jumpList");
   } catch (err) {
     console.error("BlackRoad DB error:", err);
     showToast("Could not open local database");
+  } finally {
+    revealPage("jumptoShell", "jumptoSkeleton");
   }
 })();

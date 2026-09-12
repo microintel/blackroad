@@ -60,32 +60,32 @@
    and accent — surfaces, type, and layout stay fixed so the app
    never feels like a different product between themes. */
 html[data-theme="light"]{
-  --base:        #F4F7FA;
-  --base-raised: #FFFFFF;
+  --base:        #E9EFF5;
+  --base-raised: #F6F9FC;
   --card:        #FFFFFF;
-  --card-2:      #F1F5F8;
-  --line:        #DCE3EA;
-  --line-soft:   #E7EDF2;
+  --card-2:      #EBF1F7;
+  --line:        #D3DDE6;
+  --line-soft:   #E1E8EF;
 
-  --text:        #17212B;
-  --text-dim:    #667482;
-  --text-faint:  #8C98A5;
+  --text:        #16212D;
+  --text-dim:    #5D6E80;
+  --text-faint:  #8494A5;
 
   --card-text:      var(--text);
   --card-text-dim:  var(--text-dim);
   --card-line:      var(--line);
 
-  --ink-in:  #138A5B;
-  --ink-in-bg: rgba(19,138,91,0.08);
-  --ink-out: #C9434F;
-  --ink-out-bg: rgba(201,67,79,0.08);
-  --accent:  #2457D6;
-  --accent-bg: rgba(36,87,214,0.08);
-  --accent2: #B7791F;
-  --accent2-bg: rgba(183,121,31,0.08);
+  --ink-in:  #0F8058;
+  --ink-in-bg: rgba(15,128,88,0.09);
+  --ink-out: #C33B48;
+  --ink-out-bg: rgba(195,59,72,0.09);
+  --accent:  #2054D4;
+  --accent-bg: rgba(32,84,212,0.09);
+  --accent2: #AD7118;
+  --accent2-bg: rgba(173,113,24,0.09);
 
-  --shadow-card: 0 1px 2px rgba(20,32,44,0.05), 0 10px 26px -14px rgba(20,32,44,0.12);
-  --shadow-pop:  0 24px 60px -18px rgba(20,32,44,0.18);
+  --shadow-card: 0 1px 2px rgba(17,32,48,0.06), 0 12px 28px -14px rgba(17,32,48,0.16);
+  --shadow-pop:  0 24px 60px -18px rgba(17,32,48,0.24);
 }
 
 *{ box-sizing:border-box; }
@@ -100,6 +100,15 @@ html,body{
   transition: background 0.2s, color 0.2s;
   overflow-x:hidden;
   width:100%;
+}
+
+/* Light mode reads flat/white on large screens without a hint of
+   depth — a very soft cool wash keeps it premium instead of stark. */
+html[data-theme="light"] body{
+  background:
+    radial-gradient(1100px 560px at 12% -8%, rgba(32,84,212,0.05), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(15,128,88,0.03), transparent 55%),
+    var(--base);
 }
 
 ::selection{ background:var(--accent); color:#fff; }
@@ -277,7 +286,7 @@ body{ padding-left: var(--rail-w); }
   flex-shrink:0;
   box-shadow: 0 0 0 1px var(--line-soft) inset;
 }
-.ico-light{ background:rgba(36,87,214,0.13); color:#2457D6; }
+.ico-light{ background:rgba(32,84,212,0.13); color:#2054D4; }
 .ico-dark{ background:rgba(91,141,239,0.14); color:#5B8DEF; }
 .swatch-check{
   margin-left:auto;
@@ -2045,4 +2054,60 @@ body[data-page="dashboard"] .dashboard-grid-2 .panel{
     padding-bottom:11px;
   }
 }
+
+/* =========================================================
+   Skeleton loading states — shown while a page's IndexedDB
+   read is in flight, swapped for the real content once ready.
+   Theme-aware (uses the same surface/line tokens as everything
+   else) so it looks correct in both light and dark instantly.
+========================================================= */
+@keyframes skel-sheen{
+  0%{ background-position:160% 0; }
+  100%{ background-position:-40% 0; }
+}
+.skel-screen{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.skel{
+  border-radius:var(--radius-md);
+  background:
+    linear-gradient(100deg,
+      var(--card-2) 30%,
+      var(--line-soft) 50%,
+      var(--card-2) 70%);
+  background-size:250% 100%;
+  animation:skel-sheen 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .skel{ animation:none; background:var(--card-2); }
+}
+
+.skel-hero{ height:172px; border-radius:var(--radius-lg); }
+.skel-chart{ height:240px; border-radius:var(--radius-lg); }
+.skel-bar{ height:44px; border-radius:var(--radius-sm); }
+
+.skel-stats{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+@media (min-width:560px){ .skel-stats{ grid-template-columns:repeat(4,1fr); } }
+.skel-stat{ height:64px; border-radius:var(--radius-md); }
+
+.skel-panel{
+  background:var(--card);
+  border:1px solid var(--line-soft);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-card);
+  padding:16px;
+}
+.skel-panel-title{ width:38%; height:14px; margin-bottom:16px; }
+
+.skel-row{ display:flex; align-items:center; gap:12px; padding:9px 2px; }
+.skel-avatar{ width:26px; height:26px; border-radius:8px; flex-shrink:0; }
+.skel-row-main{ flex:1; display:flex; flex-direction:column; gap:6px; }
+.skel-line{ height:10px; border-radius:6px; }
+.skel-row-amt{ width:64px; height:12px; border-radius:6px; flex-shrink:0; }
+
+/* Real content is hidden via the [hidden] attribute until its
+   page's init() finishes, then the matching skeleton is removed. */
+[hidden]{ display:none !important; }
 
