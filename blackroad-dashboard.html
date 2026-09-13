@@ -60,10 +60,10 @@
    --shadow-in   = pressed / recessed (active state, tracks, inputs)
    --shadow-in-sm= small pressed element (pills, switch tracks) */
 html[data-theme="dark"]{
-  --bg:#1B1E24;
-  --bg-elevated:#1B1E24;
-  --surface:#1B1E24;
-  --surface-2:#20242C;
+  --bg:#000000;
+  --bg-elevated:#000000;
+  --surface:#000000;
+  --surface-2:#000000;
   --border:rgba(255,255,255,.06);
   --text:#F2F0EA;
   --text-dim:#9BA1AC;
@@ -77,6 +77,8 @@ html[data-theme="dark"]{
   --shadow-in: inset 5px 5px 11px var(--nd), inset -5px -5px 11px var(--nl);
   --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
   --dash-color: rgba(232,184,75,.55);
+  --skeleton-base: rgba(255,255,255,.05);
+  --skeleton-shine: rgba(255,255,255,.16);
 }
 
 html[data-theme="light"]{
@@ -97,6 +99,8 @@ html[data-theme="light"]{
   --shadow-in: inset 5px 5px 11px var(--nd), inset -5px -5px 11px var(--nl);
   --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
   --dash-color: rgba(184,134,42,.5);
+  --skeleton-base: rgba(20,15,5,.05);
+  --skeleton-shine: rgba(20,15,5,.13);
 }
 
 /* ============ THEME STYLES ============
@@ -149,13 +153,13 @@ html[data-style="glass"] .btn-secondary{
 
 /* ---- Flat design: solid fills, no shadows, thin borders ---- */
 html[data-theme="dark"][data-style="flat"]{
-  --surface:#20242C;
-  --surface-2:#262B34;
+  --surface:#000000;
+  --surface-2:#000000;
   --border: rgba(255,255,255,.14);
   --shadow:none; --shadow-lg:none; --shadow-sm:none; --shadow-in:none; --shadow-in-sm:none;
 }
 html[data-theme="light"][data-style="flat"]{
-  --surface:#FFFFFF;
+  --surface:#F8F5EC;
   --surface-2:#F3F0E7;
   --border: rgba(20,15,5,.14);
   --shadow:none; --shadow-lg:none; --shadow-sm:none; --shadow-in:none; --shadow-in-sm:none;
@@ -164,10 +168,31 @@ html[data-style="flat"] .tile:hover,
 html[data-style="flat"] .icon-btn:hover,
 html[data-style="flat"] .btn-secondary:hover{ transform:none; border-color:color-mix(in srgb, var(--accent) 55%, var(--border)); }
 
+/* Flat has no shadows, so — unlike the other three styles, which use
+   shadow alone to lift a surface off the same-tone background — it
+   still needs its own thin border to tell one element apart from
+   another (this is the "thin borders" flat design relies on). */
+html[data-style="flat"] .card,
+html[data-style="flat"] .icon-btn,
+html[data-style="flat"] .avatar,
+html[data-style="flat"] .theme-toggle,
+html[data-style="flat"] .chart-toggle,
+html[data-style="flat"] .range-pill,
+html[data-style="flat"] .login-card,
+html[data-style="flat"] .switch,
+html[data-style="flat"] .style-opt,
+html[data-style="flat"] .avatar-menu,
+html[data-style="flat"] .toast,
+html[data-style="flat"] .btn-secondary,
+html[data-style="flat"] tbody tr,
+html[data-style="flat"] .br-swal-popup{
+  border:1px solid var(--border);
+}
+
 /* ---- Skeuomorphic: raised bevels + gloss ---- */
 html[data-theme="dark"][data-style="skeuo"]{
-  --surface:#262B34;
-  --surface-2:#2C313B;
+  --surface:#000000;
+  --surface-2:#000000;
   --border: rgba(255,255,255,.10);
   --shadow: 7px 7px 16px rgba(0,0,0,.55), -4px -4px 10px rgba(255,255,255,.035), inset 0 1px 0 rgba(255,255,255,.05);
   --shadow-lg: 11px 11px 26px rgba(0,0,0,.6), -5px -5px 14px rgba(255,255,255,.045), inset 0 1px 0 rgba(255,255,255,.06);
@@ -242,6 +267,45 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 /* ============ LAYOUT ============ */
 .app{ display:flex; min-height:100vh; }
 
+/* ============ SKELETON LOADER ============
+   Shown over the dashboard on first load (and while the session/
+   data is resolving) so the interface never pops in blank — a
+   silhouette of the real layout shimmers in its place, then fades
+   out once content is ready. Uses --skeleton-base/--skeleton-shine
+   (set per light/dark theme) so it stays visible even in styles
+   where every surface is the same flat/pure-black tone. */
+@keyframes br-shimmer{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+.sk{
+  height:12px; border-radius:6px;
+  background:linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 50%, var(--skeleton-base) 75%);
+  background-size:200% 100%;
+  animation:br-shimmer 1.3s ease-in-out infinite;
+}
+.sk-circle{ border-radius:50%; flex-shrink:0; }
+.sk-card{ border-radius:var(--radius-lg); }
+.skeleton-shell{ display:flex; min-height:100vh; width:100%; }
+.skeleton-sidebar{
+  width:250px; flex-shrink:0; padding:26px 22px;
+  display:flex; flex-direction:column; gap:10px;
+}
+.skeleton-sidebar .sk-circle{ width:34px; height:34px; margin-bottom:26px; }
+.skeleton-main{ flex:1; padding:20px 34px; min-width:0; }
+.skeleton-topbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:28px; }
+.skeleton-topbar-actions{ display:flex; align-items:center; gap:12px; }
+.skeleton-topbar-actions .sk-circle{ width:38px; height:38px; }
+.skeleton-hero{ display:grid; grid-template-columns:1.5fr 1fr; gap:20px; margin-bottom:30px; }
+.skeleton-hero .sk-card{ height:190px; }
+.skeleton-tiles{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:26px; }
+.skeleton-tiles .sk-card{ height:112px; }
+.skeleton-panel.sk-card{ height:230px; }
+@media (max-width:980px){ .skeleton-hero{ grid-template-columns:1fr; } }
+@media (max-width:940px){
+  .skeleton-sidebar{ display:none; }
+  .skeleton-main{ padding:20px 18px; }
+  .skeleton-tiles{ grid-template-columns:1fr 1fr; }
+}
+
+
 /* ---- Sidebar ---- */
 .sidebar{
   width:250px;
@@ -311,7 +375,6 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .theme-toggle{
   display:flex; align-items:center; gap:8px;
   background:var(--surface);
-  border:1px solid var(--border);
   border-radius:999px;
   padding:6px 12px;
   font-size:13px; color:var(--text-dim);
@@ -342,7 +405,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .icon-btn{
   width:38px;height:38px;border-radius:12px;
   display:flex;align-items:center;justify-content:center;
-  background:var(--surface); border:1px solid var(--border);
+  background:var(--surface);
   color:var(--text-dim); font-size:16px;
   box-shadow:var(--shadow-sm);
   transition:all .2s var(--ease);
@@ -352,7 +415,6 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .avatar{
   width:38px;height:38px;border-radius:12px;
   background:var(--surface);
-  border:1px solid var(--border);
   box-shadow:var(--shadow-sm);
   display:flex;align-items:center;justify-content:center;
   font-weight:600; font-size:13px; color:var(--accent);
@@ -369,10 +431,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 
 .card{
   background:var(--surface);
-  border:1px solid var(--border);
   border-radius:var(--radius-lg);
   box-shadow:var(--shadow);
-  transition:background .35s var(--ease), border-color .35s var(--ease), transform .25s var(--ease), box-shadow .25s var(--ease);
+  transition:background .35s var(--ease), transform .25s var(--ease), box-shadow .25s var(--ease);
 }
 
 .hero-card{ padding:30px 32px; position:relative; overflow:hidden; }
@@ -406,7 +467,7 @@ html[data-theme="light"] .chip.down{ background:color-mix(in srgb, var(--red) 28
 .donut-card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
 .donut-card h4{ font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; margin-bottom:0; }
 .donut-card h4 i{ color:var(--accent); }
-.chart-toggle{ display:flex; gap:4px; padding:3px; border-radius:10px; background:var(--surface-2); border:1px solid var(--border); flex-shrink:0; }
+.chart-toggle{ display:flex; gap:4px; padding:3px; border-radius:10px; background:var(--surface-2); flex-shrink:0; }
 .chart-toggle-btn{ width:28px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:12.5px; transition:all .15s var(--ease); }
 .chart-toggle-btn:hover{ color:var(--text); }
 .chart-toggle-btn.active{ background:var(--surface); color:var(--accent); box-shadow:var(--shadow-sm); }
@@ -458,11 +519,11 @@ html[data-theme="light"] .chip.down{ background:color-mix(in srgb, var(--red) 28
 .range-pills{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
 .range-pill{
   padding:5px 12px; border-radius:999px; font-size:12px; font-weight:600;
-  color:var(--text-faint); background:var(--surface-2); border:1px solid var(--border);
+  color:var(--text-faint); background:var(--surface-2);
   transition:all .15s var(--ease);
 }
 .range-pill:hover{ color:var(--text); }
-.range-pill.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+.range-pill.active{ background:var(--accent); color:#fff; }
 .pnl-chart-wrap{ height:220px; position:relative; }
 .pnl-chart-wrap .chart-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--text-faint); font-size:13px; padding:0 20px; }
 
@@ -694,7 +755,6 @@ footer{
   thead{ display:none; }
   table{ margin-top:0; }
   tbody tr{
-    border:1px solid var(--border);
     border-radius:14px;
     padding:12px 14px;
     margin-bottom:10px;
@@ -764,10 +824,10 @@ footer{
   transition:opacity .4s var(--ease), visibility .4s var(--ease);
 }
 .login-screen.hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+.login-screen.skeleton-mode{ padding:0; align-items:stretch; justify-content:stretch; overflow:hidden; }
 .login-card{
   width:100%; max-width:400px;
   background:var(--surface);
-  border:1px solid var(--border);
   border-radius:var(--radius-lg);
   box-shadow:var(--shadow);
   padding:36px 34px 28px;
@@ -819,7 +879,7 @@ footer{
 .btn-primary{ background:var(--accent); color:#0B0D10; }
 .btn-primary:hover{ filter:brightness(1.08); transform:translateY(-1px); box-shadow:var(--shadow); }
 .btn-primary:active{ transform:translateY(0); box-shadow:var(--shadow-in-sm); filter:brightness(1); }
-.btn-secondary{ background:var(--surface); border-color:var(--border); color:var(--text); }
+.btn-secondary{ background:var(--surface); color:var(--text); }
 .btn-secondary:hover{ color:var(--accent); transform:translateY(-1px); box-shadow:var(--shadow); }
 .btn-secondary:active{ transform:translateY(0); box-shadow:var(--shadow-in-sm); }
 .btn-danger{ background:var(--surface); color:var(--red); }
@@ -835,7 +895,7 @@ footer{
 
 .switch{
   width:44px; height:25px; border-radius:999px; background:var(--surface-2);
-  border:1px solid var(--border); box-shadow:var(--shadow-in-sm);
+  box-shadow:var(--shadow-in-sm);
   position:relative; flex-shrink:0; transition:background .25s var(--ease);
 }
 .switch .knob{
@@ -860,14 +920,14 @@ footer{
   display:flex; flex-direction:column; align-items:center; gap:6px;
   width:84px; padding:12px 8px;
   border-radius:var(--radius-md);
-  background:var(--surface); border:1px solid var(--border);
+  background:var(--surface); border:1px solid transparent;
   box-shadow:var(--shadow-sm);
   font-size:11.5px; color:var(--text-dim); text-align:center;
   cursor:pointer; transition:all .2s var(--ease);
 }
 .style-opt i{ font-size:18px; color:var(--text-faint); transition:color .2s var(--ease); }
 .style-opt:hover{ color:var(--text); transform:translateY(-2px); }
-.style-opt.active{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow:var(--shadow-in-sm); }
+.style-opt.active{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 55%, transparent); box-shadow:var(--shadow-in-sm); }
 .style-opt.active i{ color:var(--accent); }
 
 .backup-actions{ display:flex; gap:10px; flex-wrap:wrap; }
@@ -876,12 +936,12 @@ footer{
    AVATAR DROPDOWN
    ============================================================ */
 .avatar-wrap{ position:relative; }
-.avatar{ border:1px solid var(--border); cursor:pointer; transition:border-color .2s; }
-.avatar:hover{ border-color:var(--accent); }
+.avatar{ cursor:pointer; transition:box-shadow .2s; }
+.avatar:hover{ box-shadow:var(--shadow-sm), 0 0 0 2px var(--accent); }
 .avatar-menu{
   position:absolute; top:calc(100% + 12px); right:0; z-index:120;
   width:250px;
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md);
+  background:var(--surface); border-radius:var(--radius-md);
   box-shadow:var(--shadow);
   padding:16px;
   opacity:0; visibility:hidden; transform:translateY(-8px);
@@ -908,7 +968,7 @@ footer{
    ============================================================ */
 .toast{
   position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
-  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  background:var(--surface); color:var(--text);
   padding:12px 20px; border-radius:999px; font-size:13.5px; font-weight:500;
   display:flex; align-items:center; gap:9px; box-shadow:var(--shadow);
   z-index:400; opacity:0; pointer-events:none; transition:opacity .3s var(--ease), transform .3s var(--ease);
@@ -931,7 +991,7 @@ footer{
    ============================================================ */
 .br-swal-popup{
   background:var(--bg-elevated) !important; color:var(--text) !important;
-  border-radius:var(--radius-lg) !important; border:1px solid var(--border) !important;
+  border-radius:var(--radius-lg) !important;
   box-shadow:var(--shadow) !important; padding-bottom:1.8em !important;
 }
 .br-swal-title{ color:var(--text) !important; font-family:'Outfit',sans-serif !important; font-size:19px !important; }
@@ -1027,17 +1087,51 @@ footer{
 </head>
 <body>
 
-<!-- AUTH GATE — real sign-in now lives on login.html; this just guards
-     the dashboard while we confirm your session, so signed-out visitors
-     never see your data flash on screen before the redirect fires. -->
-<div class="login-screen" id="authGate">
-  <div class="login-card" style="text-align:center;">
-    <div class="brand" style="padding:0 0 20px; justify-content:center;">
-      <div class="brand-mark" style="width:44px;height:44px;font-size:19px;">BR</div>
-      <div class="brand-name" style="font-size:22px;">Black<span>Road</span></div>
+<!-- AUTH GATE / SKELETON LOADER — shown while we confirm your session
+     and the dashboard's real data is populating, so signed-out
+     visitors never see your data flash on screen before the redirect
+     fires, and everyone else sees a shimmering silhouette of the
+     layout instead of a blank page for the first ~1-2.5s. -->
+<div class="login-screen skeleton-mode" id="authGate">
+  <div class="skeleton-shell">
+    <div class="skeleton-sidebar">
+      <div class="sk sk-circle"></div>
+      <div class="sk" style="width:60%;height:16px;margin-bottom:22px;"></div>
+      <div class="sk" style="width:90%;"></div>
+      <div class="sk" style="width:78%;"></div>
+      <div class="sk" style="width:85%;"></div>
+      <div class="sk" style="width:70%;"></div>
+      <div class="sk" style="width:82%;"></div>
+      <div class="sk" style="width:65%;"></div>
+      <div class="sk" style="width:88%;margin-bottom:22px;"></div>
+      <div class="sk" style="width:55%;"></div>
+      <div class="sk" style="width:60%;"></div>
     </div>
-    <div class="lane" style="margin-bottom:22px;"></div>
-    <p style="color:var(--text-faint);font-size:13.5px;">Checking your session…</p>
+    <div class="skeleton-main">
+      <div class="skeleton-topbar">
+        <div style="flex:1;max-width:220px;">
+          <div class="sk" style="width:40%;height:10px;margin-bottom:10px;"></div>
+          <div class="sk" style="width:75%;height:20px;"></div>
+        </div>
+        <div class="skeleton-topbar-actions">
+          <div class="sk sk-circle"></div>
+          <div class="sk sk-circle"></div>
+        </div>
+      </div>
+      <div class="skeleton-hero">
+        <div class="sk sk-card"></div>
+        <div class="sk sk-card"></div>
+      </div>
+      <div class="skeleton-tiles">
+        <div class="sk sk-card"></div>
+        <div class="sk sk-card"></div>
+        <div class="sk sk-card"></div>
+        <div class="sk sk-card"></div>
+        <div class="sk sk-card"></div>
+        <div class="sk sk-card"></div>
+      </div>
+      <div class="sk sk-card skeleton-panel"></div>
+    </div>
   </div>
 </div>
 
@@ -2582,6 +2676,27 @@ function showToast(msg, icon='bi-check-circle-fill', percent=null){
 const authGate = document.getElementById('authGate');
 const greetTitle = document.getElementById('greetTitle');
 
+/* Skeleton loader: always shown for at least this long (randomised
+   so it doesn't feel mechanically identical on every visit), even if
+   the session/data resolves faster — and if resolving takes longer
+   than this, the real content just appears the moment it's ready. */
+const skeletonMinMs = 1000 + Math.random() * 1500; // 1s – 2.5s
+const skeletonStartedAt = performance.now();
+function dismissSkeleton(){
+  const remaining = skeletonMinMs - (performance.now() - skeletonStartedAt);
+  setTimeout(()=>{
+    authGate.classList.add('hidden');
+    // The mutual-fund P/L graph (and anything else that draws itself
+    // in on load) already finished animating while it sat hidden
+    // behind the skeleton, so it looked static once revealed. Replay
+    // its left-to-right sweep now, timed to the actual reveal.
+    if(typeof mfPnlChart !== 'undefined' && mfPnlChart && typeof mfPnlSweepAnimation === 'function'){
+      mfPnlChart.options.animation = mfPnlSweepAnimation();
+      mfPnlChart.update();
+    }
+  }, Math.max(0, remaining));
+}
+
 function greetingWord(){
   const h = new Date().getHours();
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
@@ -2613,7 +2728,7 @@ function enterApp(user){
   const planTag = document.getElementById('planTag');
   planTag.textContent = guest ? 'Guest' : (user.plan || 'Free');
 
-  authGate.classList.add('hidden');
+  dismissSkeleton();
 }
 
 /* Guard the dashboard: redirect signed-out visitors to login.html,
@@ -3471,7 +3586,47 @@ function mfPnlApplyRange(rangeVal){
   if(!mfPnlChart) return;
   mfPnlChart.data.labels = slice.map(e => e.date);
   mfPnlChart.data.datasets[0].data = slice.map(e => e.pnl);
+  // Switching periods (7D / 1M / 1Y / All, etc.) should redraw the
+  // line left-to-right every time, same as the very first load.
+  mfPnlChart.options.animation = mfPnlSweepAnimation();
   mfPnlChart.update();
+}
+
+/* The one-time "draw left to right" reveal used on first load and on
+   every period-pill switch. Returns a fresh config object each call
+   (fresh xStarted/yStarted flags) so the sweep reliably replays. */
+function mfPnlSweepAnimation(){
+  return {
+    x: {
+      type: 'number',
+      easing: 'linear',
+      duration: 400,
+      from: NaN, // point starts invisible, then sweeps in left-to-right
+      delay(ctx){
+        if(ctx.type !== 'data' || ctx.xStarted) return 0;
+        ctx.xStarted = true;
+        const n = ctx.chart.data.labels.length || 1;
+        return ctx.index * Math.min(15, 900 / n);
+      },
+    },
+    y: {
+      type: 'number',
+      easing: 'linear',
+      duration: 400,
+      from(ctx){
+        if(ctx.index === 0) return ctx.chart.scales.y.getPixelForValue(0);
+        const meta = ctx.chart.getDatasetMeta(ctx.datasetIndex);
+        const prevPoint = meta.data[ctx.index - 1];
+        return prevPoint ? prevPoint.getProps(['y'], true).y : ctx.chart.scales.y.getPixelForValue(0);
+      },
+      delay(ctx){
+        if(ctx.type !== 'data' || ctx.yStarted) return 0;
+        ctx.yStarted = true;
+        const n = ctx.chart.data.labels.length || 1;
+        return ctx.index * Math.min(15, 900 / n);
+      },
+    },
+  };
 }
 
 async function refreshMfPnlChart(){
@@ -3506,6 +3661,11 @@ async function refreshMfPnlChart(){
     mfPnlChart.data.datasets[0].data = slice.map(e => e.pnl);
     mfPnlChart.data.datasets[0].borderColor = glow;
     mfPnlChart.data.datasets[0].pointHoverBackgroundColor = glow;
+    // Background/silent refreshes (focus, visibility, periodic re-sync)
+    // land here on an already-drawn chart — update the data quietly
+    // with no animation instead of replaying the sweep-in, which is
+    // what was showing up as an extra "blink" right after first load.
+    mfPnlChart.options.animation = false;
     mfPnlChart.update();
     return;
   }
@@ -3541,37 +3701,7 @@ async function refreshMfPnlChart(){
       responsive: true,
       maintainAspectRatio: false,
       interaction: { intersect: false, mode: 'index' },
-      animation: {
-        x: {
-          type: 'number',
-          easing: 'linear',
-          duration: 400,
-          from: NaN, // point starts invisible, then sweeps in left-to-right
-          delay(ctx){
-            if(ctx.type !== 'data' || ctx.xStarted) return 0;
-            ctx.xStarted = true;
-            const n = ctx.chart.data.labels.length || 1;
-            return ctx.index * Math.min(15, 900 / n);
-          },
-        },
-        y: {
-          type: 'number',
-          easing: 'linear',
-          duration: 400,
-          from(ctx){
-            if(ctx.index === 0) return ctx.chart.scales.y.getPixelForValue(0);
-            const meta = ctx.chart.getDatasetMeta(ctx.datasetIndex);
-            const prevPoint = meta.data[ctx.index - 1];
-            return prevPoint ? prevPoint.getProps(['y'], true).y : ctx.chart.scales.y.getPixelForValue(0);
-          },
-          delay(ctx){
-            if(ctx.type !== 'data' || ctx.yStarted) return 0;
-            ctx.yStarted = true;
-            const n = ctx.chart.data.labels.length || 1;
-            return ctx.index * Math.min(15, 900 / n);
-          },
-        },
-      },
+      animation: mfPnlSweepAnimation(),
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -3593,6 +3723,8 @@ function refreshMfPnlChartTheme(){
   const glow = positive ? cssVar('--green') : cssVar('--red');
   mfPnlChart.data.datasets[0].borderColor = glow;
   mfPnlChart.data.datasets[0].pointHoverBackgroundColor = glow;
+  // Just a colour swap for the dark/light toggle — no re-draw needed.
+  mfPnlChart.options.animation = false;
   mfPnlChart.update();
 }
 
