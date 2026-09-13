@@ -450,6 +450,22 @@ html[data-theme="light"] .chip.down{ background:color-mix(in srgb, var(--red) 28
 .legend-item b{ color:var(--text); font-weight:600; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.3;}
 .legend-item .legend-pct{ color:var(--text-faint); font-size:10.5px; font-family:'JetBrains Mono',monospace; line-height:1.3; }
 
+/* ---- Mutual Fund Profit / Loss ---- */
+.pnl-card{ padding:26px 28px; margin-bottom:30px; }
+.pnl-card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.pnl-card-head h4{ font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; margin:0; }
+.pnl-card-head h4 i{ color:var(--accent); }
+.range-pills{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+.range-pill{
+  padding:5px 12px; border-radius:999px; font-size:12px; font-weight:600;
+  color:var(--text-faint); background:var(--surface-2); border:1px solid var(--border);
+  transition:all .15s var(--ease);
+}
+.range-pill:hover{ color:var(--text); }
+.range-pill.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+.pnl-chart-wrap{ height:220px; position:relative; }
+.pnl-chart-wrap .chart-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--text-faint); font-size:13px; padding:0 20px; }
+
 /* ---- Section headers ---- */
 .section-head{ display:flex; align-items:baseline; justify-content:space-between; margin:8px 0 16px; }
 .section-head h3{ font-size:19px; font-weight:700; display:flex; align-items:center; gap:9px; }
@@ -1109,6 +1125,26 @@ footer{
 
       <!-- OVERVIEW -->
       <section id="overview" class="mobile-active">
+        <div class="card pnl-card" id="mfPnlCard">
+          <div class="pnl-card-head">
+            <h4><i class="bi bi-graph-up-arrow"></i> Mutual Fund Profit / Loss</h4>
+            <span class="chip up" id="mfPnlChip">+0.0%</span>
+          </div>
+          <div class="range-pills" id="mfPnlRangePills">
+            <button class="range-pill" data-range="7d">1W</button>
+            <button class="range-pill" data-range="1">1M</button>
+            <button class="range-pill" data-range="6">6M</button>
+            <button class="range-pill" data-range="12">1Y</button>
+            <button class="range-pill" data-range="36">3Y</button>
+            <button class="range-pill" data-range="60">5Y</button>
+            <button class="range-pill active" data-range="all">Max</button>
+          </div>
+          <div class="pnl-chart-wrap">
+            <canvas id="mfPnlChart"></canvas>
+            <div class="chart-empty" id="mfPnlEmpty" style="display:none;">No SIP entries yet — add one in the Step-up tracker.</div>
+          </div>
+        </div>
+
         <div class="hero-grid">
           <div class="card hero-card">
             <div class="hero-eyebrow"><i class="bi bi-graph-up"></i> Total Net Worth</div>
@@ -2420,6 +2456,7 @@ function applyTheme(mode, persist=true){
   });
   if(persist){ try{ localStorage.setItem('br-theme', mode); }catch(e){} }
   if(typeof refreshAssetBarChartTheme === 'function') refreshAssetBarChartTheme();
+  if(typeof refreshMfPnlChartTheme === 'function') refreshMfPnlChartTheme();
 }
 function toggleTheme(){
   const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -2438,6 +2475,7 @@ function applyStyle(style, persist=true){
   styleOpts.forEach(b=> b.classList.toggle('active', b.dataset.style === style));
   if(persist){ try{ localStorage.setItem('br_style', style); }catch(e){} }
   if(typeof refreshAssetBarChartTheme === 'function') refreshAssetBarChartTheme();
+  if(typeof refreshMfPnlChartTheme === 'function') refreshMfPnlChartTheme();
 }
 styleOpts.forEach(b=>{
   b.addEventListener('click', ()=>{
@@ -3307,7 +3345,36 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
     return { hasData:true, invested, currentValue, pnl, pnlPct, sips };
   }
 
-  window.MutualFundStore = { getSummary: mfGetSummary, formatINR: mfFormatINR };
+  /**
+   * Build a combined daily P&L series across every SIP profile, for the
+   * dashboard's Profit/Loss graph. For each date on which ANY SIP logged
+   * an entry, forward-fills every other SIP to its latest entry at or
+   * before that date, then sums invested/current value across all SIPs.
+   */
+  async function mfGetTimeSeries(){
+    const profiles = await mfGetAllProfiles();
+    const perProfile = await Promise.all(profiles.map(p => mfGetEntriesForProfile(p.id)));
+    const sortedLists = perProfile.map(list => list.slice().sort((a,b)=> a.date.localeCompare(b.date)));
+    const dateSet = new Set();
+    sortedLists.forEach(list => list.forEach(e => dateSet.add(e.date)));
+    const dates = Array.from(dateSet).sort();
+    return dates.map(date => {
+      let invested = 0, value = 0;
+      sortedLists.forEach(list => {
+        let latest = null;
+        for(const e of list){
+          if(e.date <= date) latest = e; else break;
+        }
+        if(latest){
+          invested += latest.investedAmount || 0;
+          value    += latest.portfolioValue || 0;
+        }
+      });
+      return { date, invested, value, pnl: +(value - invested).toFixed(2) };
+    });
+  }
+
+  window.MutualFundStore = { getSummary: mfGetSummary, formatINR: mfFormatINR, getTimeSeries: mfGetTimeSeries };
 })();
 
 async function refreshMutualFundsSummary(){
@@ -3367,11 +3434,173 @@ async function refreshMutualFundsSummary(){
       }
       tagTableLabels(tbody.closest('table'));
     }
+    if(typeof refreshMfPnlChart === 'function') await refreshMfPnlChart();
     queueRecalc();
   }catch(e){
     console.error('Could not refresh mutual funds summary from IndexedDB', e);
   }
 }
+
+/* ============ MUTUAL FUND PROFIT / LOSS GRAPH ============
+   Combined daily P&L line for all SIPs (see MutualFundStore.getTimeSeries
+   above), with its own range pills. No zoom plugin — just re-slices the
+   full series and redraws on range change, matching this dashboard's
+   already-loaded plain Chart.js setup. */
+var mfPnlFullSeries = [];
+var mfPnlActiveRange = 'all';
+var mfPnlChart = null;
+
+function mfPnlSliceForRange(rangeVal){
+  const n = mfPnlFullSeries.length;
+  if(!n) return [];
+  if(rangeVal === 'all') return mfPnlFullSeries;
+  const lastDate = new Date(mfPnlFullSeries[n-1].date);
+  const cutoff = new Date(lastDate);
+  if(rangeVal === '7d') cutoff.setDate(cutoff.getDate() - 7);
+  else cutoff.setMonth(cutoff.getMonth() - parseInt(rangeVal));
+  const idx = mfPnlFullSeries.findIndex(e => new Date(e.date) >= cutoff);
+  return idx === -1 ? mfPnlFullSeries : mfPnlFullSeries.slice(idx);
+}
+
+function mfPnlApplyRange(rangeVal){
+  mfPnlActiveRange = rangeVal;
+  document.querySelectorAll('#mfPnlRangePills .range-pill').forEach(b=>{
+    b.classList.toggle('active', b.dataset.range === rangeVal);
+  });
+  const slice = mfPnlSliceForRange(rangeVal);
+  if(!mfPnlChart) return;
+  mfPnlChart.data.labels = slice.map(e => e.date);
+  mfPnlChart.data.datasets[0].data = slice.map(e => e.pnl);
+  mfPnlChart.update();
+}
+
+async function refreshMfPnlChart(){
+  const canvas = document.getElementById('mfPnlChart');
+  const emptyEl = document.getElementById('mfPnlEmpty');
+  const chipEl = document.getElementById('mfPnlChip');
+  if(!canvas || typeof MutualFundStore === 'undefined' || typeof MutualFundStore.getTimeSeries !== 'function') return;
+
+  mfPnlFullSeries = await MutualFundStore.getTimeSeries();
+  if(!mfPnlFullSeries.length){
+    if(emptyEl) emptyEl.style.display = 'flex';
+    canvas.style.display = 'none';
+    return;
+  }
+  if(emptyEl) emptyEl.style.display = 'none';
+  canvas.style.display = 'block';
+
+  const latestPnl = mfPnlFullSeries[mfPnlFullSeries.length - 1].pnl;
+  const latestInvested = mfPnlFullSeries[mfPnlFullSeries.length - 1].invested;
+  const pnlPct = latestInvested ? (latestPnl / latestInvested) * 100 : 0;
+  const positive = latestPnl >= 0;
+  if(chipEl){
+    chipEl.className = 'chip ' + (positive ? 'up' : 'down');
+    chipEl.innerHTML = `<i class="bi ${positive ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}"></i> ${positive?'+':''}${pnlPct.toFixed(1)}%`;
+  }
+
+  const glow = positive ? cssVar('--green') : cssVar('--red');
+  const slice = mfPnlSliceForRange(mfPnlActiveRange);
+
+  if(mfPnlChart){
+    mfPnlChart.data.labels = slice.map(e => e.date);
+    mfPnlChart.data.datasets[0].data = slice.map(e => e.pnl);
+    mfPnlChart.data.datasets[0].borderColor = glow;
+    mfPnlChart.data.datasets[0].pointHoverBackgroundColor = glow;
+    mfPnlChart.update();
+    return;
+  }
+
+  mfPnlChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: slice.map(e => e.date),
+      datasets: [{
+        label: 'Profit / Loss',
+        data: slice.map(e => e.pnl),
+        borderColor: glow,
+        borderWidth: 2.5,
+        tension: 0.3,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: glow,
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
+        fill: true,
+        backgroundColor: ctx => {
+          const { ctx: c, chartArea } = ctx.chart;
+          if(!chartArea) return null;
+          const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          const base = positive ? '0,200,83' : '255,82,82';
+          gradient.addColorStop(0, `rgba(${base},.32)`);
+          gradient.addColorStop(1, `rgba(${base},0)`);
+          return gradient;
+        },
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      animation: {
+        x: {
+          type: 'number',
+          easing: 'linear',
+          duration: 400,
+          from: NaN, // point starts invisible, then sweeps in left-to-right
+          delay(ctx){
+            if(ctx.type !== 'data' || ctx.xStarted) return 0;
+            ctx.xStarted = true;
+            const n = ctx.chart.data.labels.length || 1;
+            return ctx.index * Math.min(15, 900 / n);
+          },
+        },
+        y: {
+          type: 'number',
+          easing: 'linear',
+          duration: 400,
+          from(ctx){
+            if(ctx.index === 0) return ctx.chart.scales.y.getPixelForValue(0);
+            const meta = ctx.chart.getDatasetMeta(ctx.datasetIndex);
+            const prevPoint = meta.data[ctx.index - 1];
+            return prevPoint ? prevPoint.getProps(['y'], true).y : ctx.chart.scales.y.getPixelForValue(0);
+          },
+          delay(ctx){
+            if(ctx.type !== 'data' || ctx.yStarted) return 0;
+            ctx.yStarted = true;
+            const n = ctx.chart.data.labels.length || 1;
+            return ctx.index * Math.min(15, 900 / n);
+          },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          displayColors: false,
+          callbacks: {
+            title: items => items[0] ? new Date(items[0].label).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '',
+            label: c => ` ${c.parsed.y >= 0 ? '+' : ''}${MutualFundStore.formatINR(c.parsed.y)}`,
+          },
+        },
+      },
+      scales: { x: { display: false }, y: { display: false } },
+    },
+  });
+}
+
+function refreshMfPnlChartTheme(){
+  if(!mfPnlChart || !mfPnlFullSeries.length) return;
+  const positive = mfPnlFullSeries[mfPnlFullSeries.length - 1].pnl >= 0;
+  const glow = positive ? cssVar('--green') : cssVar('--red');
+  mfPnlChart.data.datasets[0].borderColor = glow;
+  mfPnlChart.data.datasets[0].pointHoverBackgroundColor = glow;
+  mfPnlChart.update();
+}
+
+document.getElementById('mfPnlRangePills').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.range-pill');
+  if(!btn) return;
+  mfPnlApplyRange(btn.dataset.range);
+});
 
 // Initial load
 refreshMutualFundsSummary();
