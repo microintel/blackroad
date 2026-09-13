@@ -590,16 +590,18 @@ function renderSettingsReports(){
     return new Date(Number(y), Number(m)-1, 1).toLocaleDateString('en-IN', { month:'long', year:'numeric' });
   };
   const current = sel.value;
-  sel.innerHTML = months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
-  sel.value = months.includes(current) ? current : months[0];
+  sel.innerHTML = '<option value="all">All time</option>' + months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
+  sel.value = (current === 'all' || months.includes(current)) ? current : months[0];
 
-  const s = calculateMonthlySummary(sel.value);
+  const isAll = sel.value === 'all';
+  const s = isAll ? calculateAllTimeSummary() : calculateMonthlySummary(sel.value);
+  const pnlLabel = isAll ? 'Realized P&amp;L (all time)' : 'Realized P&amp;L (this month)';
   summaryEl.innerHTML = `
     <div class="health-grid">
       <div class="health-item"><div class="health-lbl">Invested</div><div class="health-val">${fmtMoney(s.invested, true)}</div></div>
       <div class="health-item"><div class="health-lbl">Withdrawn</div><div class="health-val">${fmtMoney(s.withdrawn, true)}</div></div>
       <div class="health-item"><div class="health-lbl">Transactions</div><div class="health-val">${s.transactionCount}</div></div>
-      <div class="health-item"><div class="health-lbl">Realized P&amp;L (this month)</div><div class="health-val ${pnlClass(s.realizedPnLThisMonth)}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
+      <div class="health-item"><div class="health-lbl">${pnlLabel}</div><div class="health-val ${pnlClass(s.realizedPnLThisMonth)}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
       <div class="health-item"><div class="health-lbl">Current portfolio</div><div class="health-val">${fmtMoney(s.currentPortfolioValue, true)}</div></div>
       <div class="health-item"><div class="health-lbl">Unrealized P&amp;L (now)</div><div class="health-val ${pnlClass(s.unrealizedPnL)}">${fmtSigned(s.unrealizedPnL, true)}</div></div>
     </div>

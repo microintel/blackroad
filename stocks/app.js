@@ -875,18 +875,23 @@ document.getElementById('printReportBtn').addEventListener('click', () => {
 // always renders the exact same numbers as the on-screen Reports panel
 // because it reads from the same calculateMonthlySummary().
 function generatePrintReport(ym){
-  const s = calculateMonthlySummary(ym);
-  const [y, m] = ym.split('-');
-  const monthLabel = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const isAll = ym === 'all';
+  const s = isAll ? calculateAllTimeSummary() : calculateMonthlySummary(ym);
+  let monthLabel;
+  if(isAll){
+    monthLabel = 'All Time';
+  } else {
+    const [y, m] = ym.split('-');
+    monthLabel = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  }
   const generatedAt = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  const monthTxns = transactions
-    .filter(t => t.date && t.date.slice(0, 7) === ym)
+  const scopedTxns = (isAll ? transactions : transactions.filter(t => t.date && t.date.slice(0, 7) === ym))
     .slice()
     .sort((a, b) => (a.date === b.date) ? a.seq - b.seq : (a.date < b.date ? -1 : 1));
   const pnlMap = getTxnPnLMap();
 
-  const rowsHTML = monthTxns.length ? monthTxns.map(t => `
+  const rowsHTML = scopedTxns.length ? scopedTxns.map(t => `
     <tr>
       <td>${fmtDate(t.date)}</td>
       <td>${escHtml(t.type)}</td>
@@ -896,7 +901,9 @@ function generatePrintReport(ym){
       <td class="num">${fmtMoney(t.quantity * t.price, true)}</td>
       <td class="num">${t.type === 'SELL' && pnlMap[t.id] !== undefined ? fmtSigned(pnlMap[t.id], true) : '—'}</td>
     </tr>
-  `).join('') : `<tr><td colspan="7" class="pr-empty">No transactions this month.</td></tr>`;
+  `).join('') : `<tr><td colspan="7" class="pr-empty">No transactions ${isAll ? 'yet' : 'this month'}.</td></tr>`;
+
+  const pnlLabel = isAll ? 'Realized P&amp;L (all time)' : 'Realized P&amp;L (month)';
 
   document.getElementById('printReport').innerHTML = `
     <div class="pr-title">Blackboard's Equity Report — ${monthLabel}</div>
@@ -905,7 +912,7 @@ function generatePrintReport(ym){
       <div class="pr-cell"><div class="pr-lbl">Invested</div><div class="pr-val">${fmtMoney(s.invested, true)}</div></div>
       <div class="pr-cell"><div class="pr-lbl">Withdrawn</div><div class="pr-val">${fmtMoney(s.withdrawn, true)}</div></div>
       <div class="pr-cell"><div class="pr-lbl">Transactions</div><div class="pr-val">${s.transactionCount}</div></div>
-      <div class="pr-cell"><div class="pr-lbl">Realized P&amp;L (month)</div><div class="pr-val ${pnlClass(s.realizedPnLThisMonth)}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
+      <div class="pr-cell"><div class="pr-lbl">${pnlLabel}</div><div class="pr-val ${pnlClass(s.realizedPnLThisMonth)}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
       <div class="pr-cell"><div class="pr-lbl">Current portfolio</div><div class="pr-val">${fmtMoney(s.currentPortfolioValue, true)}</div></div>
       <div class="pr-cell"><div class="pr-lbl">Unrealized P&amp;L (now)</div><div class="pr-val ${pnlClass(s.unrealizedPnL)}">${fmtSigned(s.unrealizedPnL, true)}</div></div>
     </div>

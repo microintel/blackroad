@@ -1,13 +1,13 @@
 /* styles.css — Ledger (Stock Portfolio Tracker) — all visual styling */
 
   :root{
-    --ink:#1A1B20;
-    --ink-soft:#2A2E38;
-    --paper:#292A2F;
-    --panel:#1A1B20;
-    --panel-2:#232429;
-    --line:rgba(255,255,255,0.09);
-    --line-soft:rgba(255,255,255,0.06);
+    --ink:#000000;
+    --ink-soft:#000000;
+    --paper:#000000;
+    --panel:#000000;
+    --panel-2:#000000;
+    --line:rgba(255,255,255,0.14);
+    --line-soft:rgba(255,255,255,0.09);
     --text:#F2F3F5;
     --muted:#9297A1;
     --text-faint:#5A5F68;
@@ -34,8 +34,8 @@
     --overlay-hover: rgba(255,255,255,0.1);
     --overlay-strong: rgba(255,255,255,0.18);
     --on-ink: #fff;
-    --nav-blur-bg: rgba(19,20,24,0.94);
-    --topbar-blur-bg: rgba(26,27,32,0.88);
+    --nav-blur-bg: rgba(0,0,0,0.94);
+    --topbar-blur-bg: rgba(0,0,0,0.88);
   }
 
   /* ---------- Light theme ----------

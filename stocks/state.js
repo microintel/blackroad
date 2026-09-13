@@ -424,6 +424,25 @@ function calculateMonthlySummary(yyyyMm){
   };
 }
 
+// Same shape as calculateMonthlySummary(), but across every transaction
+// ever recorded rather than one calendar month. realizedPnL here comes
+// straight from calculatePortfolioTotals() (a full per-symbol replay),
+// so it's the true all-time figure rather than a month-scoped one.
+function calculateAllTimeSummary(){
+  const invested = round2(transactions.filter(t => t.type === 'BUY').reduce((s,t) => s + t.quantity * t.price, 0));
+  const withdrawn = round2(transactions.filter(t => t.type === 'SELL').reduce((s,t) => s + t.quantity * t.price, 0));
+  const totals = calculatePortfolioTotals();
+  return {
+    month: 'all',
+    invested,
+    withdrawn,
+    transactionCount: transactions.length,
+    realizedPnLThisMonth: totals.realizedPnL,
+    currentPortfolioValue: totals.currentValue,
+    unrealizedPnL: totals.unrealizedPnL
+  };
+}
+
 function getAvailableMonths(){
   return [...new Set(transactions.map(t => t.date && t.date.slice(0,7)).filter(Boolean))].sort().reverse();
 }
