@@ -3,13 +3,13 @@
    Tokens — Dark (default)
 ══════════════════════════════════════════════════════ */
 :root {
-  --bg:          #292a2f;
-  --bg2:         #292a2f;
-  --surface:     #1a1b20;
-  --surface2:    #202127;
-  --surface3:    #26272e;
-  --border:      rgba(255,255,255,.08);
-  --border2:     rgba(255,255,255,.14);
+  --bg:          #000000;
+  --bg2:         #000000;
+  --surface:     #000000;
+  --surface2:    #000000;
+  --surface3:    #000000;
+  --border:      rgba(255,255,255,.14);
+  --border2:     rgba(255,255,255,.22);
   --text:        #e6e9f2;
   --text2:       #aeb5c9;
   --muted:       #848aa0;
@@ -43,10 +43,12 @@
   --ease:        cubic-bezier(.4,0,.2,1);
   --spring:      cubic-bezier(.34,1.56,.64,1);
 
-  /* Solid flat shadows — single soft drop shadow, no dual-tone relief */
-  --sh-out-lg:  0 6px 20px rgba(0,0,0,.30);
-  --sh-out:     0 3px 12px rgba(0,0,0,.24);
-  --sh-out-sm:  0 2px 6px  rgba(0,0,0,.20);
+  /* Solid flat shadows — soft drop shadow + a thin inset border so
+     elements stay visually distinct even though bg/surface share the
+     same pure black, instead of relying on a heavy shadow "wrap" */
+  --sh-out-lg:  0 6px 20px rgba(0,0,0,.30), inset 0 0 0 1px var(--border);
+  --sh-out:     0 3px 12px rgba(0,0,0,.24), inset 0 0 0 1px var(--border);
+  --sh-out-sm:  0 2px 6px  rgba(0,0,0,.20), inset 0 0 0 1px var(--border);
   --sh-in:      inset 0 0 0 1.5px var(--border2);
   --sh-in-sm:   inset 0 0 0 1.5px var(--border2);
   --sh-in-lg:   inset 0 0 0 2px   var(--border2);
@@ -58,12 +60,12 @@
 html[data-theme="light"] {
   --bg:          #eae4d2;
   --bg2:         #eae4d2;
-  --surface:     #ffffff;
+  --surface:     #f8f5ec;
   --surface2:    #f5f1e6;
   --surface3:    #ede7d8;
 
-  --border:      rgba(60,52,30,.08);
-  --border2:     rgba(60,52,30,.14);
+  --border:      rgba(60,52,30,.14);
+  --border2:     rgba(60,52,30,.20);
 
   --text:        #2b2a24;
   --text2:       #635d4e;
@@ -76,9 +78,9 @@ html[data-theme="light"] {
   --purple-dim:  rgba(167,139,250,.16);
   --blue-dim:    rgba(56,189,248,.16);
 
-  --sh-out-lg:  0 6px 20px rgba(60,50,30,.12);
-  --sh-out:     0 3px 12px rgba(60,50,30,.09);
-  --sh-out-sm:  0 2px 6px  rgba(60,50,30,.08);
+  --sh-out-lg:  0 6px 20px rgba(60,50,30,.12), inset 0 0 0 1px var(--border);
+  --sh-out:     0 3px 12px rgba(60,50,30,.09), inset 0 0 0 1px var(--border);
+  --sh-out-sm:  0 2px 6px  rgba(60,50,30,.08), inset 0 0 0 1px var(--border);
   --sh-in:      inset 0 0 0 1.5px var(--border2);
   --sh-in-sm:   inset 0 0 0 1.5px var(--border2);
   --sh-in-lg:   inset 0 0 0 2px   var(--border2);
@@ -163,6 +165,7 @@ html[data-theme="light"] #particle-canvas { opacity: .2; }
   position: sticky; top: 0; z-index: 100;
   background: var(--bg);
   gap: 8px;
+  border-bottom: 1px solid var(--border);
   box-shadow: 0 6px 18px rgba(0,0,0,.28);
 }
 html[data-theme="light"] .app-header { box-shadow: 0 6px 16px rgba(163,177,198,.35); }
