@@ -16,20 +16,16 @@
   --ease:cubic-bezier(.4,0,.2,1);
 }
 html[data-theme="dark"]{
-  --bg:#1B1E24; --surface:#1B1E24; --surface-2:#20242C;
-  --border:rgba(255,255,255,.06); --text:#F2F0EA; --text-dim:#9BA1AC; --text-faint:#5C6270;
-  --accent:var(--gold); --nl:rgba(255,255,255,.05); --nd:rgba(0,0,0,.62);
-  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
-  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
-  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+  --bg:#000000; --surface:#0A0A0A; --surface-2:#161616;
+  --border:rgba(255,255,255,.13); --text:#F2F0EA; --text-dim:#9BA1AC; --text-faint:#6B7280;
+  --accent:var(--gold);
+  --shadow: none; --shadow-sm: none; --shadow-in-sm: none;
 }
 html[data-theme="light"]{
-  --bg:#EAE7DE; --surface:#EAE7DE; --surface-2:#E2DED2;
-  --border:rgba(30,25,10,.08); --text:#171A1F; --text-dim:#5B6270; --text-faint:#84808f;
-  --accent:#B8862A; --nl:rgba(255,255,255,.9); --nd:rgba(163,150,115,.4);
-  --shadow: 8px 8px 16px var(--nd), -8px -8px 16px var(--nl);
-  --shadow-sm: 4px 4px 9px var(--nd), -4px -4px 9px var(--nl);
-  --shadow-in-sm: inset 3px 3px 6px var(--nd), inset -3px -3px 6px var(--nl);
+  --bg:#EAE7DE; --surface:#F5F3EA; --surface-2:#EAE6D8;
+  --border:rgba(30,25,10,.14); --text:#171A1F; --text-dim:#5B6270; --text-faint:#84808f;
+  --accent:#B8862A;
+  --shadow: none; --shadow-sm: none; --shadow-in-sm: none;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
@@ -42,6 +38,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .lane{height:3px;width:100%;background-image:repeating-linear-gradient(90deg, rgba(232,184,75,.55) 0 26px, transparent 26px 46px);opacity:.9;}
 
 .topbar{max-width:640px;margin:0 auto 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+@media (min-width:901px){ .topbar{max-width:1040px;} }
 .back-link{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--text-dim);}
 .back-link:hover{color:var(--accent);}
 .theme-toggle{
@@ -57,6 +54,17 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
   animation:cardIn .5s var(--ease);
 }
 @keyframes cardIn{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
+
+/* --- desktop: wider stage with a sticky summary sidebar instead of one narrow stacked column --- */
+@media (min-width:901px){
+  .wrap{max-width:1040px; display:grid; grid-template-columns:300px 1fr; gap:24px; align-items:start;}
+  .side-col{position:sticky; top:24px; display:flex; flex-direction:column; gap:20px;}
+  .side-col .card, .main-col .card{margin-bottom:0;}
+  .main-col{display:flex; flex-direction:column; gap:20px;}
+  .head{flex-direction:column; align-items:flex-start; text-align:left; gap:14px;}
+  .head .tag{margin-left:0;}
+  .avatar{width:64px;height:64px;font-size:22px;}
+}
 
 .head{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
 .avatar{
@@ -75,7 +83,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
 .field span{font-size:12px;color:var(--text-faint);font-weight:500;}
 .field input{
-  font-family:inherit;font-size:14px;color:var(--text);background:var(--surface);
+  font-family:inherit;font-size:14px;color:var(--text);background:var(--surface-2);
   border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 13px;
   box-shadow:var(--shadow-in-sm); transition:box-shadow .2s var(--ease);
 }
@@ -147,6 +155,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 
 <div class="wrap hidden" id="mainWrap">
 
+  <div class="side-col">
   <div class="card">
     <div class="head">
       <div class="avatar" id="avatarInitials">--</div>
@@ -156,7 +165,22 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
       </div>
       <span class="tag" id="planTag">Free</span>
     </div>
+  </div>
 
+  <div class="card">
+    <h4 class="sub-head"><i class="bi bi-box-arrow-right"></i> Session</h4>
+    <div class="settings-row">
+      <div>
+        <b>Signed in as</b>
+        <p id="sessionEmail">—</p>
+      </div>
+      <a href="logout.html" class="btn-danger"><i class="bi bi-box-arrow-right"></i> Log out</a>
+    </div>
+  </div>
+  </div>
+
+  <div class="main-col">
+  <div class="card">
     <h4 class="sub-head"><i class="bi bi-person-circle"></i> Profile</h4>
     <div class="form-grid">
       <label class="field">
@@ -222,15 +246,6 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
     </div>
   </div>
 
-  <div class="card">
-    <h4 class="sub-head"><i class="bi bi-box-arrow-right"></i> Session</h4>
-    <div class="settings-row">
-      <div>
-        <b>Signed in as</b>
-        <p id="sessionEmail">—</p>
-      </div>
-      <a href="logout.html" class="btn-danger"><i class="bi bi-box-arrow-right"></i> Log out</a>
-    </div>
   </div>
 
 </div>
