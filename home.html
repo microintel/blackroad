@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -18,13 +18,6 @@
   --gold:#E8B84B;
   --gold-soft:#EDC670;
   --gold-dim:#9C7223;
-  --bg:#EFECE3;
-  --surface:#FFFFFF;
-  --surface-2:#F7F5EE;
-  --border:#E7E2D3;
-  --text:#1B1D22;
-  --text-dim:#5B6270;
-  --text-faint:#8A8577;
   --green:#2E9E5B;
   --red:#C24949;
   --radius-sm:12px;
@@ -32,11 +25,31 @@
   --radius-lg:26px;
   --ease:cubic-bezier(.4,0,.2,1);
 }
+html[data-theme="light"]{
+  --bg:#EFECE3;
+  --surface:#FFFFFF;
+  --surface-2:#F7F5EE;
+  --border:#E7E2D3;
+  --text:#1B1D22;
+  --text-dim:#5B6270;
+  --text-faint:#8A8577;
+}
+html[data-theme="dark"]{
+  --bg:#0E0C08;
+  --surface:#181510;
+  --surface-2:#211D15;
+  --border:rgba(255,255,255,.1);
+  --text:#F2EFE6;
+  --text-dim:#B4AF9E;
+  --text-faint:#7C7666;
+  --gold-dim:#C79A3F;
+}
 *{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; }
 body{
   margin:0; background:var(--bg); color:var(--text);
   font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+  transition:background .3s var(--ease), color .3s var(--ease);
 }
 a{ color:inherit; text-decoration:none; }
 h1,h2,h3{ font-family:'Outfit',sans-serif; }
@@ -57,7 +70,8 @@ img{ max-width:100%; display:block; }
 @keyframes tickerScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
 
 /* ---------- shared bits ---------- */
-.wrap{ max-width:920px; margin:0 auto; padding:0 22px; }
+.wrap{ max-width:1180px; margin:0 auto; padding:0 32px; }
+@media (min-width:1400px){ .wrap{ max-width:1320px; padding:0 48px; } }
 .road-divider{
   display:flex; align-items:center; justify-content:center; gap:10px;
   margin:0 auto; padding:0;
@@ -111,6 +125,14 @@ section > .wrap > p.lead{
   transition:border-color .2s var(--ease), color .2s var(--ease);
 }
 .nav-download:hover{ border-color:var(--gold-dim); color:var(--text); }
+.theme-toggle{
+  width:34px; height:34px; border-radius:999px; flex-shrink:0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--border); background:var(--surface); color:var(--text-dim); font-size:14px;
+  transition:border-color .2s var(--ease), color .2s var(--ease), transform .2s var(--ease);
+}
+.theme-toggle:hover{ border-color:var(--gold-dim); color:var(--text); transform:translateY(-1px); }
+.theme-toggle i{ pointer-events:none; }
 .topnav .enter{
   font-size:13px; font-weight:600; color:var(--ink);
   background:var(--gold); padding:8px 16px; border-radius:999px;
@@ -220,8 +242,8 @@ section > .wrap > p.lead{
   font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:3px;
   padding:4px 9px; border-radius:999px; white-space:nowrap;
 }
-.trend.up{ color:var(--green); background:color-mix(in srgb, var(--green) 16%, #fff); }
-.trend.down{ color:var(--red); background:color-mix(in srgb, var(--red) 14%, #fff); }
+.trend.up{ color:var(--green); background:color-mix(in srgb, var(--green) 16%, var(--surface)); }
+.trend.down{ color:var(--red); background:color-mix(in srgb, var(--red) 14%, var(--surface)); }
 .trend i{ font-size:9px; }
 @media (max-width:640px){ .spark-wrap svg{ display:none; } }
 @media (max-width:460px){ .spark-wrap{ display:none; } }
@@ -241,14 +263,36 @@ section > .wrap > p.lead{
 .arch-card ul{ margin:0; padding-left:18px; }
 .arch-card li{ font-size:13.5px; color:var(--text-dim); line-height:1.7; }
 
+.multiuser-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; counter-reset:mu; }
+@media (max-width:760px){ .multiuser-grid{ grid-template-columns:1fr; } }
+.multiuser-card{
+  position:relative; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md);
+  padding:24px 22px; counter-increment:mu;
+  transition:transform .25s var(--ease), border-color .25s var(--ease);
+}
+.multiuser-card:hover{ transform:translateY(-6px); border-color:var(--gold-dim); }
+.multiuser-card::before{
+  content:counter(mu); position:absolute; top:18px; right:20px; font-family:'Outfit',sans-serif;
+  font-weight:800; font-size:26px; color:var(--gold); opacity:.35;
+}
+.multiuser-card .icon{
+  width:46px; height:46px; border-radius:14px; margin-bottom:16px;
+  background:var(--surface-2); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+}
+.multiuser-card .icon i{ color:var(--gold-dim); font-size:21px; }
+.multiuser-card h3{ font-size:15px; font-weight:700; margin:0 0 8px; padding-right:28px; }
+.multiuser-card p{ font-size:13.5px; color:var(--text-dim); line-height:1.65; margin:0; }
+.multiuser-card.highlight{ border-color:var(--gold-dim); background:color-mix(in srgb, var(--gold) 8%, var(--surface)); }
+
 .roadmap{ display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
 .roadmap span{
   font-size:12.5px; font-weight:600; color:var(--gold-dim);
-  background:color-mix(in srgb, var(--gold) 18%, #fff);
+  background:color-mix(in srgb, var(--gold) 18%, var(--surface));
   padding:7px 13px; border-radius:999px; display:inline-flex; align-items:center; gap:6px;
   transition:transform .2s var(--ease), background .2s var(--ease);
 }
-.roadmap span:hover{ transform:translateY(-2px); background:color-mix(in srgb, var(--gold) 32%, #fff); }
+.roadmap span:hover{ transform:translateY(-2px); background:color-mix(in srgb, var(--gold) 32%, var(--surface)); }
 .roadmap span i{ font-size:14px; }
 
 /* ---------- status strip (today -> tomorrow) ---------- */
@@ -348,7 +392,7 @@ details p{ font-size:13.5px; color:var(--text-dim); margin:12px 0 0; line-height
 
 .terms-note{
   display:flex; gap:10px; align-items:flex-start;
-  background:color-mix(in srgb, var(--gold) 14%, #fff); border:1px solid color-mix(in srgb, var(--gold) 35%, var(--border));
+  background:color-mix(in srgb, var(--gold) 14%, var(--surface)); border:1px solid color-mix(in srgb, var(--gold) 35%, var(--border));
   border-radius:var(--radius-md); padding:16px 18px; margin-bottom:18px; font-size:13.5px; color:var(--ink-soft); line-height:1.6;
 }
 .terms-note i{ color:var(--gold-dim); font-size:16px; margin-top:1px; }
@@ -394,6 +438,9 @@ footer .copyright{ font-size:12px; color:#7A7260; letter-spacing:.02em; }
       <a href="#terms">Terms</a>
     </nav>
     <div class="nav-ctas">
+      <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle dark and light theme">
+        <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+      </button>
       <a class="nav-download" href="download.html"><i class="bi bi-download"></i></a>
       <a class="enter" href="blackroad-dashboard.html">Open Dashboard</a>
     </div>
@@ -582,6 +629,30 @@ footer .copyright{ font-size:12px; color:#7A7260; letter-spacing:.02em; }
           <li>No cloud-verified accounts — sign-up is a simple local system for now.</li>
           <li>Not yet a unified React app — still separate HTML/JS pages per section.</li>
         </ul>
+      </div>
+    </div>
+
+    <div class="reveal-up">
+      <p class="kicker" style="margin-top:44px;">Shared devices</p>
+      <h2 style="font-size:20px; margin-bottom:6px;">One app, many people — each with their own numbers</h2>
+      <p class="lead" style="margin-bottom:22px;">BlackRoad can hold more than one person's data on the same browser or device. Every account is tied to the email address used to register, so no two people's entries ever mix — even if they're using the exact same computer.</p>
+
+      <div class="multiuser-grid">
+        <div class="multiuser-card">
+          <div class="icon"><i class="bi bi-envelope-check"></i></div>
+          <h3>Your email is the key</h3>
+          <p>Everything you add — income, loans, gold, stocks — is stored under your email address. A second person can register on the same device with their own email, and their entries stay in a completely separate space.</p>
+        </div>
+        <div class="multiuser-card">
+          <div class="icon"><i class="bi bi-arrow-left-right"></i></div>
+          <h3>Switching is just signing in</h3>
+          <p>Anyone can sign out and sign back in with a different email to jump straight to that person's dashboard. There's no mixing or overwriting — each login only ever sees its own account's data.</p>
+        </div>
+        <div class="multiuser-card highlight">
+          <div class="icon"><i class="bi bi-download"></i></div>
+          <h3>Exporting is what makes it portable</h3>
+          <p>Because all of this lives in one browser and nowhere else, exporting a backup file is essential — it's the only way to move an account to a new device, hand a shared computer back cleanly, or restore your numbers if something's cleared.</p>
+        </div>
       </div>
     </div>
 
@@ -779,6 +850,31 @@ footer .copyright{ font-size:12px; color:#7A7260; letter-spacing:.02em; }
 </footer>
 
 <script>
+  /* theme (shared with login/register/dashboard via the 'theme' personal key) */
+  (function(){
+    var html = document.documentElement;
+    var toggle = document.getElementById('themeToggle');
+    var icon = document.getElementById('themeIcon');
+    function applyTheme(mode){
+      html.setAttribute('data-theme', mode);
+      icon.className = 'bi ' + (mode === 'dark' ? 'bi-sun-fill' : 'bi-moon-stars-fill');
+    }
+    toggle.addEventListener('click', async function(){
+      var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try{
+        if(window.storage) await window.storage.set('theme', next, false);
+        else localStorage.setItem('br_theme', next);
+      }catch(e){}
+    });
+    (async function(){
+      try{
+        var saved = window.storage ? (await window.storage.get('theme', false)) : { value: localStorage.getItem('br_theme') };
+        if(saved && saved.value) applyTheme(saved.value);
+      }catch(e){ /* no saved theme yet — default stays light */ }
+    })();
+  })();
+
   var reveals = document.querySelectorAll('.reveal-up');
   if('IntersectionObserver' in window){
     var io = new IntersectionObserver(function(entries){
