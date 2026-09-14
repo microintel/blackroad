@@ -35,14 +35,15 @@ html[data-theme="light"]{
   --text-faint:#8A8577;
 }
 html[data-theme="dark"]{
-  --bg:#0E0C08;
-  --surface:#181510;
-  --surface-2:#211D15;
-  --border:rgba(255,255,255,.1);
-  --text:#F2EFE6;
-  --text-dim:#B4AF9E;
-  --text-faint:#7C7666;
-  --gold-dim:#C79A3F;
+  /* Pure black dark theme */
+  --bg:#000000;
+  --surface:#000000;
+  --surface-2:#000000;
+  --border:rgba(255,255,255,.14);
+  --text:#FFFFFF;
+  --text-dim:#C7C7C7;
+  --text-faint:#8F8F8F;
+  --gold-dim:#D4A63A;
 }
 *{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; }
@@ -51,6 +52,71 @@ body{
   font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
   transition:background .3s var(--ease), color .3s var(--ease);
 }
+/* ---------- pure-black dark mode ---------- */
+html[data-theme="dark"] body,
+html[data-theme="dark"] section,
+html[data-theme="dark"] .ticker,
+html[data-theme="dark"] .topnav,
+html[data-theme="dark"] .app-list,
+html[data-theme="dark"] .trio-card,
+html[data-theme="dark"] .arch-card,
+html[data-theme="dark"] .multiuser-card,
+html[data-theme="dark"] .status-strip,
+html[data-theme="dark"] .vs-card,
+html[data-theme="dark"] .platform,
+html[data-theme="dark"] .step,
+html[data-theme="dark"] details,
+html[data-theme="dark"] .terms-note,
+html[data-theme="dark"] .ticker-label,
+html[data-theme="dark"] .app-row .icon,
+html[data-theme="dark"] .trio-card .icon,
+html[data-theme="dark"] .multiuser-card .icon,
+html[data-theme="dark"] .vs-card .vs-icon,
+html[data-theme="dark"] .vs-icon-mid,
+html[data-theme="dark"] .theme-toggle{
+  background-color:#000000;
+}
+
+html[data-theme="dark"] .topnav{
+  background:rgba(0,0,0,.92);
+}
+
+/* Keep the hero/footer visually black while retaining their existing content styling. */
+html[data-theme="dark"] .hero,
+html[data-theme="dark"] footer{
+  background:#000000;
+}
+
+/* Borders are used only to separate UI surfaces in dark mode. */
+html[data-theme="dark"] .trio-card,
+html[data-theme="dark"] .app-list,
+html[data-theme="dark"] .arch-card,
+html[data-theme="dark"] .multiuser-card,
+html[data-theme="dark"] .status-strip,
+html[data-theme="dark"] .vs-card,
+html[data-theme="dark"] .platform,
+html[data-theme="dark"] .step,
+html[data-theme="dark"] details,
+html[data-theme="dark"] .terms-note,
+html[data-theme="dark"] .ticker,
+html[data-theme="dark"] .topnav,
+html[data-theme="dark"] .nav-download,
+html[data-theme="dark"] .theme-toggle{
+  border-color:var(--border);
+}
+
+/* Avoid gold-filled section backgrounds in dark mode; use the gold border as the distinction. */
+html[data-theme="dark"] .multiuser-card.highlight{
+  background:#000000;
+  border-color:var(--gold-dim);
+}
+
+html[data-theme="dark"] .terms-note{
+  background:#000000;
+  border-color:var(--gold-dim);
+  color:var(--text);
+}
+
 a{ color:inherit; text-decoration:none; }
 h1,h2,h3{ font-family:'Outfit',sans-serif; }
 img{ max-width:100%; display:block; }
@@ -111,6 +177,10 @@ section > .wrap > p.lead{
 }
 .brand-name{ font-weight:700; font-size:17px; color:#1B1D22; }
 .brand-name span{ color:var(--gold-dim); }
+
+/* Dark mode BlackRoad wordmark: white + gold */
+html[data-theme="dark"] .brand-name{ color:#FFFFFF; }
+html[data-theme="dark"] .brand-name span{ color:var(--gold); }
 .topnav nav{ display:flex; gap:22px; }
 .topnav nav a{
   font-size:13.5px; font-weight:500; color:var(--text-dim);
