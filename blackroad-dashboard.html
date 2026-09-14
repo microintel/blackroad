@@ -641,8 +641,8 @@ footer{
   .greet-eyebrow{ font-size:11px; }
   .greet-title{ font-size:19px; }
   .topbar-actions{ gap:8px; }
-  #installAppBtn span{ display:none; } /* icon-only install button on small screens */
-  #installAppBtn{ padding:9px; }
+  #downloadAppBtn span{ display:none; }
+  #downloadAppBtn{ padding:9px; }
   .icon-btn,.avatar{ width:34px; height:34px; border-radius:9px; }
 
   .content{ padding:4px 16px calc(var(--bottom-nav-h) + 28px); }
@@ -1097,7 +1097,8 @@ footer{
       <a class="nav-link" data-target="account"><i class="bi bi-person-circle"></i>Account</a>
       <a class="nav-link" data-target="settings"><i class="bi bi-gear"></i>Settings</a>
       <a class="nav-link" href="https://microintel.github.io/vision/" target="_blank" rel="noopener"><i class="bi bi-calculator-fill"></i>Financial Calculators</a>
-      <a class="nav-link" id="installAppLink" style="display:none;"><i class="bi bi-download"></i>Install App</a>
+      <a class="nav-link" id="downloadAppLink"><i class="bi bi-cloud-download-fill"></i>Download</a>
+      <a class="nav-link" id="aboutUsageLink"><i class="bi bi-info-circle-fill"></i>About &amp; Usage</a>
     </nav>
 
     <div class="sidebar-footer">
@@ -1119,7 +1120,7 @@ footer{
         </div>
       </div>
       <div class="topbar-actions">
-        <button class="btn-secondary" id="installAppBtn" style="display:none;"><i class="bi bi-download"></i><span> Install App</span></button>
+        <button class="btn-secondary" id="downloadAppBtn"><i class="bi bi-cloud-download-fill"></i><span> Download</span></button>
         <button class="icon-btn" onclick="location.href='notifications.html'"><i class="bi bi-bell"></i></button>
         <div class="avatar-wrap">
           <button class="avatar" id="avatarBtn">AS</button>
@@ -3867,52 +3868,21 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
 setActiveNav('overview');
 
 /* ============================================================
-   PWA INSTALL — trigger the native "Add to Home Screen" /
-   "Install app" prompt from the dashboard.
+   DOWNLOAD — a single entry point (topbar button on desktop,
+   sidebar link surfaced inside the mobile "More" sheet) that sends
+   people to the standalone download.html page, where every install
+   option lives: per-platform builds (Android/iOS/Windows/Ubuntu/
+   macOS) plus "Install Web" for the native PWA prompt. That page
+   has no login gate, so it works for signed-out visitors too.
    ============================================================ */
-let deferredInstallPrompt = null;
-const installAppBtn = document.getElementById('installAppBtn');
-const installAppLink = document.getElementById('installAppLink');
+const downloadAppBtn = document.getElementById('downloadAppBtn');
+const downloadAppLink = document.getElementById('downloadAppLink');
+function goToDownloadPage(){ window.location.href = 'download.html'; }
+if(downloadAppBtn) downloadAppBtn.addEventListener('click', goToDownloadPage);
+if(downloadAppLink) downloadAppLink.addEventListener('click', goToDownloadPage);
 
-function showInstallControls(){
-  if(installAppBtn) installAppBtn.style.display = 'inline-flex';
-  if(installAppLink) installAppLink.style.display = 'flex';
-}
-function hideInstallControls(){
-  if(installAppBtn) installAppBtn.style.display = 'none';
-  if(installAppLink) installAppLink.style.display = 'none';
-}
-
-window.addEventListener('beforeinstallprompt', (e)=>{
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  showInstallControls();
-});
-
-async function triggerInstall(){
-  if(!deferredInstallPrompt){
-    showToast('App install isn\'t available in this browser right now.', 'bi-info-circle-fill');
-    return;
-  }
-  deferredInstallPrompt.prompt();
-  const { outcome } = await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  hideInstallControls();
-  showToast(outcome === 'accepted' ? 'BlackRoad installed — check your home screen' : 'Install dismissed', outcome === 'accepted' ? 'bi-check-circle-fill' : 'bi-info-circle-fill');
-}
-if(installAppBtn) installAppBtn.addEventListener('click', triggerInstall);
-if(installAppLink) installAppLink.addEventListener('click', triggerInstall);
-
-window.addEventListener('appinstalled', ()=>{
-  deferredInstallPrompt = null;
-  hideInstallControls();
-  showToast('BlackRoad installed successfully', 'bi-check-circle-fill');
-});
-
-/* Already running as an installed PWA? Then there's nothing to install. */
-if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
-  hideInstallControls();
-}
+const aboutUsageLink = document.getElementById('aboutUsageLink');
+if(aboutUsageLink) aboutUsageLink.addEventListener('click', ()=>{ window.location.href = 'about-usage.html'; });
 
 /* Register the service worker so the app is actually installable
    (Chrome/Edge require one for the install prompt to fire). */
