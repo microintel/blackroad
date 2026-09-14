@@ -2384,29 +2384,25 @@ function queueRecalc(){
 }
 
 async function recalcNetWorth(){
-  let stocksVal = 0, mfVal = 0, incomeNet = 0;
+  let stocksVal = 0, mfVal = 0, incomeCash = 0;
   let lending = { peopleReceivable: 0, peoplePayable: 0, loansOutstanding: 0, monthlyEmi: 0, activeLoanCount: 0, liabilities: 0 };
   let deposits = { totalCurrentValue: 0, totalInvested: 0, activeCount: 0, nextMaturity: null, rows: [] };
   try{ if(typeof StocksStore !== 'undefined') stocksVal = (await StocksStore.getSummary()).currentValue; }catch(e){ console.error(e); }
   try{ if(typeof MutualFundStore !== 'undefined') mfVal = (await MutualFundStore.getSummary()).currentValue; }catch(e){ console.error(e); }
-  try{ if(typeof IncomeStore !== 'undefined') incomeNet = (await IncomeStore.getSummary()).net; }catch(e){ console.error(e); }
+  try{ if(typeof IncomeStore !== 'undefined') incomeCash = (await IncomeStore.getSummary()).cash; }catch(e){ console.error(e); }
   try{ if(typeof LendingStore !== 'undefined') lending = await LendingStore.getSummary(); }catch(e){ console.error(e); }
   try{ if(typeof DepositsStore !== 'undefined') deposits = await DepositsStore.getSummary(); }catch(e){ console.error(e); }
 
   const LOANS_VALUE = lending.liabilities; // live: bank-loan outstanding + money you owe people
-  // Cash & Bank = incomeNet (all-time income minus expenses). This is
-  // real, spendable money you're holding that hasn't been assigned to
-  // any other tracked asset — so it belongs in Net Worth like any other
-  // asset. (If you later track "moved X into Stocks" as its own
-  // transaction type, subtract that here to avoid double-counting —
-  // for now Income & Expenses has no such linkage, so the full surplus
-  // counts as cash on hand.)
+  // Cash & Bank is the actual residual cash: income + asset-sale proceeds
+  // minus normal expenses and money moved into tracked assets.
+  // Investment purchases therefore cannot be counted again as cash.
   //
   // Every figure below (hero total, donut, foot row) is now built from
   // this SAME `items` list, so Total Assets − Total Liabilities always
   // equals the hero Net Worth exactly — no more drift between them.
   const items = [
-    { label:'Cash & Bank',           amount:incomeNet,                 color:'#22D3EE'        },
+    { label:'Cash & Bank',           amount:incomeCash,                 color:'#22D3EE'        },
     { label:'Real Estate',           amount:REALESTATE_VALUE,        color:'var(--blue)'    },
     { label:'Mutual Funds',          amount:mfVal,                    color:'var(--gold)'   },
     { label:'Stocks',                amount:stocksVal,                color:'var(--green)'  },
@@ -2443,8 +2439,8 @@ async function recalcNetWorth(){
   if(footLiab) footLiab.textContent = formatINR(LOANS_VALUE);
   if(footIns) footIns.textContent = formatINR(INSURANCE_VALUE);
   if(footSurplus){
-    footSurplus.textContent = formatINR(incomeNet);
-    footSurplus.style.color = incomeNet >= 0 ? 'var(--green)' : 'var(--red)';
+    footSurplus.textContent = formatINR(incomeCash);
+    footSurplus.style.color = incomeCash >= 0 ? 'var(--green)' : 'var(--red)';
   }
   // Donut center must match what the ring actually shows: the sum of
   // just the allocation chart items (Mutual Funds + Lending
@@ -3761,7 +3757,7 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
    */
   async function incGetSummary(){
     const entries = await incGetAllEntries();
-    let totalIncome = 0, totalExpense = 0, totalInvestment = 0;
+    let totalIncome = 0, totalExpense = 0, totalInvestment = 0, investmentOutflow = 0, investmentInflow = 0;
     const catTotals = new Map();
 
     entries.forEach((e) => {
@@ -3770,6 +3766,10 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
         const amt = Number(t.amount) || 0;
         if(incIsInvestmentCategory(t.category)){
           totalInvestment += amt;
+          const explicit = String(t.direction ?? t.action ?? t.side ?? t.cashFlow ?? "").trim().toLowerCase();
+          const isInflow = ["sell","redeem","withdraw","withdrawal","maturity","credit","in","cashin","cash-in"].includes(explicit);
+          if(isInflow) investmentInflow += amt;
+          else investmentOutflow += amt;
           return;
         }
         totalExpense += amt;
@@ -3787,7 +3787,12 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       totalIncome,
       totalExpense,
       totalInvestment,
-      net: totalIncome - totalExpense,
+      investmentOutflow,
+      investmentInflow,
+      cash: totalIncome - totalExpense - investmentOutflow + investmentInflow,
+      // `net` is retained as the cash figure for compatibility with the
+      // existing dashboard widgets. It is NOT total net worth.
+      net: totalIncome - totalExpense - investmentOutflow + investmentInflow,
       categories,
     };
   }
