@@ -26,7 +26,7 @@ async function renderUpdateDateBadge() {
 }
 
 function renderDashboard() {
-  let totalIncome = 0, totalExpense = 0, totalInvestment = 0, totalCount = 0;
+  let totalIncome = 0, totalExpense = 0, totalInvestment = 0, totalInvestmentSale = 0, totalCount = 0;
   const catTotals = new Map();
   const sourceTotals = new Map();
   const incomeCatTotals = new Map();
@@ -35,6 +35,7 @@ function renderDashboard() {
     totalIncome += Number(e.income) || 0;
     totalExpense += Number(e.expense) || 0;
     totalInvestment += Number(e.investment) || 0;
+    totalInvestmentSale += Number(e.investmentSale) || 0;
     totalCount += (e.transactions || []).length;
     sourceTotals.set(e.from || "Other", (sourceTotals.get(e.from || "Other") || 0) + (Number(e.income) || 0));
     const incCat = e.category || "Uncategorized"; // entries logged before categories existed still show up here
@@ -49,7 +50,9 @@ function renderDashboard() {
   // ---- 4 quick-stat cards ----
   document.getElementById("qsIncome").textContent = fmtMoney(totalIncome);
   document.getElementById("qsExpense").textContent = fmtMoney(totalExpense);
-  document.getElementById("qsBalance").textContent = fmtMoney(totalIncome - totalExpense);
+  // Cash balance: income - expenses - asset purchases + asset sale proceeds.
+  const cashBalance = totalIncome - totalExpense - totalInvestment + totalInvestmentSale;
+  document.getElementById("qsBalance").textContent = fmtMoney(cashBalance);
   document.getElementById("qsCount").textContent = String(totalCount);
   const qsInv = document.getElementById("qsInvestment");
   if (qsInv) qsInv.textContent = fmtMoney(totalInvestment);
@@ -57,7 +60,7 @@ function renderDashboard() {
   // ---- Net balance hero card ----
   document.getElementById("statIncome").textContent = fmtMoney(totalIncome);
   document.getElementById("statExpense").textContent = fmtMoney(totalExpense);
-  document.getElementById("statNet").textContent = fmtMoney(totalIncome - totalExpense);
+  document.getElementById("statNet").textContent = fmtMoney(cashBalance);
 
   // ---- Income by source ----
   const sourceList = document.getElementById("sourceList");
@@ -222,13 +225,21 @@ function setDeltaPill(id, delta, invert) {
 
 function monthTotals(key) {
   let income = 0, expense = 0;
+  let investment = 0;
+  let investmentSale = 0;
+
   ENTRIES.forEach((e) => {
     if (monthKeyOf(e.date) === key) {
       income += Number(e.income) || 0;
       expense += Number(e.expense) || 0;
+      investment += Number(e.investment) || 0;
+      investmentSale += Number(e.investmentSale) || 0;
     }
   });
-  return { income, expense, net: income - expense };
+
+  // Monthly net is cash change, not income minus expenses alone.
+  const net = income - expense - investment + investmentSale;
+  return { income, expense, investment, investmentSale, net };
 }
 
 function renderThisMonth() {

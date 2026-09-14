@@ -227,36 +227,109 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-/* ---------------- Investment categories ----------------
-   These categories represent money moved into an asset (mutual funds,
-   SIPs, stocks, fixed deposits) rather than money spent. They are kept
-   out of "expense" totals/charts and out of "balance" entirely — they
-   get their own "investment" total instead. */
+/* ---------------- Investment / cash-flow calculation ----------------
+   Investment transactions are transfers from CASH into an asset.
+   They are therefore NOT expenses, but they DO reduce cash.
+
+   Supported investment transaction directions:
+     BUY / investment / deposit -> cash goes down
+     SELL / withdrawal           -> cash goes up
+
+   A SELL can optionally contain `costBasis`; when present we expose the
+   realized gain/loss without counting the sale proceeds as income. This
+   prevents double-counting and keeps cash, assets and performance separate. */
 
 const INVESTMENT_CATEGORIES = ["Mutual Fund", "SIP", "Stock", "FD"];
 
 function isInvestmentCategory(cat) {
-  return INVESTMENT_CATEGORIES.includes(cat);
+  return INVESTMENT_CATEGORIES.includes(String(cat || "").trim());
+}
+
+function investmentDirection(t) {
+  const raw = String(t?.type || "").trim().toLowerCase();
+  if (["sell", "withdraw", "withdrawal", "redemption", "maturity"].includes(raw)) {
+    return "sell";
+  }
+  return "buy";
 }
 
 function recalcEntry(entry) {
-  let totalExpense = 0, totalInvestment = 0;
+  let totalExpense = 0;
+  let totalInvestment = 0;
+  let totalInvestmentSale = 0;
+  let realizedGainLoss = 0;
+
   (entry.transactions || []).forEach((t) => {
-    const amt = Number(t.amount) || 0;
+    const amt = Math.max(0, Number(t.amount) || 0);
+
     if (isInvestmentCategory(t.category)) {
-      totalInvestment += amt;
-      t.type = "investment";
-    } else {
-      totalExpense += amt;
-      t.type = "expense";
+      if (investmentDirection(t) === "sell") {
+        totalInvestmentSale += amt;
+        const costBasis = Number(t.costBasis);
+        if (Number.isFinite(costBasis)) {
+          realizedGainLoss += amt - costBasis;
+        }
+        t.type = "sell";
+      } else {
+        totalInvestment += amt;
+        t.type = "investment";
+      }
+      return;
     }
+
+    totalExpense += amt;
+    t.type = "expense";
   });
+
+  const income = Number(entry.income) || 0;
+
   entry.expense = totalExpense;
   entry.investment = totalInvestment;
-  // Investments don't reduce balance — the money moved into an asset,
-  // it wasn't spent.
-  entry.balance = (Number(entry.income) || 0) - totalExpense;
+  entry.investmentSale = totalInvestmentSale;
+  entry.realizedGainLoss = realizedGainLoss;
+
+  // CASH is what remains after normal spending and money moved into
+  // investments, plus cash received from asset sales.
+  entry.balance = income - totalExpense - totalInvestment + totalInvestmentSale;
+
   return entry;
+}
+
+/* Aggregate the ledger using the same accounting rules as recalcEntry().
+   `cash` is spendable cash; `contributions` is money put into assets;
+   `assetSales` is cash returned from assets; `realizedGainLoss` is
+   performance only and is never added to cash a second time. */
+function calculateLedgerSummary(entries) {
+  let income = 0;
+  let expense = 0;
+  let contributions = 0;
+  let assetSales = 0;
+  let realizedGainLoss = 0;
+
+  (entries || []).forEach((entry) => {
+    const e = recalcEntry({
+      ...entry,
+      transactions: (entry.transactions || []).map((t) => ({ ...t }))
+    });
+    income += Number(e.income) || 0;
+    expense += Number(e.expense) || 0;
+    contributions += Number(e.investment) || 0;
+    assetSales += Number(e.investmentSale) || 0;
+    realizedGainLoss += Number(e.realizedGainLoss) || 0;
+  });
+
+  const cash = income - expense - contributions + assetSales;
+  const netCashFlow = income - expense - contributions + assetSales;
+
+  return {
+    income,
+    expense,
+    contributions,
+    assetSales,
+    realizedGainLoss,
+    cash,
+    netCashFlow
+  };
 }
 
 /* ---------------- Predefined expense categories ----------------
