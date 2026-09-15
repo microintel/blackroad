@@ -111,7 +111,7 @@ function renderLedger() {
     let yIncome = 0, yExpense = 0, yInvestment = 0, yCount = 0;
     monthMap.forEach((entries) => {
       entries.forEach((e) => {
-        yIncome += Number(e.income) || 0;
+        yIncome += entryIncomeAmount(e);
         yExpense += Number(e.expense) || 0;
         yInvestment += Number(e.investment) || 0;
         yCount += (e.transactions || []).length;
@@ -158,14 +158,20 @@ function renderEntry(e) {
     txnHTML = `<div class="no-txns">No expenses logged against this entry</div>`;
   } else {
     txns.forEach((t) => {
+      // A "sell" transaction is cash coming back in, not spending — show it
+      // with a "+" and a distinct label so it doesn't read as an expense.
+      const isSell = t.type === "sell";
+      const hasCostBasis = isSell && Number.isFinite(Number(t.costBasis));
+      const gainLoss = hasCostBasis ? (Number(t.amount) - Number(t.costBasis)) : null;
       txnHTML += `
         <div class="txn-row">
           <span class="txn-ico"><i class="bi bi-dot"></i></span>
-          <div class="txn-amt">${fmtMoney(t.amount)}</div>
+          <div class="txn-amt">${isSell ? "+" : ""}${fmtMoney(t.amount)}</div>
           <div class="txn-date">${t.date || ""}</div>
           <div class="txn-desc">
             ${escapeHTML(t.description || "Expense")}
-            ${t.category ? `<span class="cat${isInvestmentCategory(t.category) ? " inv" : ""}">${escapeHTML(t.category)}</span>` : ""}
+            ${t.category ? `<span class="cat${isInvestmentCategory(t.category) ? " inv" : ""}">${escapeHTML(t.category)}${isSell ? " · sold" : ""}</span>` : (isSell ? `<span class="cat inv">Sold</span>` : "")}
+            ${hasCostBasis ? `<span class="cat${gainLoss >= 0 ? " inv" : ""}">${gainLoss >= 0 ? "+" : "-"}${fmtMoney(Math.abs(gainLoss))} ${gainLoss >= 0 ? "gain" : "loss"}</span>` : ""}
           </div>
           <div class="entry-actions">
             <button class="icon-btn" title="Edit" onclick="event.stopPropagation(); openTxnDialog(${e.id}, '${t.id}')"><i class="bi bi-pencil"></i></button>
@@ -181,7 +187,7 @@ function renderEntry(e) {
         <div class="entry-head" onclick="toggleEntry(${e.id})">
           <div class="entry-row-top">
             <div class="entry-from">${escapeHTML(e.from || "Income")}</div>
-            <div class="entry-income">+${fmtMoney(e.income)}</div>
+            <div class="entry-income ${entryDisplayKind(e)}">+${fmtMoney(entryCashInflowAmount(e))}${entryInvestmentSaleDisplayAmount(e) > 0 ? `<span class="entry-cash-label"> sale</span>` : ""}</div>
             <div class="entry-actions">
               <button class="icon-btn add" title="Add expense" onclick="event.stopPropagation(); openTxnDialog(${e.id})"><i class="bi bi-plus-lg"></i></button>
             </div>
@@ -339,6 +345,31 @@ let txnContext = { entryId: null, txnId: null };
 
 const txnCategorySelect = document.getElementById("txnCategorySelect");
 const txnCategoryInput  = document.getElementById("txnCategory");
+const txnDirectionField = document.getElementById("txnDirectionField");
+const txnDirectionSelect = document.getElementById("txnDirectionSelect");
+const txnCostBasisField = document.getElementById("txnCostBasisField");
+const txnCostBasisInput = document.getElementById("txnCostBasis");
+
+/* The Buy/Sell picker (and, for a sell, the optional cost-basis field) only
+   makes sense once the category is one of the investment categories
+   (Mutual Fund / SIP / Stock / FD) — for a plain expense they stay hidden
+   and the transaction is always recorded as an expense. */
+function currentTxnCategoryValue() {
+  return txnCategorySelect.value === CUSTOM_OPTION_VALUE ? txnCategoryInput.value.trim() : txnCategorySelect.value;
+}
+
+function updateTxnInvestmentFields() {
+  const isInv = isInvestmentCategory(currentTxnCategoryValue());
+  txnDirectionField.style.display = isInv ? "block" : "none";
+  txnCostBasisField.style.display = (isInv && txnDirectionSelect.value === "sell") ? "block" : "none";
+  if (!isInv) {
+    txnDirectionSelect.value = "buy";
+    txnCostBasisInput.value = "";
+  }
+}
+
+txnDirectionSelect.addEventListener("change", updateTxnInvestmentFields);
+txnCategoryInput.addEventListener("input", updateTxnInvestmentFields);
 
 // Populate the predefined category dropdown once at load time.
 DEFAULT_CATEGORIES.forEach((cat) => {
@@ -383,6 +414,7 @@ txnCategorySelect.addEventListener("change", () => {
     txnCategoryInput.style.display = "none";
     txnCategoryInput.value = txnCategorySelect.value;
   }
+  updateTxnInvestmentFields();
 });
 
 function openTxnDialog(entryId, txnId) {
@@ -391,6 +423,8 @@ function openTxnDialog(entryId, txnId) {
   form.reset();
   document.getElementById("txnDate").value = todayISO();
   setCategoryPicker("");
+  txnDirectionSelect.value = "buy";
+  txnCostBasisInput.value = "";
   const title = document.getElementById("txnDialogTitle");
 
   if (txnId) {
@@ -401,9 +435,12 @@ function openTxnDialog(entryId, txnId) {
     document.getElementById("txnDesc").value = t.description;
     document.getElementById("txnDate").value = t.date;
     setCategoryPicker(t.category);
+    txnDirectionSelect.value = t.type === "sell" ? "sell" : "buy";
+    txnCostBasisInput.value = Number.isFinite(Number(t.costBasis)) && t.costBasis !== undefined ? t.costBasis : "";
   } else {
     title.textContent = "Add expense";
   }
+  updateTxnInvestmentFields();
   openDialog("txnDialog");
 }
 
@@ -424,13 +461,23 @@ document.getElementById("txnForm").addEventListener("submit", async (ev) => {
   const e = ENTRIES.find((x) => x.id === txnContext.entryId);
   if (!e.transactions) e.transactions = [];
 
-  const kind = isInvestmentCategory(category) ? "Investment" : "Expense";
+  const isInv = isInvestmentCategory(category);
+  // type seeds recalcEntry()'s buy/sell direction (shared.js investmentDirection());
+  // for a plain expense it's just "expense" and ignored by that check.
+  const type = isInv ? txnDirectionSelect.value : "expense";
+  const costBasisRaw = txnCostBasisInput.value.trim();
+  const costBasis = (isInv && type === "sell" && costBasisRaw !== "") ? parseFloat(costBasisRaw) : undefined;
+
+  const kind = !isInv ? "Expense" : (type === "sell" ? "Investment sale" : "Investment");
   if (txnContext.txnId) {
     const t = e.transactions.find((x) => x.id === txnContext.txnId);
-    Object.assign(t, { amount, description, category, date });
+    Object.assign(t, { amount, description, category, date, type, costBasis });
+    if (costBasis === undefined) delete t.costBasis;
     showToast(kind + " updated");
   } else {
-    e.transactions.push({ id: uid(), amount, description, category, date, type: "expense" });
+    const t = { id: uid(), amount, description, category, date, type };
+    if (costBasis !== undefined) t.costBasis = costBasis;
+    e.transactions.push(t);
     showToast(kind + " added");
   }
   recalcEntry(e);

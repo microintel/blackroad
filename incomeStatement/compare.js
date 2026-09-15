@@ -73,23 +73,32 @@ function setDeltaPill(id, delta, invert) {
 /* ---------------- Totals for a given period ---------------- */
 
 function periodTotals(key) {
-  let income = 0, expense = 0, txnCount = 0;
-  const sourceTotals = new Map();   // e.from -> income sum   (income source)
+  let income = 0, expense = 0, investment = 0, investmentSale = 0, txnCount = 0;
+  const sourceTotals = new Map();   // e.from -> genuine income sum (income source)
   const categoryTotals = new Map(); // t.category -> expense sum (per-transaction)
-  const incomeCategoryTotals = new Map(); // e.category -> income sum (per income entry)
+  const incomeCategoryTotals = new Map(); // e.category -> genuine income sum (per income entry)
+  const investmentReturnTotals = new Map(); // e.category -> investment-return sum, kept separate
 
   ENTRIES.forEach((e) => {
     if (periodKeyOf(e.date) !== key) return;
-    const eIncome = Number(e.income) || 0;
+    const eIncome = entryIncomeAmount(e);
     const eExpense = Number(e.expense) || 0;
     income += eIncome;
     expense += eExpense;
+    investment += Number(e.investment) || 0;
+    investmentSale += entryInvestmentSaleDisplayAmount(e);
 
-    if (eIncome > 0) {
+    const genuineAmt = entryGenuineIncomeAmount(e);
+    if (genuineAmt > 0) {
       const src = e.from || "Other";
-      sourceTotals.set(src, (sourceTotals.get(src) || 0) + eIncome);
+      sourceTotals.set(src, (sourceTotals.get(src) || 0) + genuineAmt);
       const incCat = e.category || "Uncategorized"; // entries logged before categories existed still show up here
-      incomeCategoryTotals.set(incCat, (incomeCategoryTotals.get(incCat) || 0) + eIncome);
+      incomeCategoryTotals.set(incCat, (incomeCategoryTotals.get(incCat) || 0) + genuineAmt);
+    }
+    const returnAmt = entryInvestmentReturnAmount(e);
+    if (returnAmt > 0) {
+      const incCat = e.category || "Investment return";
+      investmentReturnTotals.set(incCat, (investmentReturnTotals.get(incCat) || 0) + returnAmt);
     }
 
     (e.transactions || []).forEach((t) => {
@@ -101,12 +110,14 @@ function periodTotals(key) {
     });
   });
 
-  const net = income - expense;
+  // Net cash change — same rule as the dashboard: income minus spending
+  // minus money moved into investments, plus cash returned from selling them.
+  const net = income - expense - investment + investmentSale;
   const rate = income > 0 ? (net / income) * 100 : (expense > 0 ? -100 : 0);
   const topCategory = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1])[0] || null;
   const topSource = [...sourceTotals.entries()].sort((a, b) => b[1] - a[1])[0] || null;
 
-  return { income, expense, net, rate, txnCount, sourceTotals, categoryTotals, incomeCategoryTotals, topCategory, topSource };
+  return { income, expense, investment, investmentSale, net, rate, txnCount, sourceTotals, categoryTotals, incomeCategoryTotals, investmentReturnTotals, topCategory, topSource };
 }
 
 /* ---------------- Populate the period pickers ---------------- */
@@ -337,14 +348,16 @@ function monthShortLabel(key) {
 }
 
 function monthlySeries() {
-  const map = new Map(); // "YYYY-MM" -> { income, expense }
+  const map = new Map(); // "YYYY-MM" -> { income, expense, investment, investmentSale }
   ENTRIES.forEach((e) => {
     const mk = monthKeyOf(e.date);
     if (!mk) return;
-    if (!map.has(mk)) map.set(mk, { income: 0, expense: 0 });
+    if (!map.has(mk)) map.set(mk, { income: 0, expense: 0, investment: 0, investmentSale: 0 });
     const m = map.get(mk);
-    m.income += Number(e.income) || 0;
+    m.income += entryIncomeAmount(e);
     m.expense += Number(e.expense) || 0;
+    m.investment += Number(e.investment) || 0;
+    m.investmentSale += entryInvestmentSaleDisplayAmount(e);
   });
   return map;
 }
@@ -376,7 +389,10 @@ function renderTrendChart() {
   const labels = keys.map(monthShortLabel);
   const incomeData = keys.map((k) => series.get(k).income);
   const expenseData = keys.map((k) => series.get(k).expense);
-  const balanceData = keys.map((k) => series.get(k).income - series.get(k).expense);
+  const balanceData = keys.map((k) => {
+    const m = series.get(k);
+    return m.income - m.expense - m.investment + m.investmentSale;
+  });
 
   const cs = getComputedStyle(document.documentElement);
   const dimColor = cs.getPropertyValue("--text-dim").trim() || "#9AA8B6";

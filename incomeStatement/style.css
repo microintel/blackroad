@@ -706,6 +706,12 @@ body{ padding-left: var(--rail-w); }
   margin:0 0 14px;
   font-weight:600;
 }
+.panel-sub{
+  font-size:0.74rem;
+  color:var(--text-dim);
+  margin:-8px 0 14px;
+  line-height:1.4;
+}
 
 .stat-row{
   display:flex;
@@ -2110,3 +2116,9 @@ body[data-page="dashboard"] .dashboard-grid-2 .panel{
    page's init() finishes, then the matching skeleton is removed. */
 [hidden]{ display:none !important; }
 
+
+/* Investment sale is a cash inflow, not ordinary income. */
+.entry-income.investment-sale { color: var(--ink-in); }
+.entry-cash-label { font-size: .55em; font-weight: 700; margin-left: .2em; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+.mini-ico.investment-sale, .result-ico.investment-sale { color: var(--ink-in); background: var(--ink-in-bg); }
+.mini-amount.investment-sale, .result-amt.investment-sale { color: var(--ink-in); }

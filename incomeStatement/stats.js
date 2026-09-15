@@ -29,6 +29,11 @@ let lastSortedIncCats = [];
 let lastTotalIncome = 0;
 let lastIncCatTxns = new Map();
 
+const expandedInvRetCats = new Set();
+let lastSortedInvRetCats = [];
+let lastTotalInvReturns = 0;
+let lastInvRetCatTxns = new Map();
+
 /* chartjs-plugin-zoom self-registers via UMD in most builds, but register
    explicitly too so the zoomable monthly chart works regardless of build. */
 if (window.Chart && window.ChartZoom && !Chart.registry.plugins.get("zoom")) {
@@ -64,32 +69,44 @@ function renderStats() {
   if (!hasData) return;
 
   /* ---- Aggregate totals ---- */
-  let totalIncome = 0, totalExpense = 0, txnCount = 0;
+  let totalIncome = 0, totalExpense = 0, totalInvestment = 0, totalInvestmentSale = 0, txnCount = 0;
   const catTotals = new Map();
   const catTxns = new Map(); // category -> [{ note, amount, date }]
-  const incomeCatTotals = new Map();
+  const incomeCatTotals = new Map();    // genuine income categories only
   const incomeCatTxns = new Map(); // income category -> [{ note, amount, date }]
-  const monthly = new Map(); // key -> { income, expense }
+  const invReturnCatTotals = new Map(); // investment-return categories, kept separate
+  const invReturnCatTxns = new Map();
+  const monthly = new Map(); // key -> { income, expense, investment, investmentSale }
   const txnDates = [];
 
   ENTRIES.forEach((e) => {
-    totalIncome += Number(e.income) || 0;
+    totalIncome += entryIncomeAmount(e);
     totalExpense += Number(e.expense) || 0;
+    totalInvestment += Number(e.investment) || 0;
+    totalInvestmentSale += entryInvestmentSaleDisplayAmount(e);
 
     const incCat = e.category || "Uncategorized"; // entries logged before categories existed still show up here
-    const incAmt = Number(e.income) || 0;
+    const incAmt = entryGenuineIncomeAmount(e);
     if (incAmt > 0) {
       incomeCatTotals.set(incCat, (incomeCatTotals.get(incCat) || 0) + incAmt);
       if (!incomeCatTxns.has(incCat)) incomeCatTxns.set(incCat, []);
       incomeCatTxns.get(incCat).push({ note: e.from || incCat, amount: incAmt, date: e.date });
     }
+    const returnAmt = entryInvestmentReturnAmount(e);
+    if (returnAmt > 0) {
+      invReturnCatTotals.set(incCat, (invReturnCatTotals.get(incCat) || 0) + returnAmt);
+      if (!invReturnCatTxns.has(incCat)) invReturnCatTxns.set(incCat, []);
+      invReturnCatTxns.get(incCat).push({ note: e.from || incCat, amount: returnAmt, date: e.date });
+    }
 
     const mk = monthKeyOf(e.date);
     if (mk) {
-      if (!monthly.has(mk)) monthly.set(mk, { income: 0, expense: 0 });
+      if (!monthly.has(mk)) monthly.set(mk, { income: 0, expense: 0, investment: 0, investmentSale: 0 });
       const m = monthly.get(mk);
-      m.income += Number(e.income) || 0;
+      m.income += entryIncomeAmount(e);
       m.expense += Number(e.expense) || 0;
+      m.investment += Number(e.investment) || 0;
+      m.investmentSale += entryInvestmentSaleDisplayAmount(e);
     }
 
     (e.transactions || []).forEach((t) => {
@@ -108,7 +125,9 @@ function renderStats() {
     });
   });
 
-  const totalBalance = totalIncome - totalExpense;
+  // Cash balance, same rule the dashboard uses: income minus spending minus
+  // money moved into investments, plus cash that came back from selling them.
+  const totalBalance = totalIncome - totalExpense - totalInvestment + totalInvestmentSale;
   const monthsCount = Math.max(monthly.size, 1);
 
   /* ---- Ratios & averages ---- */
@@ -142,6 +161,9 @@ function renderStats() {
   renderCategoryGauges(sortedCats, totalExpense, catTxns);
   const sortedIncCats = [...incomeCatTotals.entries()].sort((a, b) => b[1] - a[1]);
   renderIncomeCategoryGauges(sortedIncCats, totalIncome, incomeCatTxns);
+  const totalInvReturns = [...invReturnCatTotals.values()].reduce((s, v) => s + v, 0);
+  const sortedInvReturnCats = [...invReturnCatTotals.entries()].sort((a, b) => b[1] - a[1]);
+  renderInvestmentReturnGauges(sortedInvReturnCats, totalInvReturns, invReturnCatTxns);
   renderMonthlyChart(monthly);
 }
 
@@ -169,7 +191,7 @@ function renderRatios(s) {
     },
     {
       label: "Avg. monthly savings", ico: "bi-wallet2", tone: "in",
-      val: fmtMoney(s.avgMonthlySavings), sub: "income minus expense",
+      val: fmtMoney(s.avgMonthlySavings), sub: "net cash change",
       cls: s.avgMonthlySavings >= 0 ? "pos" : "neg"
     },
     {
@@ -347,6 +369,78 @@ document.getElementById("incCatGaugeGrid") && document.getElementById("incCatGau
   renderIncomeCategoryGauges(lastSortedIncCats, lastTotalIncome, lastIncCatTxns);
 });
 
+/* ---------------- Investment return gauges ----------------
+   Same pattern again, but for Stock/MF/FD/Mutual-Fund "Return" categories
+   only — kept out of the income gauges above so a dividend or interest
+   payout never gets mixed into "how much of my salary/income" breakdowns. */
+
+function renderInvestmentReturnGauges(sortedCats, totalReturns, catTxns) {
+  const grid = document.getElementById("invRetGaugeGrid");
+  const empty = document.getElementById("invRetGaugeEmpty");
+  if (!grid || !empty) return; // page not upgraded with this section yet
+
+  lastSortedInvRetCats = sortedCats;
+  lastTotalInvReturns = totalReturns;
+  lastInvRetCatTxns = catTxns;
+
+  if (sortedCats.length === 0 || totalReturns <= 0) {
+    grid.style.display = "none";
+    empty.style.display = "block";
+    return;
+  }
+  grid.style.display = "flex";
+  empty.style.display = "none";
+
+  const maxAmt = sortedCats[0][1];
+
+  grid.innerHTML = sortedCats.map(([name, amt], i) => {
+    const pct = totalReturns > 0 ? (amt / totalReturns) * 100 : 0;
+    const barPct = maxAmt > 0 ? (amt / maxAmt) * 100 : 0;
+    const color = CAT_PALETTE[i % CAT_PALETTE.length];
+    const isOpen = expandedInvRetCats.has(name);
+
+    let txnRows = "";
+    if (isOpen) {
+      const txns = (catTxns.get(name) || []).slice().sort((a, b) => b.amount - a.amount);
+      txnRows = txns.map((t, idx) => {
+        const tPct = amt > 0 ? (t.amount / amt) * 100 : 0;
+        return `
+          <div class="cat-txn-row">
+            <span class="cat-txn-idx">${idx + 1}.</span>
+            <span class="cat-txn-note">${escapeHTML(t.note)}</span>
+            <span class="cat-txn-amt">${fmtMoney(t.amount)}</span>
+            <span class="cat-txn-pct">${tPct.toFixed(1)}%</span>
+          </div>`;
+      }).join("");
+      if (!txnRows) txnRows = `<div class="cat-txn-row">No investment returns logged in this category.</div>`;
+    }
+
+    return `
+      <div class="cat-row${isOpen ? " open" : ""}" data-cat="${escapeHTML(name)}">
+        <div class="cat-row-top">
+          <span class="cat-row-dot" style="background:${color}"></span>
+          <span class="cat-row-name">${escapeHTML(name)}</span>
+          <span class="cat-row-pct">${pct.toFixed(1)}%</span>
+          <span class="cat-row-amt">${fmtMoney(amt)}</span>
+          <i class="bi bi-chevron-right cat-row-chevron"></i>
+        </div>
+        <div class="cat-row-track">
+          <div class="cat-row-fill" style="width:${barPct}%; background:${color}"></div>
+        </div>
+        ${isOpen ? `<div class="cat-txn-list">${txnRows}</div>` : ""}
+      </div>`;
+  }).join("");
+}
+
+document.getElementById("invRetGaugeGrid") && document.getElementById("invRetGaugeGrid").addEventListener("click", (e) => {
+  const row = e.target.closest(".cat-row");
+  if (!row) return;
+  const cat = row.dataset.cat;
+  if (expandedInvRetCats.has(cat)) expandedInvRetCats.delete(cat);
+  else expandedInvRetCats.add(cat);
+  renderInvestmentReturnGauges(lastSortedInvRetCats, lastTotalInvReturns, lastInvRetCatTxns);
+});
+
 /* ---------------- Overview hero (Income / Expense / Balance headline) ----------------
    Three big stat tiles plus one shared proportional bar showing how income
    splits into expense vs. balance — carries more at-a-glance meaning than a
@@ -415,7 +509,10 @@ function renderMonthlyChart(monthly) {
   const labels = keys.map(monthShortLabel);
   const incomeData = keys.map((k) => monthly.get(k).income);
   const expenseData = keys.map((k) => monthly.get(k).expense);
-  const balanceData = keys.map((k) => monthly.get(k).income - monthly.get(k).expense);
+  const balanceData = keys.map((k) => {
+    const m = monthly.get(k);
+    return m.income - m.expense - m.investment + m.investmentSale;
+  });
 
   const cs = getComputedStyle(document.documentElement);
   const dimColor = cs.getPropertyValue("--text-dim").trim() || "#9AA8B6";

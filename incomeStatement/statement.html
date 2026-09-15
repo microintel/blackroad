@@ -168,6 +168,17 @@
       </select>
       <input type="text" id="txnCategory" placeholder="Type a category name" style="display:none; margin-top:8px;">
     </div>
+    <div class="field" id="txnDirectionField" style="display:none;">
+      <label for="txnDirectionSelect">Buy or sell</label>
+      <select id="txnDirectionSelect">
+        <option value="buy">Buy — money moves into this investment</option>
+        <option value="sell">Sell — money comes back out as cash</option>
+      </select>
+    </div>
+    <div class="field" id="txnCostBasisField" style="display:none;">
+      <label for="txnCostBasis">Original cost basis <span style="font-weight:400; color:var(--text-dim);">(optional — for gain/loss)</span></label>
+      <input type="number" id="txnCostBasis" step="0.01" min="0" placeholder="What you originally paid for what's being sold">
+    </div>
     <div class="field">
       <label for="txnDate">Date</label>
       <input type="date" id="txnDate" required>

@@ -28,18 +28,29 @@ async function renderUpdateDateBadge() {
 function renderDashboard() {
   let totalIncome = 0, totalExpense = 0, totalInvestment = 0, totalInvestmentSale = 0, totalCount = 0;
   const catTotals = new Map();
-  const sourceTotals = new Map();
-  const incomeCatTotals = new Map();
+  const sourceTotals = new Map();       // genuine income only (salary/business/etc.)
+  const incomeCatTotals = new Map();    // genuine income categories only
+  const invReturnTotals = new Map();    // investment-return categories (Stock/MF/FD Return), kept separate
 
   ENTRIES.forEach((e) => {
-    totalIncome += Number(e.income) || 0;
+    totalIncome += entryIncomeAmount(e);
     totalExpense += Number(e.expense) || 0;
     totalInvestment += Number(e.investment) || 0;
-    totalInvestmentSale += Number(e.investmentSale) || 0;
+    totalInvestmentSale += entryInvestmentSaleDisplayAmount(e);
     totalCount += (e.transactions || []).length;
-    sourceTotals.set(e.from || "Other", (sourceTotals.get(e.from || "Other") || 0) + (Number(e.income) || 0));
-    const incCat = e.category || "Uncategorized"; // entries logged before categories existed still show up here
-    incomeCatTotals.set(incCat, (incomeCatTotals.get(incCat) || 0) + (Number(e.income) || 0));
+
+    const genuineAmt = entryGenuineIncomeAmount(e);
+    if (genuineAmt > 0) {
+      sourceTotals.set(e.from || "Other", (sourceTotals.get(e.from || "Other") || 0) + genuineAmt);
+      const incCat = e.category || "Uncategorized"; // entries logged before categories existed still show up here
+      incomeCatTotals.set(incCat, (incomeCatTotals.get(incCat) || 0) + genuineAmt);
+    }
+    const returnAmt = entryInvestmentReturnAmount(e);
+    if (returnAmt > 0) {
+      const key = e.category || "Investment return";
+      invReturnTotals.set(key, (invReturnTotals.get(key) || 0) + returnAmt);
+    }
+
     (e.transactions || []).forEach((t) => {
       if (isInvestmentCategory(t.category)) return; // investments aren't spend — kept out of the expense chart
       const cat = t.category || "uncategorized";
@@ -76,6 +87,22 @@ function renderDashboard() {
         </div>`).join("");
   }
 
+  // ---- Investment returns (kept separate from genuine income above) ----
+  const invReturnList = document.getElementById("invReturnList");
+  if (invReturnList) {
+    if (invReturnTotals.size === 0) {
+      invReturnList.innerHTML = `<div class="chart-empty">No investment returns logged yet</div>`;
+    } else {
+      invReturnList.innerHTML = [...invReturnTotals.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, val]) => `
+          <div class="source-row">
+            <span>${escapeHTML(name)}</span>
+            <span class="val">${fmtMoney(val)}</span>
+          </div>`).join("");
+    }
+  }
+
   // ---- Expense by category chart ----
   catChart = renderCategoryBarChart({
     totals: catTotals,
@@ -86,7 +113,7 @@ function renderDashboard() {
     palette: ["#b5583f", "#6f7bb3", "#4f8f6b", "#c99a4f", "#8a6bb0", "#5c9bc9", "#c96c8c"]
   });
 
-  // ---- Income by category chart ----
+  // ---- Income by category chart (genuine income only) ----
   incCatChart = renderCategoryBarChart({
     totals: incomeCatTotals,
     chart: incCatChart,
@@ -230,10 +257,10 @@ function monthTotals(key) {
 
   ENTRIES.forEach((e) => {
     if (monthKeyOf(e.date) === key) {
-      income += Number(e.income) || 0;
+      income += entryIncomeAmount(e);
       expense += Number(e.expense) || 0;
       investment += Number(e.investment) || 0;
-      investmentSale += Number(e.investmentSale) || 0;
+      investmentSale += entryInvestmentSaleDisplayAmount(e);
     }
   });
 
@@ -299,7 +326,14 @@ function renderRecentTransactions() {
   const items = [];
 
   ENTRIES.forEach((e) => {
-    items.push({ kind: "income", desc: e.from || "Income", cat: null, date: e.date, amount: Number(e.income) || 0 });
+    const saleAmount = entryInvestmentSaleDisplayAmount(e);
+    const incomeAmount = entryIncomeAmount(e);
+    if (incomeAmount > 0) {
+      items.push({ kind: "income", desc: e.from || "Income", cat: e.category || null, date: e.date, amount: incomeAmount });
+    }
+    if (saleAmount > 0) {
+      items.push({ kind: "investment-sale", desc: e.from || "Investment sale", cat: e.category || null, date: e.date, amount: saleAmount });
+    }
     (e.transactions || []).forEach((t) => {
       items.push({ kind: "expense", desc: t.description || "Expense", cat: t.category, date: t.date || e.date, amount: Number(t.amount) || 0 });
     });
@@ -315,7 +349,7 @@ function renderRecentTransactions() {
 
   list.innerHTML = recent.map((it) => `
     <div class="mini-row">
-      <span class="mini-ico ${it.kind}"><i class="bi ${it.kind === "income" ? "bi-arrow-down-left" : "bi-arrow-up-right"}"></i></span>
+      <span class="mini-ico ${it.kind}"><i class="bi ${it.kind === "income" || it.kind === "investment-sale" ? "bi-arrow-down-left" : "bi-arrow-up-right"}"></i></span>
       <div class="mini-main">
         <span class="mini-desc">${escapeHTML(it.desc)}</span>
         ${it.cat ? `<span class="mini-cat">${escapeHTML(it.cat)}</span>` : ""}
@@ -376,11 +410,11 @@ function renderTopIncomeSources() {
   ENTRIES.forEach((e) => {
     if (monthKeyOf(e.date) === nowKey) {
       const name = e.from || "Other";
-      totals.set(name, (totals.get(name) || 0) + (Number(e.income) || 0));
+      totals.set(name, (totals.get(name) || 0) + entryGenuineIncomeAmount(e));
     }
   });
 
-  const top = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const top = [...totals.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   if (top.length === 0) {
     list.innerHTML = `<div class="chart-empty">No income logged this month</div>`;

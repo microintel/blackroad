@@ -112,17 +112,34 @@ function primeSearchCache(entries) {
     tokenize(entry.from).forEach((w) => entryTrie.insert(w, entryIdx));
     tokenize(entry.category).forEach((w) => entryTrie.insert(w, entryIdx));
 
-    FLAT_ITEMS.push({
-      kind: "income",
-      matchId: entryIdx,
-      entryId: entry.id,
-      txnId: null,
-      desc: entry.from || "Income",
-      category: entry.category || "",
-      amount: Number(entry.income) || 0,
-      date: entry.date || "",
-      _fromNorm: entry._fromNorm,
-    });
+    const incomeAmount = entryIncomeAmount(entry);
+    const saleAmount = entryInvestmentSaleDisplayAmount(entry);
+    if (incomeAmount > 0) {
+      FLAT_ITEMS.push({
+        kind: "income",
+        matchId: entryIdx,
+        entryId: entry.id,
+        txnId: null,
+        desc: entry.from || "Income",
+        category: entry.category || "",
+        amount: incomeAmount,
+        date: entry.date || "",
+        _fromNorm: entry._fromNorm,
+      });
+    }
+    if (saleAmount > 0) {
+      FLAT_ITEMS.push({
+        kind: "investment-sale",
+        matchId: entryIdx,
+        entryId: entry.id,
+        txnId: null,
+        desc: entry.from || "Investment sale",
+        category: entry.category || "",
+        amount: saleAmount,
+        date: entry.date || "",
+        _fromNorm: entry._fromNorm,
+      });
+    }
 
     (entry.transactions || []).forEach((t, txnIdx) => {
       t._id = `${entryIdx}:${txnIdx}`;
@@ -131,12 +148,16 @@ function primeSearchCache(entries) {
       tokenize(t.description).forEach((w) => txnTrie.insert(w, t._id));
       tokenize(t.category).forEach((w) => txnTrie.insert(w, t._id));
 
+      // Money moved into an investment (Mutual Fund / SIP / Stock / FD) is a
+      // transfer, not spending — same rule the dashboard/stats/compare pages
+      // use. Tag it "investment" so it never gets summed as an expense here.
+      const isInvestment = isInvestmentCategory(t.category);
       FLAT_ITEMS.push({
-        kind: "expense",
+        kind: isInvestment ? "investment" : "expense",
         matchId: t._id,
         entryId: entry.id,
         txnId: t.id,
-        desc: t.description || "Expense",
+        desc: t.description || (isInvestment ? "Investment" : "Expense"),
         category: t.category || "",
         amount: Number(t.amount) || 0,
         date: t.date || entry.date || "",
@@ -233,15 +254,26 @@ function getFilteredItems(term) {
 
   let out = FLAT_ITEMS.filter((it) => {
     if (term) {
-      const matched = it.kind === "income"
+      const matched = it.kind === "income" || it.kind === "investment-sale"
         ? (termEntryIds && termEntryIds.has(it.matchId))
         : (termTxnIds && termTxnIds.has(it.matchId));
       if (!matched) return false;
     }
-    if (FILTERS.type !== "all" && it.kind !== FILTERS.type) return false;
+    // The Expense segment covers both plain expenses and investment buys —
+    // there's no separate "Investment" segment in the type filter, so
+    // treating them as one group here keeps that filter from silently
+    // hiding investment transactions.
+    if (FILTERS.type !== "all") {
+      const matchesType = FILTERS.type === "expense"
+        ? (it.kind === "expense" || it.kind === "investment")
+        : it.kind === FILTERS.type;
+      if (!matchesType) return false;
+    }
     if (sourcesNorm.length && !sourcesNorm.some((s) => it._fromNorm.includes(s))) return false;
     if (categoriesNorm.length) {
-      if (it.kind !== "expense") return false;
+      // Category chips are built from every transaction category, expense
+      // and investment alike, so both kinds are eligible here.
+      if (it.kind !== "expense" && it.kind !== "investment") return false;
       if (!categoriesNorm.some((c) => norm(it.category).includes(c))) return false;
     }
     if (fTime && tTime) {
@@ -267,13 +299,26 @@ function getFilteredItems(term) {
 /* ---------------- Summary ---------------- */
 
 function renderSummary(items) {
-  let income = 0, expense = 0;
-  items.forEach((it) => { if (it.kind === "income") income += it.amount; else expense += it.amount; });
-  const balance = income - expense;
+  // Cash movement of exactly what's in the filtered results: real income and
+  // sale proceeds are inflows; expenses and investment buys are outflows.
+  // Matches the same rule used on the dashboard/stats/compare pages.
+  let income = 0, expense = 0, investment = 0, investmentSale = 0;
+  items.forEach((it) => {
+    if (it.kind === "income") income += it.amount;
+    else if (it.kind === "investment-sale") investmentSale += it.amount;
+    else if (it.kind === "investment") investment += it.amount;
+    else if (it.kind === "expense") expense += it.amount;
+  });
+  const balance = income + investmentSale - expense - investment;
+  const invRow = investment > 0
+    ? `<div class="sm-item"><span class="sm-label">Investment</span><span class="sm-val">${fmtMoney(investment)}</span></div>` : "";
+  const saleRow = investmentSale > 0
+    ? `<div class="sm-item"><span class="sm-label">Investment sale</span><span class="sm-val">${fmtMoney(investmentSale)}</span></div>` : "";
   summaryEl.innerHTML = `
     <div class="sm-item"><span class="sm-label">Results</span><span class="sm-val">${items.length}</span></div>
     <div class="sm-item"><span class="sm-label">Income</span><span class="sm-val">${fmtMoney(income)}</span></div>
     <div class="sm-item"><span class="sm-label">Expense</span><span class="sm-val">${fmtMoney(expense)}</span></div>
+    ${invRow}${saleRow}
     <div class="sm-item"><span class="sm-label">Net</span><span class="sm-val">${fmtMoney(balance)}</span></div>
   `;
   summaryEl.classList.add("show");
@@ -318,15 +363,15 @@ function renderResults() {
 
   resultsEl.innerHTML = `<div class="result-list">${items.map((it) => `
     <div class="result-row" onclick="location.href='statement.html?open=${it.entryId}'">
-      <span class="result-ico ${it.kind}"><i class="bi ${it.kind === "income" ? "bi-arrow-down-left" : "bi-arrow-up-right"}"></i></span>
+      <span class="result-ico ${it.kind}"><i class="bi ${it.kind === "income" || it.kind === "investment-sale" ? "bi-arrow-down-left" : "bi-arrow-up-right"}"></i></span>
       <div class="result-main">
         <div class="result-desc">${escapeHTML(it.desc)}</div>
         <div class="result-meta">
-          ${it.category ? `<span>${escapeHTML(it.category)}</span>` : (it.kind === "income" ? "<span>Income</span>" : "")}
+          ${it.category ? `<span>${escapeHTML(it.category)}</span>` : (it.kind === "income" ? "<span>Income</span>" : it.kind === "investment-sale" ? "<span>Investment sale</span>" : it.kind === "investment" ? "<span>Investment</span>" : "")}
         </div>
       </div>
       <div class="result-side">
-        <span class="result-amt ${it.kind}">${it.kind === "income" ? "+" : "-"}${fmtMoney(it.amount)}</span>
+        <span class="result-amt ${it.kind}">${(it.kind === "expense" || it.kind === "investment") ? "-" : "+"}${fmtMoney(it.amount)}</span>
         <span class="result-date">${it.date || ""}</span>
       </div>
     </div>`).join("")}</div>`;
@@ -461,16 +506,27 @@ async function downloadPDF() {
     await sleep(280); // let "Getting ready…" register before the real steps start
     await stepExportProgress(1, 4, "Preparing results…");
 
-    let globalIncome = 0, globalExpense = 0;
+    // Real income and investment-sale proceeds are cash in; expenses and
+    // investment buys are cash out. Keeping investment-sale out of
+    // globalExpense matters — it's money received, not money spent.
+    let globalIncome = 0, globalExpense = 0, globalInvestment = 0, globalInvestmentSale = 0;
     const categorySummary = {};
     items.forEach((it) => {
-      if (it.kind === "income") globalIncome += it.amount;
-      else {
+      if (it.kind === "income") {
+        globalIncome += it.amount;
+      } else if (it.kind === "investment-sale") {
+        globalInvestmentSale += it.amount;
+      } else if (it.kind === "investment") {
+        globalInvestment += it.amount;
+        const key = it.category || "Uncategorized";
+        categorySummary[key] = (categorySummary[key] || 0) + it.amount;
+      } else {
         globalExpense += it.amount;
         const key = it.category || "Uncategorized";
         categorySummary[key] = (categorySummary[key] || 0) + it.amount;
       }
     });
+    const globalNet = globalIncome + globalInvestmentSale - globalExpense - globalInvestment;
     await stepExportProgress(2, 4, "Calculating summary…");
 
     const { jsPDF } = window.jspdf;
@@ -500,14 +556,17 @@ async function downloadPDF() {
     });
 
     y += 10;
+    const summaryRows = [
+      ["Total Income", globalIncome.toFixed(2)],
+      ["Total Expenses", globalExpense.toFixed(2)],
+    ];
+    if (globalInvestment > 0) summaryRows.push(["Invested", globalInvestment.toFixed(2)]);
+    if (globalInvestmentSale > 0) summaryRows.push(["Investment sale proceeds", globalInvestmentSale.toFixed(2)]);
+    summaryRows.push(["Net Balance", globalNet.toFixed(2)]);
     pdf.autoTable({
       startY: y,
       head: [["Description", "Amount"]],
-      body: [
-        ["Total Income", globalIncome.toFixed(2)],
-        ["Total Expenses", globalExpense.toFixed(2)],
-        ["Net Balance", (globalIncome - globalExpense).toFixed(2)],
-      ],
+      body: summaryRows,
       theme: "grid",
       headStyles: { fillColor: [26, 26, 26] },
     });
@@ -515,7 +574,7 @@ async function downloadPDF() {
     y = pdf.lastAutoTable.finalY + 15;
     pdf.setFontSize(14);
     pdf.setTextColor(0);
-    pdf.text("Expense by Category", 15, y);
+    pdf.text("Spending & Investment by Category", 15, y);
     pdf.autoTable({
       startY: y + 5,
       head: [["Category", "Amount"]],
@@ -534,7 +593,7 @@ async function downloadPDF() {
       head: [["Date", "Type", "Description", "Category", "Amount"]],
       body: items.map((it) => [
         it.date || "", it.kind, it.desc, it.category || "",
-        (it.kind === "income" ? "+" : "-") + it.amount.toFixed(2),
+        (it.kind === "expense" || it.kind === "investment" ? "-" : "+") + it.amount.toFixed(2),
       ]),
       theme: "striped",
       styles: { fontSize: 8 },
