@@ -74,22 +74,6 @@ async function fetchChartHistory(symbol){
   return data;
 }
 
-// Fetches LTP for one symbol (used by the "Fetch LTP" button in the
-// stock detail modal). Falls back silently to manual entry on failure.
-async function refreshSinglePrice(symbol){
-  showToast('Getting the latest price…');
-  try{
-    const ltp = await fetchLTP(symbol);
-    prices[symbol] = ltp;
-    saveStateGuarded();
-    renderDetailModal();
-    renderAll();
-    showToast(`Price updated: ${fmtMoney(ltp)}`);
-  }catch(err){
-    showToast("Couldn't fetch the price — enter it manually");
-  }
-}
-
 /* ---------------------------------------------------------------
    DUPLICATE TRANSACTION
    Opens the normal "Add" modal pre-filled from an existing row (dated
@@ -344,6 +328,93 @@ document.getElementById('deleteConfirmBtn').addEventListener('click', () => {
   } else {
     showToast('Transaction deleted');
   }
+});
+
+/* ---------------------------------------------------------------
+   TRANSACTION DEEP SUMMARY MODAL
+   Tapping a transaction's compact card opens this instead of showing
+   edit/duplicate/delete directly on the card. Those actions live here.
+------------------------------------------------------------------*/
+const txnDetailModal = document.getElementById('txnDetailModalOverlay');
+let txnDetailId = null;
+
+function openTxnDetailModal(id){
+  const t = transactions.find(x => x.id === id);
+  if(!t) return;
+  txnDetailId = id;
+  const isBuy = t.type === 'BUY';
+  const amount = round2(t.quantity * t.price);
+  const pnlMap = getTxnPnLMap();
+  const pnl = !isBuy ? pnlMap[t.id] : undefined;
+  const tags = extractTags(t.notes);
+
+  document.getElementById('txnDetailTitle').textContent = `${t.name} (${t.symbol})`;
+  document.getElementById('txnDetailGrid').innerHTML = `
+    <div><div class="k">Type</div><div class="v">${escHtml(t.type)}</div></div>
+    <div><div class="k">Date</div><div class="v">${fmtDate(t.date)}</div></div>
+    <div><div class="k">Shares</div><div class="v">${t.quantity}</div></div>
+    <div><div class="k">Price per share</div><div class="v">${fmtMoney(t.price)}</div></div>
+    <div><div class="k">Total amount</div><div class="v">${fmtMoney(amount, true)}</div></div>
+    ${(!isBuy && pnl !== undefined && pnl !== null) ? `<div><div class="k">Realized P&amp;L</div><div class="v ${pnlClass(pnl)}">${fmtSigned(pnl, true)}</div></div>` : ''}
+    ${t.notes ? `<div style="grid-column:1/-1;"><div class="k">Notes</div><div class="v" style="font-size:13px; font-weight:500;">${escHtml(t.notes)}</div></div>` : ''}
+  `;
+  document.getElementById('txnDetailTags').innerHTML = tags.map(tag => `<span class="tag-chip">#${escHtml(tag)}</span>`).join('');
+  txnDetailModal.classList.add('active');
+}
+function closeTxnDetailModal(){
+  txnDetailId = null;
+  txnDetailModal.classList.remove('active');
+}
+document.getElementById('txnDetailCloseBtn').addEventListener('click', closeTxnDetailModal);
+txnDetailModal.addEventListener('click', e => { if(e.target === txnDetailModal) closeTxnDetailModal(); });
+document.getElementById('txnDetailEditBtn').addEventListener('click', () => {
+  const id = txnDetailId;
+  closeTxnDetailModal();
+  if(id) openTxnModal(id);
+});
+document.getElementById('txnDetailDuplicateBtn').addEventListener('click', () => {
+  const id = txnDetailId;
+  closeTxnDetailModal();
+  if(id) duplicateTransaction(id);
+});
+document.getElementById('txnDetailDeleteBtn').addEventListener('click', () => {
+  const id = txnDetailId;
+  closeTxnDetailModal();
+  if(id) openDeleteModal(id);
+});
+
+/* ---------------------------------------------------------------
+   SETTINGS — expandable rows
+   Each row is a tappable header (icon + title + subtitle + chevron).
+   Tapping it reveals a detail panel with the actual controls/results
+   for that option, rather than showing the action directly in the list.
+   Only one row per settings page is open at a time, accordion-style.
+------------------------------------------------------------------*/
+document.querySelectorAll('.settings-row-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const targetId = header.getAttribute('data-target');
+    const detail = document.getElementById(targetId);
+    if(!detail) return;
+    const isOpen = header.classList.contains('open');
+
+    // Close any other open row in the same settings card first.
+    const panel = header.closest('.settings-panel');
+    if(panel){
+      panel.querySelectorAll('.settings-row-header.open').forEach(other => {
+        if(other !== header){
+          other.classList.remove('open');
+          other.setAttribute('aria-expanded', 'false');
+          const otherDetail = document.getElementById(other.getAttribute('data-target'));
+          if(otherDetail) otherDetail.classList.remove('open');
+        }
+      });
+    }
+
+    header.classList.toggle('open', !isOpen);
+    header.setAttribute('aria-expanded', String(!isOpen));
+    detail.classList.toggle('open', !isOpen);
+    if(!isOpen) detail.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  });
 });
 
 /* ---------------------------------------------------------------
@@ -829,10 +900,6 @@ document.getElementById('detailPriceInput').addEventListener('change', (e) => {
   renderAll();
   showToast('Current price updated');
 });
-document.getElementById('detailFetchLtpBtn').addEventListener('click', () => {
-  if(detailSymbol) refreshSinglePrice(detailSymbol);
-});
-
 /* ---------------------------------------------------------------
    TRANSACTION FILTERS
 ------------------------------------------------------------------*/
@@ -997,6 +1064,7 @@ function syncSearchModalToViewport(){
   }
 }
 document.getElementById('globalSearchBtn').addEventListener('click', openSearchModal);
+document.getElementById('dashSearchBar').addEventListener('click', openSearchModal);
 searchModal.addEventListener('click', e => { if(e.target === searchModal) closeSearchModal(); });
 
 function renderSearchResults(rawTerm){
@@ -1081,6 +1149,7 @@ document.addEventListener('keydown', (e) => {
     // Close whichever overlay is actually open, topmost concern first.
     if(searchModal.classList.contains('active')) return closeSearchModal();
     if(txnModal.classList.contains('active')) return closeTxnModal();
+    if(txnDetailModal.classList.contains('active')) return closeTxnDetailModal();
     if(deleteModal.classList.contains('active')){ pendingDeleteId = null; return deleteModal.classList.remove('active'); }
     if(clearModal.classList.contains('active')) return clearModal.classList.remove('active');
     if(importModal.classList.contains('active')){ pendingImportData = null; return importModal.classList.remove('active'); }
@@ -1127,16 +1196,20 @@ function escHtml(s){
 function escAttr(s){ return escHtml(s); }
 
 /* ---------------------------------------------------------------
-   REFRESH PRICES (global button, e.g. in Holdings header)
-------------------------------------------------------------------*/
-const refreshPricesBtn = document.getElementById('refreshPricesBtn');
-if(refreshPricesBtn){
-  refreshPricesBtn.addEventListener('click', () => refreshAllPrices(false));
-}
-
-/* ---------------------------------------------------------------
    INIT
 ------------------------------------------------------------------*/
+const LIVE_PRICE_POLL_MS = 3000;
+let livePricePollTimer = null;
+
+// Kicks off (or restarts) the 3-second background price poll. Runs silently —
+// no toasts, no spinners — same fallback-to-manual behaviour as before if a
+// symbol's fetch fails. Manual price entry in the detail panel still always
+// overrides whatever the poll last fetched.
+function startLivePricePolling(){
+  if(livePricePollTimer) clearInterval(livePricePollTimer);
+  livePricePollTimer = setInterval(() => refreshAllPrices(true), LIVE_PRICE_POLL_MS);
+}
+
 loadState().then(() => {
   renderAll();
   if(window.lucide) lucide.createIcons();
@@ -1145,7 +1218,8 @@ loadState().then(() => {
     loader.classList.add('hide');
     setTimeout(() => loader.remove(), 250);
   }
-  // Silently fetch live LTPs for all held symbols on load. If any
-  // fetch fails, that symbol just keeps its last known / manual price.
+  // Fetch live LTPs for all held symbols immediately, then keep them fresh
+  // in the background every 3 seconds for as long as the app stays open.
   refreshAllPrices(true);
+  startLivePricePolling();
 });

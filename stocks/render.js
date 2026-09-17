@@ -43,39 +43,29 @@ document.querySelectorAll('.nav-btn, .bnav-btn').forEach(btn => {
 function renderDashboard(){
   const t = calculatePortfolioTotals();
   const hero = document.getElementById('statementHero');
+  const gainIcon = t.totalPnL >= 0 ? 'arrow-up' : 'arrow-down';
+  const unrealIcon = t.unrealizedPnL >= 0 ? 'arrow-up' : 'arrow-down';
   hero.innerHTML = `
-    <div class="statement-top">
-      <div>
-        <div class="statement-label">Current portfolio value</div>
-        <div class="statement-value-row">
-          <div class="statement-value">${fmtMoney(t.currentValue, true)}</div>
-          <span class="pill ${pnlClass(t.totalPnL)}">${fmtPct(t.totalPnLPct)}</span>
-        </div>
+    <div class="statement-label">Current portfolio value</div>
+    <div class="statement-value">${fmtMoney(t.currentValue, true)}</div>
+    <div class="statement-gain-row ${pnlClass(t.totalPnL)}">
+      <i data-lucide="${gainIcon}"></i>
+      <span>Overall Gain</span>
+      <b>${fmtSigned(t.totalPnL, true)} (${fmtPct(t.totalPnLPct)})</b>
+    </div>
+    <div class="statement-cols">
+      <div class="scol">
+        <div class="scol-lbl">Invested Value</div>
+        <div class="scol-val">${fmtMoney(t.investedValue, true)}</div>
       </div>
-      <div class="statement-aside">
-        Total profit or loss
-        <span class="n ${pnlClass(t.totalPnL)}">${fmtSigned(t.totalPnL, true)}</span>
-        money already banked + what you'd make selling today
+      <div class="scol scol-right">
+        <div class="scol-lbl ${pnlClass(t.unrealizedPnL)}"><i data-lucide="${unrealIcon}"></i>If Sold Today</div>
+        <div class="scol-val ${pnlClass(t.unrealizedPnL)}">${fmtSigned(t.unrealizedPnL, true)} (${fmtPct(t.unrealizedPnLPct)})</div>
       </div>
     </div>
-    <div class="stat-strip">
-      <div class="stat-item">
-        <div class="lbl">Money you've put in</div>
-        <div class="val sm">${fmtMoney(t.investedValue, true)}</div>
-      </div>
-      <div class="stat-item">
-        <div class="lbl">Already banked</div>
-        <div class="val sm ${pnlClass(t.realizedPnL)}">${fmtSigned(t.realizedPnL, true)}</div>
-      </div>
-      <div class="stat-item">
-        <div class="lbl">If you sold today</div>
-        <div class="val sm ${pnlClass(t.unrealizedPnL)}">${fmtSigned(t.unrealizedPnL, true)} <span style="font-family:var(--sans); font-size:12px; font-weight:500;">(${fmtPct(t.unrealizedPnLPct)})</span></div>
-      </div>
-      <div class="stat-item">
-        <div class="lbl">Stocks held</div>
-        <div class="val sm">${t.holdingsCount}</div>
-      </div>
-    </div>
+    <button class="statement-analyze" type="button" onclick="switchView('analytics')">
+      <i data-lucide="activity"></i>ANALYZE
+    </button>
   `;
 
   const holdings = getActiveHoldings().sort((a,b) => b.currentValue - a.currentValue).slice(0, 6);
@@ -102,28 +92,19 @@ function holdingCardHTML(h, full){
   const weight = calculatePortfolioWeight(h.symbol);
   return `
     <div class="holding-card" onclick="openDetailModal('${escAttr(h.symbol)}')" role="button" tabindex="0" aria-label="View details for ${escAttr(h.name)}" onkeydown="if(event.key==='Enter')this.click()">
-      <div class="hc-top">
-        <div class="hc-id">
-          <div class="hc-avatar">${escHtml(h.symbol.slice(0,2))}</div>
-          <div class="hc-id-text"><div class="stock-name">${escHtml(h.name)}</div><div class="stock-symbol">${escHtml(h.symbol)}</div></div>
+      <div class="hc-row">
+        <div class="hc-id-text">
+          <div class="stock-name">${escHtml(h.name)}</div>
+          <div class="stock-symbol">${h.quantity} X ATP ${fmtMoney(h.avgPrice)}</div>
         </div>
         <div class="hc-pnl-block">
-          <div class="hc-pnl ${cls}">${fmtSigned(h.unrealizedPnL, true)}</div>
-          <div class="hc-pnlpct ${pnlClass(h.unrealizedPnLPct)}">${fmtPct(h.unrealizedPnLPct)}</div>
+          <div class="hc-pnl ${cls}">${fmtSigned(h.unrealizedPnL, true)} <span class="hc-pnlpct">(${fmtPct(h.unrealizedPnLPct)})</span></div>
+          <div class="hc-ltp">LTP ${fmtMoney(h.currentPrice)}</div>
         </div>
-      </div>
-      <div class="hc-value-row">
-        <div><span class="k">Worth now</span><span class="v">${fmtMoney(h.currentValue, true)}</span></div>
-        ${full ? `<div><span class="k">Money put in</span><span class="v">${fmtMoney(h.investedValue, true)}</span></div>` : ''}
-      </div>
-      <div class="hc-meta">
-        <span>Shares <b>${h.quantity}</b></span>
-        <span>Bought at <b>${fmtMoney(h.avgPrice)}</b></span>
-        <span>Now <b>${fmtMoney(h.currentPrice)}</b></span>
       </div>
       ${full ? `<div class="hc-weight">
         <div class="weight-bar-full"><div style="width:${Math.min(100,weight)}%"></div></div>
-        <span>${weight.toFixed(1)}% of your portfolio</span>
+        <span>${weight.toFixed(1)}% of portfolio · Invested ${fmtMoney(h.investedValue, true)}</span>
       </div>` : ''}
     </div>
   `;
@@ -135,7 +116,7 @@ function txnCardHTML(t){
   const amount = fmtMoney(t.quantity * t.price, true);
   const tags = extractTags(t.notes);
   return `
-    <div class="txn-card">
+    <div class="txn-card" onclick="openTxnDetailModal('${escAttr(t.id)}')" role="button" tabindex="0" aria-label="View details for this ${isBuy ? 'buy' : 'sell'} of ${escAttr(t.symbol)}" onkeydown="if(event.key==='Enter')this.click()">
       <div class="tc-top">
         <div class="tc-id">
           <div class="stock-avatar"><i data-lucide="building-2"></i></div>
@@ -151,11 +132,7 @@ function txnCardHTML(t){
         <span>${t.quantity} shares · ${fmtMoney(t.price)}</span>
       </div>
       ${tags.length ? `<div class="tc-tags">${tags.map(tag => `<span class="tag-chip">#${escHtml(tag)}</span>`).join('')}</div>` : ''}
-      <div class="tc-actions">
-        <button class="btn btn-sm btn-icon" onclick="duplicateTransaction('${escAttr(t.id)}')" title="Duplicate" aria-label="Duplicate"><i data-lucide="copy"></i></button>
-        <button class="btn btn-sm btn-icon" onclick="openTxnModal('${escAttr(t.id)}')" title="Edit" aria-label="Edit"><i data-lucide="pencil"></i></button>
-        <button class="btn btn-sm btn-icon btn-danger" onclick="openDeleteModal('${escAttr(t.id)}')" title="Delete" aria-label="Delete"><i data-lucide="trash-2"></i></button>
-      </div>
+      <div class="tc-more"><i data-lucide="chevron-right" class="row-chevron"></i>Tap for details</div>
     </div>
   `;
 }

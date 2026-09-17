@@ -87,7 +87,6 @@
       </div>
       <div class="topbar-actions">
         <button class="btn btn-icon" id="globalSearchBtn" title="Search (Ctrl+K)" aria-label="Search"><i data-lucide="search"></i></button>
-        <button class="btn" id="refreshPricesBtn" title="Get today's prices for everything you hold"><i data-lucide="refresh-cw"></i>Update prices</button>
         <button class="btn btn-primary" id="addTxnBtn"><i data-lucide="plus"></i>Add transaction</button>
       </div>
     </div>
@@ -104,7 +103,7 @@
           <label>Set today's price (₹)</label>
           <input type="number" id="detailPriceInput" min="0" step="0.01">
         </div>
-        <button class="btn" id="detailFetchLtpBtn" type="button" title="Fetch the latest price" style="height:40px;"><i data-lucide="refresh-cw"></i>Fetch latest price</button>
+        <span class="live-price-note" title="Prices refresh automatically every few seconds"><i data-lucide="radio"></i>Live — updates automatically</span>
       </div>
 
       <div class="detail-chart-panel" id="detailChartPanel">
@@ -129,6 +128,12 @@
     <!-- DASHBOARD -->
     <section class="view active" id="view-dashboard">
       <div class="statement" id="statementHero"></div>
+
+      <button class="dash-search-bar" id="dashSearchBar" type="button" aria-label="Search stocks">
+        <i data-lucide="search"></i>
+        <span>Search stocks by company</span>
+        <i data-lucide="sliders-horizontal" class="dsb-filter"></i>
+      </button>
 
       <div class="section-heading">
         <h2>Top holdings</h2>
@@ -249,68 +254,123 @@
         </div>
       </div>
 
-      <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="database"></i><h2>Data</h2></div>
+      <div class="settings-group-label">Data</div>
+      <div class="analytics-panel an-panel settings-panel">
         <div class="an-panel-body settings-body">
-          <div class="settings-row">
-            <div>
-              <div class="settings-row-title">Export data</div>
-              <div class="settings-row-sub">Download all transactions and current prices as a JSON backup file.</div>
+
+          <div class="settings-item">
+            <button class="settings-row-header" type="button" data-target="settingsExportBody" aria-expanded="false">
+              <div class="settings-row-icon accent"><i data-lucide="download"></i></div>
+              <div class="settings-row-text">
+                <div class="settings-row-title">Export data</div>
+                <div class="settings-row-sub">Download all transactions and current prices as a JSON backup file.</div>
+              </div>
+              <i data-lucide="chevron-right" class="row-chevron"></i>
+            </button>
+            <div class="settings-row-detail" id="settingsExportBody">
+              <p class="settings-row-detail-text">Your backup will include every transaction and the current price of every stock you hold, saved as a single JSON file you can keep anywhere.</p>
+              <button class="btn btn-primary" id="exportDataBtn"><i data-lucide="download"></i>Export</button>
             </div>
-            <button class="btn" id="exportDataBtn"><i data-lucide="download"></i>Export</button>
           </div>
-          <div class="settings-row">
-            <div>
-              <div class="settings-row-title">Import data</div>
-              <div class="settings-row-sub">Restore from a previously exported backup file. This replaces your current data.</div>
+
+          <div class="settings-item">
+            <button class="settings-row-header" type="button" data-target="settingsImportBody" aria-expanded="false">
+              <div class="settings-row-icon accent"><i data-lucide="upload"></i></div>
+              <div class="settings-row-text">
+                <div class="settings-row-title">Import data</div>
+                <div class="settings-row-sub">Restore from a previously exported backup file. This replaces your current data.</div>
+              </div>
+              <i data-lucide="chevron-right" class="row-chevron"></i>
+            </button>
+            <div class="settings-row-detail" id="settingsImportBody">
+              <p class="settings-row-detail-text">Choose a backup file exported from this app. Everything currently stored here will be replaced — this can't be undone.</p>
+              <button class="btn btn-primary" id="importDataBtn"><i data-lucide="upload"></i>Choose file to import</button>
+              <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
             </div>
-            <button class="btn" id="importDataBtn"><i data-lucide="upload"></i>Import</button>
-            <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
           </div>
+
         </div>
       </div>
 
-      <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="file-text"></i><h2>Reports</h2></div>
+      <div class="settings-group-label">Reports</div>
+      <div class="analytics-panel an-panel settings-panel">
         <div class="an-panel-body settings-body">
-          <div class="settings-row">
-            <div>
-              <div class="settings-row-title">Summary</div>
-              <div class="settings-row-sub">Invested, withdrawn, and P&amp;L — pick a month, or all time.</div>
-            </div>
-            <div class="filter-select-wrap">
-              <i data-lucide="calendar" class="fs-icon"></i>
-              <select id="reportMonthSelect" aria-label="Select month or all time"></select>
+
+          <div class="settings-item">
+            <button class="settings-row-header" type="button" data-target="settingsSummaryBody" aria-expanded="false">
+              <div class="settings-row-icon gain"><i data-lucide="bar-chart-2"></i></div>
+              <div class="settings-row-text">
+                <div class="settings-row-title">Summary</div>
+                <div class="settings-row-sub">Invested, withdrawn, and P&amp;L — pick a month, or all time.</div>
+              </div>
+              <i data-lucide="chevron-right" class="row-chevron"></i>
+            </button>
+            <div class="settings-row-detail" id="settingsSummaryBody">
+              <div class="settings-row" style="padding-top:0;">
+                <div>
+                  <div class="settings-row-title" style="font-size:13px;">Choose a period</div>
+                </div>
+                <div class="filter-select-wrap">
+                  <i data-lucide="calendar" class="fs-icon"></i>
+                  <select id="reportMonthSelect" aria-label="Select month or all time"></select>
+                </div>
+              </div>
+              <div id="reportSummary" class="report-summary"></div>
             </div>
           </div>
-          <div id="reportSummary" class="report-summary"></div>
-          <div class="settings-row" style="border-top:1px solid var(--line-soft); padding-top:14px; margin-top:2px;">
-            <div>
-              <div class="settings-row-title">Export as CSV</div>
-              <div class="settings-row-sub">Every transaction, in a spreadsheet-friendly file.</div>
+
+          <div class="settings-item">
+            <button class="settings-row-header" type="button" data-target="settingsCsvBody" aria-expanded="false">
+              <div class="settings-row-icon gain"><i data-lucide="file-down"></i></div>
+              <div class="settings-row-text">
+                <div class="settings-row-title">Export as CSV</div>
+                <div class="settings-row-sub">Every transaction, in a spreadsheet-friendly file.</div>
+              </div>
+              <i data-lucide="chevron-right" class="row-chevron"></i>
+            </button>
+            <div class="settings-row-detail" id="settingsCsvBody">
+              <p class="settings-row-detail-text">Exports your full transaction ledger — date, type, symbol, quantity, price and notes — as a .csv file that opens in any spreadsheet app.</p>
+              <button class="btn btn-primary" id="exportCsvBtn"><i data-lucide="file-down"></i>Export CSV</button>
             </div>
-            <button class="btn" id="exportCsvBtn"><i data-lucide="file-down"></i>Export CSV</button>
           </div>
-          <div class="settings-row">
-            <div>
-              <div class="settings-row-title">Print / Save as PDF</div>
-              <div class="settings-row-sub">A clean one-page summary for the selected month or all time — use your browser's "Save as PDF" in the print dialog.</div>
+
+          <div class="settings-item">
+            <button class="settings-row-header" type="button" data-target="settingsPrintBody" aria-expanded="false">
+              <div class="settings-row-icon gain"><i data-lucide="printer"></i></div>
+              <div class="settings-row-text">
+                <div class="settings-row-title">Print / Save as PDF</div>
+                <div class="settings-row-sub">A clean one-page summary for the selected month or all time.</div>
+              </div>
+              <i data-lucide="chevron-right" class="row-chevron"></i>
+            </button>
+            <div class="settings-row-detail" id="settingsPrintBody">
+              <p class="settings-row-detail-text">Opens your browser's print dialog with a clean one-page summary for the period selected above — choose "Save as PDF" there to keep a copy.</p>
+              <button class="btn btn-primary" id="printReportBtn"><i data-lucide="printer"></i>Print report</button>
             </div>
-            <button class="btn" id="printReportBtn"><i data-lucide="printer"></i>Print report</button>
           </div>
+
         </div>
       </div>
 
-      <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="triangle-alert"></i><h2>Danger zone</h2></div>
+      <div class="settings-group-label">Danger zone</div>
+      <div class="analytics-panel an-panel settings-panel">
         <div class="an-panel-body settings-body">
-          <div class="settings-row">
-            <div>
-              <div class="settings-row-title">Clear all data</div>
-              <div class="settings-row-sub">Deletes every transaction and current price from this browser. This can't be undone.</div>
+
+          <div class="settings-item">
+            <button class="settings-row-header" type="button" data-target="settingsClearBody" aria-expanded="false">
+              <div class="settings-row-icon loss"><i data-lucide="trash-2"></i></div>
+              <div class="settings-row-text">
+                <div class="settings-row-title">Clear all data</div>
+                <div class="settings-row-sub">Deletes every transaction and current price from this browser. This can't be undone.</div>
+              </div>
+              <i data-lucide="chevron-right" class="row-chevron"></i>
+            </button>
+            <div class="settings-row-detail" id="settingsClearBody">
+              <p class="settings-row-detail-text">This permanently deletes every transaction and stored price on this device. There's no way to undo this once confirmed — export a backup first if you're not sure.</p>
+              <button class="btn btn-danger" id="clearDataBtn"><i data-lucide="trash-2"></i>Clear data</button>
             </div>
-            <button class="btn btn-danger" id="clearDataBtn"><i data-lucide="trash-2"></i>Clear data</button>
           </div>
+
         </div>
       </div>
     </section>
@@ -419,6 +479,21 @@
     <div class="modal-actions">
       <button class="btn" id="deleteCancelBtn">Cancel</button>
       <button class="btn btn-danger" id="deleteConfirmBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transaction deep summary modal (opened by tapping a transaction card) -->
+<div class="modal-overlay" id="txnDetailModalOverlay">
+  <div class="modal">
+    <h3 id="txnDetailTitle">Transaction</h3>
+    <div class="detail-grid" id="txnDetailGrid"></div>
+    <div class="tc-tags" id="txnDetailTags" style="padding-left:0; margin-bottom:4px;"></div>
+    <div class="modal-actions" style="justify-content:flex-start;">
+      <button class="btn btn-sm btn-icon" id="txnDetailDuplicateBtn" title="Duplicate" aria-label="Duplicate"><i data-lucide="copy"></i></button>
+      <button class="btn btn-sm btn-icon" id="txnDetailEditBtn" title="Edit" aria-label="Edit"><i data-lucide="pencil"></i></button>
+      <button class="btn btn-sm btn-icon btn-danger" id="txnDetailDeleteBtn" title="Delete" aria-label="Delete"><i data-lucide="trash-2"></i></button>
+      <button class="btn" id="txnDetailCloseBtn" style="margin-left:auto;">Close</button>
     </div>
   </div>
 </div>
