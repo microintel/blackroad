@@ -1037,10 +1037,10 @@ function generatePrintReport(ym){
     <div class="pr-grid">
       <div class="pr-cell"><div class="pr-lbl">Invested</div><div class="pr-val">${fmtMoney(s.invested, true)}</div></div>
       <div class="pr-cell"><div class="pr-lbl">Withdrawn</div><div class="pr-val">${fmtMoney(s.withdrawn, true)}</div></div>
-      <div class="pr-cell accent2"><div class="pr-lbl">Transactions</div><div class="pr-val">${s.transactionCount}</div></div>
-      <div class="pr-cell ${pnlCellCls}"><div class="pr-lbl">${pnlLabel}</div><div class="pr-val ${pnlCellCls}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
+      <div class="pr-cell"><div class="pr-lbl">Transactions</div><div class="pr-val">${s.transactionCount}</div></div>
+      <div class="pr-cell"><div class="pr-lbl">${pnlLabel}</div><div class="pr-val ${pnlCellCls}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
       <div class="pr-cell"><div class="pr-lbl">Current portfolio</div><div class="pr-val">${fmtMoney(s.currentPortfolioValue, true)}</div></div>
-      <div class="pr-cell ${unrealCellCls}"><div class="pr-lbl">Unrealized P&amp;L (now)</div><div class="pr-val ${unrealCellCls}">${fmtSigned(s.unrealizedPnL, true)}</div></div>
+      <div class="pr-cell"><div class="pr-lbl">Unrealized P&amp;L (now)</div><div class="pr-val ${unrealCellCls}">${fmtSigned(s.unrealizedPnL, true)}</div></div>
     </div>
     <div class="pr-section-lbl">Transaction ledger</div>
     <table class="pr-table">

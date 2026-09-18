@@ -948,18 +948,18 @@
   @media print{
     @page{ margin:14mm 16mm; }
     *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
+    html, body{ background:#fff !important; height:auto !important; }
     body *{ visibility:hidden; }
     #printReport, #printReport *{ visibility:visible; }
     #printReport{
-      display:block; position:absolute; inset:0; padding:0; margin:0;
-      background:#fff; color:#17181A; font-family:var(--sans);
+      display:block; position:absolute; top:0; left:0; right:0; padding:0; margin:0;
+      min-height:100%; background:#fff; color:#17181A; font-family:var(--sans);
     }
 
     /* Header banner */
     .pr-header{
       background:linear-gradient(120deg, #1F3A93 0%, #2F6FE0 55%, #3F8CFF 100%);
-      color:#fff; padding:26px 30px 22px; border-radius:0 0 14px 14px;
-      margin-bottom:22px; position:relative; overflow:hidden;
+      color:#fff; padding:26px 30px 22px; margin:0 0 22px 0; position:relative; overflow:hidden;
     }
     .pr-header::after{
       content:''; position:absolute; right:-40px; top:-60px; width:180px; height:180px;
@@ -969,35 +969,34 @@
     .pr-title{font-family:var(--serif); font-size:25px; font-weight:700; margin:0 0 3px 0; line-height:1.15;}
     .pr-sub{font-size:11.5px; color:rgba(255,255,255,0.82); margin:0;}
 
-    /* Summary stat cards */
-    .pr-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px;}
-    .pr-cell{
-      border-radius:10px; padding:12px 13px; background:#F5F7FA;
-      border-left:3px solid #2F6FE0;
+    /* Summary stats — plain columns separated by hairline rules, no
+       card fills, no borders-all-round, no rounded boxes. */
+    .pr-grid{
+      display:grid; grid-template-columns:repeat(3,1fr); margin:0 30px 24px;
+      border-top:1px solid #E7E9EC; border-bottom:1px solid #E7E9EC;
     }
-    .pr-cell.pos{background:rgba(28,154,91,0.08); border-left-color:#1C9A5B;}
-    .pr-cell.neg{background:rgba(213,75,90,0.08); border-left-color:#D54B5A;}
-    .pr-cell.accent2{background:rgba(169,122,28,0.08); border-left-color:#A97A1C;}
-    .pr-lbl{font-size:9.5px; color:#6B7078; text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom:4px;}
-    .pr-val{font-family:var(--serif); font-size:16px; font-weight:700; color:#17181A;}
+    .pr-cell{
+      padding:14px 16px; border-left:1px solid #E7E9EC;
+    }
+    .pr-cell:nth-child(3n+1){border-left:none;}
+    .pr-cell:nth-child(n+4){border-top:1px solid #E7E9EC;}
+    .pr-lbl{font-size:9.5px; color:#6B7078; text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom:5px;}
+    .pr-val{font-family:var(--serif); font-size:17px; font-weight:700; color:#17181A;}
     .pr-val.pos{color:#1C9A5B;} .pr-val.neg{color:#D54B5A;}
 
     /* Section label above the table */
     .pr-section-lbl{
       font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
-      color:#2F6FE0; margin:0 0 8px 2px;
+      color:#2F6FE0; margin:0 30px 8px; padding-top:2px;
     }
 
     /* Table */
-    .pr-table{width:100%; border-collapse:collapse; font-size:11px; border-radius:8px; overflow:hidden;}
+    .pr-table{width:100%; border-collapse:collapse; font-size:11px; margin:0 30px; width:calc(100% - 60px);}
     .pr-table thead th{
       text-align:left; padding:9px 10px; font-size:9.5px; text-transform:uppercase; letter-spacing:.04em;
-      background:#1F3A93; color:#fff; font-weight:700;
+      color:#2F6FE0; font-weight:700; border-bottom:1.5px solid #1F3A93;
     }
-    .pr-table thead th:first-child{border-radius:6px 0 0 0;}
-    .pr-table thead th:last-child{border-radius:0 6px 0 0;}
     .pr-table td{padding:7px 10px; border-bottom:1px solid #E7E9EC; color:#2A2C30;}
-    .pr-table tbody tr:nth-child(even) td{background:#F7F9FB;}
     .pr-table td.num{text-align:right; font-variant-numeric:tabular-nums;}
     .pr-pnl.pos{color:#1C9A5B; font-weight:700;} .pr-pnl.neg{color:#D54B5A; font-weight:700;}
     .pr-type-pill{
@@ -1012,7 +1011,7 @@
     }
     .pr-empty{font-size:12px; color:#6B7078; padding:16px 0; text-align:center;}
     .pr-footer{
-      margin-top:20px; padding-top:12px; border-top:1px solid #E7E9EC;
+      margin:20px 30px 0; padding-top:12px; border-top:1px solid #E7E9EC;
       font-size:9.5px; color:#8D9198; display:flex; justify-content:space-between; align-items:center;
     }
     .pr-footer-brand{font-weight:700; color:#2F6FE0;}
