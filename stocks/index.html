@@ -58,7 +58,7 @@
 </div>
 
 <!-- Fixed top-left back button (mobile only) -->
-<a href="../blackroad-dashboard.html" class="mobile-back-btn" aria-label="Back to BlackRoad" title="Back to BlackRoad">
+<a href="../blackroad-dashboard.html" class="mobile-back-btn" id="mobileBackBtn" aria-label="Back to BlackRoad" title="Back to BlackRoad">
   <i data-lucide="arrow-left"></i>
 </a>
 
@@ -144,6 +144,13 @@
 
     <!-- HOLDINGS -->
     <section class="view" id="view-holdings">
+      <div class="page-head">
+        <div class="page-head-icon"><i data-lucide="briefcase"></i></div>
+        <div>
+          <h2 class="page-head-title">Holdings</h2>
+          <div class="page-head-sub">Everything you currently own, valued at today's prices.</div>
+        </div>
+      </div>
       <div class="cards-grid" id="holdingsCards"></div>
     </section>
 
@@ -157,39 +164,49 @@
         </div>
       </div>
 
-      <div class="metric-grid" id="txnSummaryGrid"></div>
-
-      <div class="filters-row filter-toolbar">
-        <div class="filter-search">
-          <i data-lucide="search"></i>
-          <input type="text" id="filterSearch" placeholder="Search stock or symbol" aria-label="Search transactions">
-        </div>
-        <div class="filter-select-wrap">
-          <i data-lucide="briefcase" class="fs-icon"></i>
-          <select id="filterStock" aria-label="Filter by stock"><option value="">All stocks</option></select>
-        </div>
-        <div class="filter-select-wrap">
-          <i data-lucide="filter" class="fs-icon"></i>
-          <select id="filterType" aria-label="Filter by transaction type">
-            <option value="">All types</option>
-            <option value="BUY">Buy only</option>
-            <option value="SELL">Sell only</option>
-          </select>
-        </div>
-        <div class="filter-select-wrap">
-          <i data-lucide="arrow-down-up" class="fs-icon"></i>
-          <select id="sortOrder" aria-label="Sort order">
-            <option value="desc">Newest first</option>
-            <option value="asc">Oldest first</option>
-          </select>
-        </div>
-        <div class="filter-select-wrap" id="filterTagWrap" style="display:none;">
-          <i data-lucide="tag" class="fs-icon"></i>
-          <select id="filterTag" aria-label="Filter by tag"><option value="">All tags</option></select>
-        </div>
+      <div class="txn-toolbar">
+        <button type="button" class="toolbar-toggle-btn" id="txnFiltersToggle" aria-expanded="false" aria-controls="txnFiltersPanel">
+          <i data-lucide="sliders-horizontal"></i>Search &amp; filters
+          <span class="toolbar-toggle-dot" id="txnFilterDot" hidden></span>
+          <i data-lucide="chevron-down" class="toolbar-toggle-chevron"></i>
+        </button>
         <div class="txn-view-toggle" id="txnViewToggle" role="group" aria-label="Transaction view">
           <button type="button" class="tvt-btn active" data-mode="cards" title="Full detail"><i data-lucide="layout-list"></i>Cards</button>
           <button type="button" class="tvt-btn" data-mode="pnl" title="Symbol and P&amp;L only"><i data-lucide="percent"></i>P&amp;L</button>
+        </div>
+      </div>
+
+      <div class="txn-filters-panel" id="txnFiltersPanel">
+        <div class="metric-grid" id="txnSummaryGrid"></div>
+
+        <div class="filters-row filter-toolbar">
+          <div class="filter-search">
+            <i data-lucide="search"></i>
+            <input type="text" id="filterSearch" placeholder="Search stock or symbol" aria-label="Search transactions">
+          </div>
+          <div class="filter-select-wrap">
+            <i data-lucide="briefcase" class="fs-icon"></i>
+            <select id="filterStock" aria-label="Filter by stock"><option value="">All stocks</option></select>
+          </div>
+          <div class="filter-select-wrap">
+            <i data-lucide="filter" class="fs-icon"></i>
+            <select id="filterType" aria-label="Filter by transaction type">
+              <option value="">All types</option>
+              <option value="BUY">Buy only</option>
+              <option value="SELL">Sell only</option>
+            </select>
+          </div>
+          <div class="filter-select-wrap">
+            <i data-lucide="arrow-down-up" class="fs-icon"></i>
+            <select id="sortOrder" aria-label="Sort order">
+              <option value="desc">Newest first</option>
+              <option value="asc">Oldest first</option>
+            </select>
+          </div>
+          <div class="filter-select-wrap" id="filterTagWrap" style="display:none;">
+            <i data-lucide="tag" class="fs-icon"></i>
+            <select id="filterTag" aria-label="Filter by tag"><option value="">All tags</option></select>
+          </div>
         </div>
       </div>
       <div class="cards-grid" id="txnCards"></div>
@@ -229,18 +246,20 @@
         <div class="an-panel-body insights-grid" id="perfStrip"></div>
       </div>
 
-      <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="chart-column"></i><h2>Where your profit comes from</h2></div>
-        <div class="an-panel-body">
-          <div class="stat-row"><span class="lbl">Already banked (sold stocks)</span><span id="anRealized"></span></div>
-          <div class="stat-row"><span class="lbl">On paper (if you sold today)</span><span id="anUnrealized"></span></div>
-          <div class="stat-row"><span class="lbl">Grand total</span><span id="anTotal"></span></div>
+      <div class="analytics-grid-2">
+        <div class="analytics-panel an-panel">
+          <div class="an-panel-head"><i data-lucide="chart-column"></i><h2>Where your profit comes from</h2></div>
+          <div class="an-panel-body">
+            <div class="stat-row"><span class="lbl">Already banked (sold stocks)</span><span id="anRealized"></span></div>
+            <div class="stat-row"><span class="lbl">On paper (if you sold today)</span><span id="anUnrealized"></span></div>
+            <div class="stat-row"><span class="lbl">Grand total</span><span id="anTotal"></span></div>
+          </div>
         </div>
-      </div>
 
-      <div class="analytics-panel an-panel">
-        <div class="an-panel-head"><i data-lucide="shield-check"></i><h2>Portfolio health</h2></div>
-        <div class="an-panel-body" id="portfolioHealth"></div>
+        <div class="analytics-panel an-panel">
+          <div class="an-panel-head"><i data-lucide="shield-check"></i><h2>Portfolio health</h2></div>
+          <div class="an-panel-body" id="portfolioHealth"></div>
+        </div>
       </div>
     </section>
 
@@ -530,6 +549,7 @@
       <i data-lucide="search"></i>
       <input type="text" id="globalSearchInput" placeholder="Search stocks, transactions, notes, tags…" autocomplete="off">
       <kbd class="search-esc-hint">Esc</kbd>
+      <button class="search-close-btn" id="searchCloseBtn" type="button" aria-label="Close search"><i data-lucide="x"></i></button>
     </div>
     <div class="search-results" id="searchResults"></div>
   </div>

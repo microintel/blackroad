@@ -573,6 +573,31 @@ function closeInlineDetail(){
 }
 document.getElementById('detailBackBtn').addEventListener('click', closeInlineDetail);
 
+// The fixed top-left arrow is meant to feel like a single, predictable
+// "back" affordance. Left as a plain link, it always navigated away to
+// the BlackRoad dashboard — including while a stock's detail was open,
+// which reads exactly like an in-app "back" button but actually exits
+// the whole app. Intercept it so it does the in-app thing first.
+const mobileBackBtn = document.getElementById('mobileBackBtn');
+if(mobileBackBtn){
+  mobileBackBtn.addEventListener('click', (e) => {
+    if(inlineDetailOpen){
+      e.preventDefault();
+      closeInlineDetail();
+    }
+    // Otherwise let the link proceed normally to the BlackRoad dashboard.
+  });
+  // Keep the button's own label honest about what tapping it will do.
+  function syncMobileBackBtnLabel(){
+    const label = inlineDetailOpen ? 'Back to holdings' : 'Back to BlackRoad';
+    mobileBackBtn.setAttribute('aria-label', label);
+    mobileBackBtn.setAttribute('title', label);
+  }
+  const backBtnObserver = new MutationObserver(syncMobileBackBtnLabel);
+  backBtnObserver.observe(inlineDetailPanel, { attributes:true, attributeFilter:['class'] });
+  syncMobileBackBtnLabel();
+}
+
 // Loads the "price chart since purchase" panel in the stock detail modal:
 // fetches the symbol's price history, clips it to the user's earliest
 // transaction date for that stock (their "start date"), computes actual
@@ -903,11 +928,30 @@ document.getElementById('detailPriceInput').addEventListener('change', (e) => {
 /* ---------------------------------------------------------------
    TRANSACTION FILTERS
 ------------------------------------------------------------------*/
-document.getElementById('filterStock').addEventListener('change', renderTransactions);
-document.getElementById('filterType').addEventListener('change', renderTransactions);
+document.getElementById('filterStock').addEventListener('change', () => { renderTransactions(); updateTxnFilterDot(); });
+document.getElementById('filterType').addEventListener('change', () => { renderTransactions(); updateTxnFilterDot(); });
 document.getElementById('sortOrder').addEventListener('change', renderTransactions);
-document.getElementById('filterSearch').addEventListener('input', renderTransactions);
-document.getElementById('filterTag').addEventListener('change', renderTransactions);
+document.getElementById('filterSearch').addEventListener('input', () => { renderTransactions(); updateTxnFilterDot(); });
+document.getElementById('filterTag').addEventListener('change', () => { renderTransactions(); updateTxnFilterDot(); });
+
+// Search & filters panel — collapsed by default so the transaction list
+// itself is the first thing shown, not a wall of controls above it.
+const txnFiltersToggle = document.getElementById('txnFiltersToggle');
+const txnFiltersPanel = document.getElementById('txnFiltersPanel');
+txnFiltersToggle.addEventListener('click', () => {
+  const isOpen = txnFiltersPanel.classList.toggle('open');
+  txnFiltersToggle.classList.toggle('open', isOpen);
+  txnFiltersToggle.setAttribute('aria-expanded', String(isOpen));
+});
+// A small dot stays on the toggle whenever a filter is actively narrowing
+// the list, so collapsing the panel never hides that fact from the user.
+function updateTxnFilterDot(){
+  const active = document.getElementById('filterSearch').value.trim() !== ''
+    || document.getElementById('filterStock').value !== ''
+    || document.getElementById('filterType').value !== ''
+    || document.getElementById('filterTag').value !== '';
+  document.getElementById('txnFilterDot').hidden = !active;
+}
 
 // Transactions view toggle — full cards vs. compact "symbol + P&L only".
 let txnViewMode = 'cards';
@@ -1065,6 +1109,7 @@ function syncSearchModalToViewport(){
 }
 document.getElementById('globalSearchBtn').addEventListener('click', openSearchModal);
 document.getElementById('dashSearchBar').addEventListener('click', openSearchModal);
+document.getElementById('searchCloseBtn').addEventListener('click', closeSearchModal);
 searchModal.addEventListener('click', e => { if(e.target === searchModal) closeSearchModal(); });
 
 function renderSearchResults(rawTerm){
@@ -1212,6 +1257,7 @@ function startLivePricePolling(){
 
 loadState().then(() => {
   renderAll();
+  updateTxnFilterDot();
   if(window.lucide) lucide.createIcons();
   const loader = document.getElementById('initialLoader');
   if(loader){

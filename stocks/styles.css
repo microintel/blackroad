@@ -397,10 +397,34 @@
   .metric-label{font-size:10.5px; color:var(--muted); font-weight:600; letter-spacing:.01em; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .metric-value{font-family:var(--serif); font-size:18px; font-weight:600; line-height:1.2; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   @media (max-width:860px){
-    .metric-grid{grid-template-columns:repeat(2,1fr); gap:8px;}
-    .metric-card{padding:11px 12px;}
+    .metric-grid{grid-template-columns:repeat(2,1fr); gap:10px;}
+    .metric-card{padding:13px 14px;}
     .metric-value{font-size:15.5px;}
   }
+
+  /* ---------- Transactions: toolbar + collapsible filters panel ----------
+     The list itself is the primary content, so it's shown immediately.
+     Search, the stock/type/sort/tag filters, and the summary numbers all
+     live in one panel that's collapsed by default and revealed with a
+     single "Search & filters" toggle, instead of sitting permanently
+     above the list. */
+  .txn-toolbar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+  .toolbar-toggle-btn{
+    display:inline-flex; align-items:center; gap:8px; padding:9px 14px; border-radius:20px;
+    background:var(--panel); border:1px solid var(--line-soft); color:var(--text);
+    font-family:var(--sans); font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .toolbar-toggle-btn svg{width:14px; height:14px; stroke-width:2.2; color:var(--muted); flex-shrink:0;}
+  .toolbar-toggle-btn .toolbar-toggle-chevron{transition:transform .16s ease;}
+  .toolbar-toggle-btn.open .toolbar-toggle-chevron{transform:rotate(180deg);}
+  .toolbar-toggle-btn.open{background:var(--panel-2); border-color:var(--line);}
+  .toolbar-toggle-dot{width:7px; height:7px; border-radius:50%; background:var(--accent); flex-shrink:0;}
+  .txn-filters-panel{
+    height:0; opacity:0; overflow:hidden;
+    transition:height .2s ease, opacity .18s ease, margin .2s ease;
+  }
+  .txn-filters-panel.open{height:auto; opacity:1; margin-bottom:16px;}
+  .txn-filters-panel .metric-grid{margin-bottom:14px;}
 
   /* ---------- Filter toolbar (search + select icons) ---------- */
   .filter-toolbar{align-items:center;}
@@ -434,9 +458,15 @@
   /* Holdings render as a flat, native-app-style list (single column,
      no card borders) at every width — the row layout doesn't suit a
      multi-column grid the way the old boxed cards did. */
-  #dashHoldingsCards, #holdingsCards{grid-template-columns:1fr; gap:8px;}
+  #dashHoldingsCards, #holdingsCards{grid-template-columns:1fr; gap:10px;}
   @media (min-width:640px){
     #txnCards{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (min-width:900px){
+    #dashHoldingsCards, #holdingsCards{grid-template-columns:repeat(2,1fr); gap:10px 14px;}
+  }
+  @media (min-width:1400px){
+    #txnCards{grid-template-columns:repeat(3,1fr);}
   }
 
   .holding-card{
@@ -500,9 +530,9 @@
      everywhere else in the app) rather than a dense hairline-divided
      list, and stacks symbol/amount above date so nothing gets hidden
      or squeezed on a narrow screen. */
-  .pnl-list{display:flex; flex-direction:column; gap:8px;}
+  .pnl-list{display:flex; flex-direction:column; gap:10px;}
   .pnl-row{
-    display:flex; flex-direction:column; gap:6px; padding:13px 16px;
+    display:flex; flex-direction:column; gap:6px; padding:14px 16px;
     background:var(--panel); border:1px solid var(--line-soft); border-radius:var(--radius-lg);
   }
   .pnl-row-top{display:flex; align-items:center; gap:10px;}
@@ -517,6 +547,11 @@
     background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:16px;
   }
   .analytics-split{display:grid; grid-template-columns:1.15fr 0.85fr;}
+  .analytics-grid-2{display:grid; grid-template-columns:1fr; gap:16px;}
+  .analytics-grid-2 .an-panel{margin-bottom:0;}
+  @media (min-width:1024px){
+    .analytics-grid-2{grid-template-columns:1fr 1fr; align-items:start;}
+  }
   .analytics-split > div{padding:18px 20px;}
   .analytics-split > div + div{border-left:1px solid var(--line);}
   .analytics-split h2{font-size:14.5px; margin-bottom:12px;}
@@ -570,7 +605,7 @@
   .settings-item:last-child{border-bottom:none;}
   .settings-row-header{
     display:flex; align-items:center; gap:14px; width:100%;
-    background:none; border:none; padding:16px 4px; cursor:pointer;
+    background:none; border:none; padding:16px 8px; cursor:pointer;
     font-family:var(--sans); text-align:left; border-radius:var(--radius-sm);
     color:var(--text);
     transition:background-color .14s ease;
@@ -590,10 +625,14 @@
   .settings-row-header .row-chevron{transition:transform .16s ease;}
   .settings-row-header.open .row-chevron{transform:rotate(90deg);}
   .settings-row-detail{
-    display:block; height:0; opacity:0; padding:0 4px; overflow:hidden;
+    display:block; height:0; opacity:0; padding:0 8px 0 58px; overflow:hidden;
     transition:height .2s ease, opacity .18s ease, padding .2s ease;
   }
-  .settings-row-detail.open{height:auto; opacity:1; padding:0 4px 20px 4px;}
+  .settings-row-detail.open{height:auto; opacity:1; padding:0 8px 20px 58px;}
+  @media (max-width:520px){
+    .settings-row-detail{padding-left:8px;}
+    .settings-row-detail.open{padding-left:8px;}
+  }
   .settings-row-detail-text{font-size:13px; color:var(--muted); line-height:1.55; margin:0 0 14px 0;}
 
   .live-price-note{
@@ -757,7 +796,7 @@
     .field-group .field-row{display:flex; flex-direction:column; gap:0;}
     .field-group .field{
       display:flex; align-items:center; justify-content:space-between; gap:14px;
-      margin:0; padding:13px 14px; border-bottom:1px solid var(--line); min-height:24px;
+      margin:0; padding:14px 16px; border-bottom:1px solid var(--line); min-height:24px;
     }
     /* Only strip the border on the truly-last row of the whole card
        (Notes, a direct child of field-group) — a bare :last-child
@@ -843,8 +882,8 @@
   }
 
   /* ---------- Portfolio health / monthly report grid (Parts 15, 18) ---------- */
-  .health-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;}
-  .health-item{background:var(--panel); border:1px solid var(--line-soft); border-radius:var(--radius); padding:12px 13px;}
+  .health-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;}
+  .health-item{background:var(--panel); border:1px solid var(--line-soft); border-radius:var(--radius); padding:14px 15px;}
   .health-lbl{font-size:10.5px; color:var(--muted); font-weight:600; letter-spacing:.01em; margin-bottom:5px;}
   .health-val{font-family:var(--serif); font-size:16px; font-weight:600; line-height:1.25; word-break:break-word;}
   .health-note{
@@ -865,6 +904,12 @@
     font-family:var(--sans); font-size:10.5px; font-weight:600; color:var(--muted);
     border:1px solid var(--line); border-radius:5px; padding:2px 6px; flex-shrink:0;
   }
+  .search-close-btn{
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    width:32px; height:32px; border-radius:9px; background:var(--panel-2); border:none; color:var(--text);
+  }
+  .search-close-btn svg{width:16px; height:16px; stroke-width:2.2;}
+  .search-close-btn:hover, .search-close-btn:active{background:var(--overlay-strong);}
   .search-results{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px; flex:1; min-height:0;}
   .search-group-label{font-size:10.5px; font-weight:700; color:var(--muted); letter-spacing:.03em; text-transform:uppercase; padding:10px 10px 6px 10px;}
   .search-result{
@@ -967,10 +1012,10 @@
     .stat-strip{grid-template-columns:repeat(2, 1fr);}
     .perf-strip .stat-item{padding:12px 4px;}
     .perf-strip .tag{width:auto; max-width:44%;}
-    .view{padding:14px 14px 24px 14px;}
-    .section-heading{margin:20px 0 10px 0;}
+    .view{padding:20px 18px 32px 18px;}
+    .section-heading{margin:22px 0 14px 0;}
     .topbar{
-      padding:calc(12px + env(safe-area-inset-top)) 14px 12px 64px;
+      padding:calc(14px + env(safe-area-inset-top)) 16px 14px 64px;
       align-items:flex-start;
     }
     .topbar h1{font-size:19px;}
@@ -978,7 +1023,7 @@
     #addTxnBtn{display:none;}         /* FAB takes over primary add action */
     #clearDataBtn{padding:9px 12px;}
     .field-row{flex-direction:column; gap:0;}
-    .filters-row{gap:8px;}
+    .filters-row{gap:10px;}
     .filters-row select{flex:1; min-width:0;}
     /* The filter toolbar (search + 3 selects + view toggle) was wrapping
        everything into one tight, uneven row on narrow screens. Give the
@@ -1014,8 +1059,8 @@
 
     /* Analytics: insights + perf-hero-split already collapse via their own
        media rules above; keep panel padding compact on mobile. */
-    .an-panel-head{padding:14px 16px;}
-    .an-panel-body{padding:14px 16px;}
+    .an-panel-head{padding:16px 18px;}
+    .an-panel-body{padding:16px 18px;}
     .page-head{margin-bottom:14px;}
     /* The sticky topbar (with the back button) already shows the page
        title on mobile — this icon+title+description block duplicated
@@ -1042,6 +1087,7 @@
        100dvh (not 100vh) is what actually shrinks when the keyboard
        opens on browsers that support the dynamic-viewport units. */
     #searchModalOverlay{align-items:flex-start;}
+    .search-esc-hint{display:none;}
     .search-modal{
       width:100%; max-width:100%; height:100dvh; max-height:100dvh;
       border-radius:0; margin:0; padding-top:env(safe-area-inset-top);
