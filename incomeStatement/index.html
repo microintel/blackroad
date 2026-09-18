@@ -183,9 +183,9 @@
   <div class="dashboard-grid">
 
     <section class="panel">
-      <button type="button" class="panel-expand-btn" aria-label="Open fullscreen" title="Open fullscreen">
+      <a class="panel-expand-btn" href="expand.html?panel=expense" aria-label="Open fullscreen" title="Open fullscreen">
         <i class="bi bi-arrows-fullscreen"></i>
-      </button>
+      </a>
       <h2>Expense by category</h2>
       <div class="chart-wrap">
         <div class="chart-canvas-inner" id="catChartInner">
@@ -196,9 +196,9 @@
     </section>
 
     <section class="panel">
-      <button type="button" class="panel-expand-btn" aria-label="Open fullscreen" title="Open fullscreen">
+      <a class="panel-expand-btn" href="expand.html?panel=income-source" aria-label="Open fullscreen" title="Open fullscreen">
         <i class="bi bi-arrows-fullscreen"></i>
-      </button>
+      </a>
       <h2>Income by source</h2>
       <div id="sourceList">
         <div class="chart-empty">No income logged yet</div>
@@ -206,9 +206,9 @@
     </section>
 
     <section class="panel">
-      <button type="button" class="panel-expand-btn" aria-label="Open fullscreen" title="Open fullscreen">
+      <a class="panel-expand-btn" href="expand.html?panel=income-category" aria-label="Open fullscreen" title="Open fullscreen">
         <i class="bi bi-arrows-fullscreen"></i>
-      </button>
+      </a>
       <h2>Income by category</h2>
       <div class="chart-wrap">
         <div class="chart-canvas-inner" id="incCatChartInner">
@@ -219,9 +219,9 @@
     </section>
 
     <section class="panel">
-      <button type="button" class="panel-expand-btn" aria-label="Open fullscreen" title="Open fullscreen">
+      <a class="panel-expand-btn" href="expand.html?panel=investment-returns" aria-label="Open fullscreen" title="Open fullscreen">
         <i class="bi bi-arrows-fullscreen"></i>
-      </button>
+      </a>
       <h2>Investment returns</h2>
       <p class="panel-sub">Dividends, interest and other portfolio earnings — kept separate from salary/genuine income above.</p>
       <div id="invReturnList">
@@ -229,17 +229,6 @@
       </div>
     </section>
 
-  </div>
-
-  <!-- ============ Fullscreen panel overlay (shared by all expandable
-       breakdown panels above) ============ -->
-  <div class="panel-fullscreen-overlay" id="panelFullscreenOverlay">
-    <div class="panel-fullscreen-inner">
-      <button type="button" class="panel-fullscreen-close" id="panelFullscreenClose" aria-label="Close fullscreen" title="Close">
-        <i class="bi bi-x-lg"></i>
-      </button>
-      <div id="panelFullscreenBody"></div>
-    </div>
   </div>
 
   <!-- ============ ACTIVITY ============ -->

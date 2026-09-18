@@ -613,6 +613,42 @@ body{ padding-left: var(--rail-w); }
   margin:0;
 }
 
+/* ---------- Expand page (expand.html) ----------
+   A dedicated, single-purpose page that shows one breakdown panel
+   (from the dashboard's "Expense by category" / "Income by source" /
+   "Income by category" / "Investment returns") at full size, reached
+   via that panel's expand button and left again via the Close button
+   below. Reuses .page-shell/.page-header for the same look as the
+   app's other simple pages, just wider — charts need the room. */
+.expand-shell{ max-width:960px; }
+.expand-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:22px;
+}
+.expand-close-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:9px 16px;
+  border-radius:var(--radius-pill);
+  background:var(--card-2);
+  color:var(--text);
+  font-size:0.82rem;
+  font-weight:600;
+  text-decoration:none;
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.expand-close-btn:hover{ background:var(--ink-out-bg); color:var(--ink-out); }
+/* The dashboard cards cap these at 340px with a scrollbar so the card
+   stays compact; on the expand page there's no reason to cap them —
+   let the chart/list use however much height its data needs. */
+.expand-panel .chart-wrap{ max-height:none; overflow:visible; }
+.expand-panel #expandList{ max-height:none; }
+
 /* ---------- Jump-to page ---------- */
 .jump-year{ margin-top:26px; }
 .jump-year:first-child{ margin-top:0; }
@@ -700,13 +736,10 @@ body{ padding-left: var(--rail-w); }
   box-shadow:var(--shadow-card);
 }
 
-/* ---------- Panel "open fullscreen" button + overlay ----------
-   Any .panel that includes a .panel-expand-btn can be blown up to
-   a full-page view — handy when a breakdown list/chart is too tall
-   or cramped for its half-width card. Clicking it moves the panel's
-   real DOM node (not a copy) into #panelFullscreenOverlay, then
-   moves it back to its original spot on close, so charts/lists keep
-   working exactly as before. */
+/* ---------- Panel "open fullscreen" button ----------
+   A small icon-link in the corner of a breakdown panel that opens
+   expand.html — a dedicated page for viewing that one panel's chart
+   or list at full size, without the compact card's height cap. */
 .panel-expand-btn{
   position:absolute;
   top:14px;
@@ -726,66 +759,6 @@ body{ padding-left: var(--rail-w); }
   z-index:1;
 }
 .panel-expand-btn:hover{ background:var(--accent-bg, var(--card-2)); color:var(--accent); }
-
-.panel-fullscreen-overlay{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.55);
-  z-index:1000;
-  padding:24px;
-  box-sizing:border-box;
-  overflow-y:auto;
-}
-.panel-fullscreen-overlay.open{ display:flex; align-items:flex-start; justify-content:center; }
-.panel-fullscreen-inner{
-  position:relative;
-  width:100%;
-  max-width:900px;
-  margin:auto;
-}
-.panel-fullscreen-close{
-  position:absolute;
-  top:-14px;
-  right:-14px;
-  width:36px;
-  height:36px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border:none;
-  border-radius:50%;
-  background:var(--card);
-  color:var(--text);
-  box-shadow:var(--shadow-card);
-  font-size:0.85rem;
-  cursor:pointer;
-  z-index:2;
-}
-.panel-fullscreen-close:hover{ color:var(--ink-out); }
-body.panel-fullscreen-active{ overflow:hidden; }
-
-/* Once a panel is sitting inside the overlay, let its own capped
-   inner scroll areas (chart / list) breathe rather than staying
-   pinned to their compact 340px card height. */
-.panel.is-fullscreen{
-  box-shadow:0 20px 60px rgba(0,0,0,0.35);
-}
-.panel.is-fullscreen .panel-expand-btn{ display:none; }
-.panel.is-fullscreen .chart-wrap,
-.panel.is-fullscreen #sourceList,
-.panel.is-fullscreen #invReturnList{
-  max-height:none;
-}
-.panel.is-fullscreen .chart-canvas-inner{
-  max-height:70vh;
-}
-@media (max-width:640px){
-  .panel-fullscreen-overlay{ padding:0; }
-  .panel-fullscreen-inner{ max-width:none; min-height:100vh; }
-  .panel.is-fullscreen{ border-radius:0; min-height:100vh; box-sizing:border-box; }
-  .panel-fullscreen-close{ top:14px; right:14px; }
-}
 .panel h2{
   font-size:0.68rem;
   letter-spacing:0.06em;
