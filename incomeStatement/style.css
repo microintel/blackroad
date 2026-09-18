@@ -692,11 +692,99 @@ body{ padding-left: var(--rail-w); }
 
 /* ---------- Sidebar panels ---------- */
 .panel{
+  position:relative;
   min-width:0;
   padding:16px;
   background:var(--card);
   border-radius:var(--radius-lg);
   box-shadow:var(--shadow-card);
+}
+
+/* ---------- Panel "open fullscreen" button + overlay ----------
+   Any .panel that includes a .panel-expand-btn can be blown up to
+   a full-page view — handy when a breakdown list/chart is too tall
+   or cramped for its half-width card. Clicking it moves the panel's
+   real DOM node (not a copy) into #panelFullscreenOverlay, then
+   moves it back to its original spot on close, so charts/lists keep
+   working exactly as before. */
+.panel-expand-btn{
+  position:absolute;
+  top:14px;
+  right:14px;
+  width:28px;
+  height:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:none;
+  border-radius:8px;
+  background:var(--card-2);
+  color:var(--text-faint);
+  font-size:0.72rem;
+  cursor:pointer;
+  transition:background 0.15s, color 0.15s;
+  z-index:1;
+}
+.panel-expand-btn:hover{ background:var(--accent-bg, var(--card-2)); color:var(--accent); }
+
+.panel-fullscreen-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.55);
+  z-index:1000;
+  padding:24px;
+  box-sizing:border-box;
+  overflow-y:auto;
+}
+.panel-fullscreen-overlay.open{ display:flex; align-items:flex-start; justify-content:center; }
+.panel-fullscreen-inner{
+  position:relative;
+  width:100%;
+  max-width:900px;
+  margin:auto;
+}
+.panel-fullscreen-close{
+  position:absolute;
+  top:-14px;
+  right:-14px;
+  width:36px;
+  height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:none;
+  border-radius:50%;
+  background:var(--card);
+  color:var(--text);
+  box-shadow:var(--shadow-card);
+  font-size:0.85rem;
+  cursor:pointer;
+  z-index:2;
+}
+.panel-fullscreen-close:hover{ color:var(--ink-out); }
+body.panel-fullscreen-active{ overflow:hidden; }
+
+/* Once a panel is sitting inside the overlay, let its own capped
+   inner scroll areas (chart / list) breathe rather than staying
+   pinned to their compact 340px card height. */
+.panel.is-fullscreen{
+  box-shadow:0 20px 60px rgba(0,0,0,0.35);
+}
+.panel.is-fullscreen .panel-expand-btn{ display:none; }
+.panel.is-fullscreen .chart-wrap,
+.panel.is-fullscreen #sourceList,
+.panel.is-fullscreen #invReturnList{
+  max-height:none;
+}
+.panel.is-fullscreen .chart-canvas-inner{
+  max-height:70vh;
+}
+@media (max-width:640px){
+  .panel-fullscreen-overlay{ padding:0; }
+  .panel-fullscreen-inner{ max-width:none; min-height:100vh; }
+  .panel.is-fullscreen{ border-radius:0; min-height:100vh; box-sizing:border-box; }
+  .panel-fullscreen-close{ top:14px; right:14px; }
 }
 .panel h2{
   font-size:0.68rem;

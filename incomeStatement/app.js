@@ -200,6 +200,83 @@ document.addEventListener("br-theme-changed", () => {
 });
 
 /* =========================================================
+   Breakdown panel "open fullscreen" — any .panel with a
+   .panel-expand-btn can be blown up into a full-page overlay.
+   Moves the actual panel node into the overlay (not a clone),
+   so its chart/list keeps working, then moves it back to its
+   original spot on close.
+========================================================= */
+let fsPanelEl = null;
+let fsOriginalParent = null;
+let fsOriginalNext = null;
+
+function openPanelFullscreen(panelEl) {
+  const overlay = document.getElementById("panelFullscreenOverlay");
+  const body = document.getElementById("panelFullscreenBody");
+  if (!overlay || !body || !panelEl) return;
+
+  fsPanelEl = panelEl;
+  fsOriginalParent = panelEl.parentNode;
+  fsOriginalNext = panelEl.nextSibling;
+
+  body.appendChild(panelEl);
+  panelEl.classList.add("is-fullscreen");
+  overlay.classList.add("open");
+  document.body.classList.add("panel-fullscreen-active");
+
+  // Charts don't auto-notice their container changed size when the
+  // canvas is moved via appendChild, so nudge Chart.js after layout.
+  requestAnimationFrame(() => {
+    if (catChart) catChart.resize();
+    if (incCatChart) incCatChart.resize();
+  });
+}
+
+function closePanelFullscreen() {
+  if (!fsPanelEl || !fsOriginalParent) return;
+
+  fsPanelEl.classList.remove("is-fullscreen");
+  if (fsOriginalNext) {
+    fsOriginalParent.insertBefore(fsPanelEl, fsOriginalNext);
+  } else {
+    fsOriginalParent.appendChild(fsPanelEl);
+  }
+
+  document.getElementById("panelFullscreenOverlay")?.classList.remove("open");
+  document.body.classList.remove("panel-fullscreen-active");
+
+  fsPanelEl = null;
+  fsOriginalParent = null;
+  fsOriginalNext = null;
+
+  requestAnimationFrame(() => {
+    if (catChart) catChart.resize();
+    if (incCatChart) incCatChart.resize();
+  });
+}
+
+document.addEventListener("click", (e) => {
+  const expandBtn = e.target.closest(".panel-expand-btn");
+  if (expandBtn) {
+    const panel = expandBtn.closest(".panel");
+    if (panel) openPanelFullscreen(panel);
+    return;
+  }
+  if (e.target.closest("#panelFullscreenClose")) {
+    closePanelFullscreen();
+    return;
+  }
+  // Click on the dimmed backdrop itself (not the panel inside it) closes too.
+  if (e.target.id === "panelFullscreenOverlay") {
+    closePanelFullscreen();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closePanelFullscreen();
+});
+
+/* =========================================================
    "This month" command-center — month summary, cash-flow
    trend, recent activity, and top movers. Reads the same
    ENTRIES cache as renderDashboard(); doesn't touch it.
