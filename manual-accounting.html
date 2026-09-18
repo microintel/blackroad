@@ -21,6 +21,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="auth.js"></script>
 <style>
 :root{
@@ -326,6 +327,7 @@ body.br-guest-mode .mobile-actionbar .btn-primary{opacity:.6;}
     <div class="form-actions span-all">
       <button class="btn-primary" id="saveBtn"><i class="bi bi-check2"></i> Calculate &amp; Save</button>
       <button class="btn-secondary" id="resetBtn"><i class="bi bi-arrow-counterclockwise"></i> Reset entries</button>
+      <button class="btn-secondary" id="exportPdfBtn"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
       <span class="save-hint" id="saveHint">Saved ✓</span>
     </div>
 
@@ -377,6 +379,11 @@ function fmtINR(n){
   n = Number(n)||0;
   const sign = n < 0 ? '-' : '';
   return sign + '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN');
+}
+function fmtPDF(n){
+  n = Number(n)||0;
+  const sign = n < 0 ? '-' : '';
+  return sign + 'Rs. ' + Math.abs(Math.round(n)).toLocaleString('en-IN');
 }
 
 /* ============================================================
@@ -620,6 +627,83 @@ function drawChart(assets, liabilities){
     options: { cutout:'70%', plugins:{ legend:{ display:false } }, maintainAspectRatio:false }
   });
 }
+
+/* ============================================================
+   EXPORT PDF — snapshots the current breakdown into a downloadable
+   PDF, stamped with the date and time it was generated.
+   ============================================================ */
+async function exportToPDF(){
+  const jsPDFLib = window.jspdf && window.jspdf.jsPDF;
+  if(!jsPDFLib){
+    showToast('PDF library failed to load — check your connection', 'bi-exclamation-circle-fill');
+    return;
+  }
+
+  const m = gatherManual();
+  const bankTotal = m.banks.reduce((a,b)=>a+b,0);
+  const customTotal = m.customs.reduce((a,c)=>a+c.amt,0);
+  const assets = bankTotal + m.cash + m.fd + m.stock + m.demat + m.pending + m.other + customTotal
+               + liveMF + liveLending.peopleReceivable;
+  const liabilities = liveLending.liabilities;
+  const net = assets - liabilities;
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
+                + '  ·  ' + now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+
+  const doc = new jsPDFLib();
+  const left = 14, right = 196;
+  let y = 20;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(20);
+  doc.text('BlackRoad — Manual Accounting', left, y);
+  y += 8;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(120);
+  doc.text('Downloaded on ' + dateStr, left, y);
+  y += 6;
+  doc.setDrawColor(210); doc.line(left, y, right, y);
+  y += 10;
+
+  const rows = [
+    ['Banks', bankTotal],
+    ['Cash', m.cash],
+    ['Mutual Funds', liveMF],
+    ['Fixed Deposit', m.fd],
+    ['Stocks', m.stock],
+    ['Demat Account', m.demat],
+    ['Pending', m.pending],
+    ['Other Assets', m.other],
+    ...m.customs.map(c => [c.name || 'Additional', c.amt]),
+    ['Lending Receivable', liveLending.peopleReceivable],
+  ];
+
+  doc.setFontSize(11);
+  rows.forEach(([label, val])=>{
+    doc.setTextColor(90); doc.text(String(label), left, y);
+    doc.setTextColor(20); doc.text(fmtPDF(val), right, y, { align:'right' });
+    y += 8;
+  });
+
+  doc.setDrawColor(210); doc.line(left, y, right, y);
+  y += 9;
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(20); doc.text('Total Assets', left, y);
+  doc.text(fmtPDF(assets), right, y, { align:'right' });
+  y += 9;
+  doc.setFont('helvetica','normal'); doc.setTextColor(90);
+  doc.text('Loans & Liabilities', left, y);
+  doc.text('− ' + fmtPDF(liabilities), right, y, { align:'right' });
+  y += 5;
+  doc.setDrawColor(160); doc.line(left, y, right, y);
+  y += 10;
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(20);
+  doc.text('Net Worth', left, y);
+  doc.text(fmtPDF(net), right, y, { align:'right' });
+
+  doc.save('blackroad-accounting-' + now.toISOString().slice(0,10) + '.pdf');
+  showToast('PDF exported', 'bi-file-earmark-pdf');
+}
+document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
 
 document.getElementById('saveBtn').addEventListener('click', ()=> calculate(true));
 document.getElementById('mobileSaveBtn').addEventListener('click', ()=> calculate(true));
