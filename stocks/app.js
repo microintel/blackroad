@@ -1014,34 +1014,43 @@ function generatePrintReport(ym){
   const rowsHTML = scopedTxns.length ? scopedTxns.map(t => `
     <tr>
       <td>${fmtDate(t.date)}</td>
-      <td>${escHtml(t.type)}</td>
+      <td><span class="pr-type-pill ${t.type === 'BUY' ? 'buy' : 'sell'}">${escHtml(t.type)}</span></td>
       <td>${escHtml(t.name)} (${escHtml(t.symbol)})</td>
       <td class="num">${t.quantity}</td>
       <td class="num">${fmtMoney(t.price)}</td>
       <td class="num">${fmtMoney(t.quantity * t.price, true)}</td>
-      <td class="num">${t.type === 'SELL' && pnlMap[t.id] !== undefined ? fmtSigned(pnlMap[t.id], true) : '—'}</td>
-      <td>${t.isMTF ? 'MTF' : '—'}</td>
+      <td class="num ${t.type === 'SELL' && pnlMap[t.id] !== undefined ? 'pr-pnl ' + pnlClass(pnlMap[t.id]) : ''}">${t.type === 'SELL' && pnlMap[t.id] !== undefined ? fmtSigned(pnlMap[t.id], true) : '—'}</td>
+      <td>${t.isMTF ? '<span class="pr-mtf-pill">MTF</span>' : ''}</td>
     </tr>
   `).join('') : `<tr><td colspan="8" class="pr-empty">No transactions ${isAll ? 'yet' : 'this month'}.</td></tr>`;
 
   const pnlLabel = isAll ? 'Realized P&amp;L (all time)' : 'Realized P&amp;L (month)';
+  const pnlCellCls = s.realizedPnLThisMonth >= 0 ? 'pos' : 'neg';
+  const unrealCellCls = s.unrealizedPnL >= 0 ? 'pos' : 'neg';
 
   document.getElementById('printReport').innerHTML = `
-    <div class="pr-title">Blackboard's Equity Report — ${monthLabel}</div>
-    <div class="pr-sub">Generated ${generatedAt}</div>
+    <div class="pr-header">
+      <div class="pr-brand">Blackboard's Equity Report</div>
+      <div class="pr-title">${monthLabel}</div>
+      <div class="pr-sub">Generated ${generatedAt}</div>
+    </div>
     <div class="pr-grid">
       <div class="pr-cell"><div class="pr-lbl">Invested</div><div class="pr-val">${fmtMoney(s.invested, true)}</div></div>
       <div class="pr-cell"><div class="pr-lbl">Withdrawn</div><div class="pr-val">${fmtMoney(s.withdrawn, true)}</div></div>
-      <div class="pr-cell"><div class="pr-lbl">Transactions</div><div class="pr-val">${s.transactionCount}</div></div>
-      <div class="pr-cell"><div class="pr-lbl">${pnlLabel}</div><div class="pr-val ${pnlClass(s.realizedPnLThisMonth)}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
+      <div class="pr-cell accent2"><div class="pr-lbl">Transactions</div><div class="pr-val">${s.transactionCount}</div></div>
+      <div class="pr-cell ${pnlCellCls}"><div class="pr-lbl">${pnlLabel}</div><div class="pr-val ${pnlCellCls}">${fmtSigned(s.realizedPnLThisMonth, true)}</div></div>
       <div class="pr-cell"><div class="pr-lbl">Current portfolio</div><div class="pr-val">${fmtMoney(s.currentPortfolioValue, true)}</div></div>
-      <div class="pr-cell"><div class="pr-lbl">Unrealized P&amp;L (now)</div><div class="pr-val ${pnlClass(s.unrealizedPnL)}">${fmtSigned(s.unrealizedPnL, true)}</div></div>
+      <div class="pr-cell ${unrealCellCls}"><div class="pr-lbl">Unrealized P&amp;L (now)</div><div class="pr-val ${unrealCellCls}">${fmtSigned(s.unrealizedPnL, true)}</div></div>
     </div>
+    <div class="pr-section-lbl">Transaction ledger</div>
     <table class="pr-table">
       <thead><tr><th>Date</th><th>Type</th><th>Stock</th><th>Qty</th><th>Price</th><th>Amount</th><th>Realized P&amp;L</th><th>MTF</th></tr></thead>
       <tbody>${rowsHTML}</tbody>
     </table>
-    <div class="pr-footer">Blackboard's Equity Report · This report is informational only, not investment advice.</div>
+    <div class="pr-footer">
+      <span>This report is informational only, not investment advice.</span>
+      <span class="pr-footer-brand">Blackboard</span>
+    </div>
   `;
 }
 

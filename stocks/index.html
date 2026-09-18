@@ -320,7 +320,7 @@
               <div class="settings-row-icon gain"><i data-lucide="bar-chart-2"></i></div>
               <div class="settings-row-text">
                 <div class="settings-row-title">Summary</div>
-                <div class="settings-row-sub">Invested, withdrawn, and P&amp;L — pick a month, or all time.</div>
+                <div class="settings-row-sub">Invested, withdrawn, and P&amp;L — pick a month or all time, and save it as a PDF.</div>
               </div>
               <i data-lucide="chevron-right" class="row-chevron"></i>
             </button>
@@ -335,6 +335,10 @@
                 </div>
               </div>
               <div id="reportSummary" class="report-summary"></div>
+              <div class="report-summary-pdf">
+                <p class="settings-row-detail-text">Choose "Save as PDF" in the print dialog to keep a designed, one-page copy of this summary for the period above.</p>
+                <button class="btn btn-primary" id="printReportBtn"><i data-lucide="printer"></i>Print / Save as PDF</button>
+              </div>
             </div>
           </div>
 
@@ -350,21 +354,6 @@
             <div class="settings-row-detail" id="settingsCsvBody">
               <p class="settings-row-detail-text">Exports your full transaction ledger — date, type, symbol, quantity, price, MTF flag and notes — as a .csv file that opens in any spreadsheet app.</p>
               <button class="btn btn-primary" id="exportCsvBtn"><i data-lucide="file-down"></i>Export CSV</button>
-            </div>
-          </div>
-
-          <div class="settings-item">
-            <button class="settings-row-header" type="button" data-target="settingsPrintBody" aria-expanded="false">
-              <div class="settings-row-icon gain"><i data-lucide="printer"></i></div>
-              <div class="settings-row-text">
-                <div class="settings-row-title">Print / Save as PDF</div>
-                <div class="settings-row-sub">A clean one-page summary for the selected month or all time.</div>
-              </div>
-              <i data-lucide="chevron-right" class="row-chevron"></i>
-            </button>
-            <div class="settings-row-detail" id="settingsPrintBody">
-              <p class="settings-row-detail-text">Opens your browser's print dialog with a clean one-page summary for the period selected above — choose "Save as PDF" there to keep a copy.</p>
-              <button class="btn btn-primary" id="printReportBtn"><i data-lucide="printer"></i>Print report</button>
             </div>
           </div>
 

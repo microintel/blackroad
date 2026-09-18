@@ -903,6 +903,8 @@
   }
   .health-note svg{width:15px; height:15px; flex-shrink:0; margin-top:1px;}
   .report-summary{margin-top:14px;}
+  .report-summary-pdf{margin-top:16px; padding-top:14px; border-top:1px solid var(--line-soft);}
+  .report-summary-pdf .settings-row-detail-text{margin-bottom:10px;}
   @media (max-width:860px){ .health-grid{grid-template-columns:repeat(2, 1fr);} }
 
   /* ---------- Global search modal (Part 16) ---------- */
@@ -938,28 +940,82 @@
   }
   .toast-action:hover{text-decoration:underline;}
 
-  /* ---------- Print-only monthly report (Part 18) ---------- */
+  /* ---------- Print-only monthly report (Part 18) ----------
+     Designed with real color/typography instead of plain bordered
+     boxes — print-color-adjust forces backgrounds to survive the
+     print dialog even if "background graphics" isn't pre-checked. */
   .print-only{display:none;}
   @media print{
+    @page{ margin:14mm 16mm; }
+    *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
     body *{ visibility:hidden; }
     #printReport, #printReport *{ visibility:visible; }
     #printReport{
       display:block; position:absolute; inset:0; padding:0; margin:0;
-      background:#fff; color:#111; font-family:var(--sans);
+      background:#fff; color:#17181A; font-family:var(--sans);
     }
-    .pr-title{font-family:var(--serif); font-size:22px; font-weight:700; margin:0 0 2px 0;}
-    .pr-sub{font-size:12px; color:#555; margin-bottom:18px;}
-    .pr-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px 16px; margin-bottom:22px;}
-    .pr-cell{border:1px solid #ddd; border-radius:6px; padding:9px 11px;}
-    .pr-lbl{font-size:9.5px; color:#666; text-transform:uppercase; letter-spacing:.03em; margin-bottom:3px;}
-    .pr-val{font-family:var(--serif); font-size:14px; font-weight:700;}
+
+    /* Header banner */
+    .pr-header{
+      background:linear-gradient(120deg, #1F3A93 0%, #2F6FE0 55%, #3F8CFF 100%);
+      color:#fff; padding:26px 30px 22px; border-radius:0 0 14px 14px;
+      margin-bottom:22px; position:relative; overflow:hidden;
+    }
+    .pr-header::after{
+      content:''; position:absolute; right:-40px; top:-60px; width:180px; height:180px;
+      border-radius:50%; background:rgba(255,255,255,0.08);
+    }
+    .pr-brand{font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; opacity:.8; margin-bottom:8px;}
+    .pr-title{font-family:var(--serif); font-size:25px; font-weight:700; margin:0 0 3px 0; line-height:1.15;}
+    .pr-sub{font-size:11.5px; color:rgba(255,255,255,0.82); margin:0;}
+
+    /* Summary stat cards */
+    .pr-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px;}
+    .pr-cell{
+      border-radius:10px; padding:12px 13px; background:#F5F7FA;
+      border-left:3px solid #2F6FE0;
+    }
+    .pr-cell.pos{background:rgba(28,154,91,0.08); border-left-color:#1C9A5B;}
+    .pr-cell.neg{background:rgba(213,75,90,0.08); border-left-color:#D54B5A;}
+    .pr-cell.accent2{background:rgba(169,122,28,0.08); border-left-color:#A97A1C;}
+    .pr-lbl{font-size:9.5px; color:#6B7078; text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom:4px;}
+    .pr-val{font-family:var(--serif); font-size:16px; font-weight:700; color:#17181A;}
     .pr-val.pos{color:#1C9A5B;} .pr-val.neg{color:#D54B5A;}
-    .pr-table{width:100%; border-collapse:collapse; font-size:11px;}
-    .pr-table th{text-align:left; border-bottom:1.5px solid #111; padding:5px 8px; font-size:10px; text-transform:uppercase; letter-spacing:.02em;}
-    .pr-table td{padding:5px 8px; border-bottom:1px solid #ddd;}
+
+    /* Section label above the table */
+    .pr-section-lbl{
+      font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+      color:#2F6FE0; margin:0 0 8px 2px;
+    }
+
+    /* Table */
+    .pr-table{width:100%; border-collapse:collapse; font-size:11px; border-radius:8px; overflow:hidden;}
+    .pr-table thead th{
+      text-align:left; padding:9px 10px; font-size:9.5px; text-transform:uppercase; letter-spacing:.04em;
+      background:#1F3A93; color:#fff; font-weight:700;
+    }
+    .pr-table thead th:first-child{border-radius:6px 0 0 0;}
+    .pr-table thead th:last-child{border-radius:0 6px 0 0;}
+    .pr-table td{padding:7px 10px; border-bottom:1px solid #E7E9EC; color:#2A2C30;}
+    .pr-table tbody tr:nth-child(even) td{background:#F7F9FB;}
     .pr-table td.num{text-align:right; font-variant-numeric:tabular-nums;}
-    .pr-empty{font-size:12px; color:#666; padding:10px 0;}
-    .pr-footer{margin-top:18px; font-size:10px; color:#888;}
+    .pr-pnl.pos{color:#1C9A5B; font-weight:700;} .pr-pnl.neg{color:#D54B5A; font-weight:700;}
+    .pr-type-pill{
+      display:inline-block; font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:20px;
+      letter-spacing:.02em;
+    }
+    .pr-type-pill.buy{background:rgba(28,154,91,0.12); color:#1C9A5B;}
+    .pr-type-pill.sell{background:rgba(213,75,90,0.12); color:#D54B5A;}
+    .pr-mtf-pill{
+      display:inline-block; font-size:9px; font-weight:700; padding:2px 7px; border-radius:20px;
+      background:rgba(169,122,28,0.14); color:#A97A1C; letter-spacing:.02em;
+    }
+    .pr-empty{font-size:12px; color:#6B7078; padding:16px 0; text-align:center;}
+    .pr-footer{
+      margin-top:20px; padding-top:12px; border-top:1px solid #E7E9EC;
+      font-size:9.5px; color:#8D9198; display:flex; justify-content:space-between; align-items:center;
+    }
+    .pr-footer-brand{font-weight:700; color:#2F6FE0;}
   }
 
   /* ---------- Mobile bottom nav (native tab bar) ---------- */
