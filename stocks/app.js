@@ -1030,7 +1030,7 @@ function generatePrintReport(ym){
 
   document.getElementById('printReport').innerHTML = `
     <div class="pr-header">
-      <div class="pr-brand">Blackboard's Equity Report</div>
+      <div class="pr-brand">BlackRoad's Equity Report</div>
       <div class="pr-title">${monthLabel}</div>
       <div class="pr-sub">Generated ${generatedAt}</div>
     </div>
@@ -1049,7 +1049,7 @@ function generatePrintReport(ym){
     </table>
     <div class="pr-footer">
       <span>This report is informational only, not investment advice.</span>
-      <span class="pr-footer-brand">Blackboard</span>
+      <span class="pr-footer-brand">BlackRoad</span>
     </div>
   `;
 }
