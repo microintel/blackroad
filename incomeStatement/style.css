@@ -759,6 +759,19 @@ body{ padding-left: var(--rail-w); }
 .source-row:last-child{ border-bottom:none; }
 .source-row .val{ font-family:var(--font-mono); color:var(--ink-in); font-weight:500; }
 
+/* Breakdown panel lists (Income by source / Investment returns) can run
+   long, and since .dashboard-grid rows stretch both cells to equal height
+   by default, a long list was forcing its paired chart panel to stretch
+   too — leaving the chart looking tiny inside a mostly-empty tall card.
+   Cap these lists the same way .chart-wrap is already capped, so a long
+   list scrolls internally instead of inflating the whole row. */
+#sourceList,
+#invReturnList{
+  max-height:340px;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+
 .io-buttons{
   display:flex;
   gap:10px;
@@ -840,7 +853,7 @@ body{ padding-left: var(--rail-w); }
   margin-top:16px;
 }
 @media (min-width: 700px){
-  .dashboard-grid{ grid-template-columns:1fr 1fr; }
+  .dashboard-grid{ grid-template-columns:1fr 1fr; align-items:start; }
   .dashboard-grid .hero-card{ grid-column:1 / -1; }
 }
 .dashboard-grid-2{
