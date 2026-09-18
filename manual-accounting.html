@@ -29,8 +29,8 @@
   --ease:cubic-bezier(.4,0,.2,1);
 }
 html[data-theme="dark"]{
-  --bg:#000000; --surface:#0A0A0A; --surface-2:#161616;
-  --border:rgba(255,255,255,.13); --text:#F2F0EA; --text-dim:#9BA1AC; --text-faint:#6B7280;
+  --bg:#000000; --surface:#000000; --surface-2:#0D0D0D;
+  --border:rgba(255,255,255,.14); --text:#F2F0EA; --text-dim:#9BA1AC; --text-faint:#6B7280;
   --accent:var(--gold);
   --shadow: none; --shadow-sm: none; --shadow-in-sm: none;
 }
@@ -43,15 +43,15 @@ html[data-theme="light"]{
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
   font-family:'Inter',sans-serif; background:var(--bg); color:var(--text);
-  min-height:100vh; padding:clamp(14px,4vw,24px); transition:background .3s var(--ease), color .3s var(--ease);
+  min-height:100vh; padding:clamp(20px,5vw,40px); transition:background .3s var(--ease), color .3s var(--ease);
 }
 h1,h2,h3,h4,.display{font-family:'Outfit',sans-serif;}
 a{color:inherit;text-decoration:none;}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
 .lane{height:3px;width:100%;background-image:repeating-linear-gradient(90deg, rgba(232,184,75,.55) 0 26px, transparent 26px 46px);opacity:.9;}
 
-.topbar{max-width:640px;margin:0 auto 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-@media (min-width:901px){ .topbar{max-width:1040px;} }
+.topbar{max-width:640px;margin:0 auto 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+@media (min-width:901px){ .topbar{max-width:min(1320px,94vw);} }
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;}
 .brand-mark{
   width:34px;height:34px;border-radius:11px;flex:0 0 auto;
@@ -66,16 +66,15 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .back-link{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--text-dim);}
 .back-link:hover{color:var(--accent);}
 .page-badge{
-  display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border);
-  border-radius:999px; padding:8px 14px; font-size:12.5px; font-weight:600; color:var(--text-dim); box-shadow:var(--shadow-in-sm);
+  display:flex; align-items:center; gap:8px; color:var(--text-dim);
+  font-size:12.5px; font-weight:600;
 }
 .page-badge i{color:var(--accent);font-size:14px;}
-@media (max-width:560px){ .nav-desktop-only{display:none;} }
 
 .wrap{max-width:640px;margin:0 auto;}
 .card{
   background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
-  box-shadow:var(--shadow); padding:clamp(18px,5vw,26px) clamp(16px,4.5vw,26px) clamp(16px,4vw,22px); margin-bottom:16px;
+  box-shadow:var(--shadow); padding:clamp(26px,6vw,34px); margin-bottom:26px;
   animation:cardIn .5s var(--ease);
 }
 @keyframes cardIn{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
@@ -89,13 +88,19 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 
 /* --- desktop: wide stage, sticky summary sidebar alongside the form --- */
 @media (min-width:901px){
-  .wrap{max-width:1080px; display:grid; grid-template-columns:minmax(280px,320px) 1fr; gap:24px; align-items:start;}
-  .side-col{position:sticky; top:24px; display:flex; flex-direction:column; gap:20px; max-height:calc(100vh - 48px); overflow-y:auto;}
+  .wrap{max-width:min(1320px,94vw); display:grid; grid-template-columns:minmax(300px,360px) 1fr; gap:36px; align-items:start;}
+  .side-col{position:sticky; top:32px; display:flex; flex-direction:column; gap:22px; max-height:calc(100vh - 64px); overflow-y:auto;}
   .side-col .card, .main-col .card{margin-bottom:0;}
-  .main-col{display:flex; flex-direction:column; gap:20px;}
+  .main-col{display:grid; grid-template-columns:1fr 1fr; gap:22px; align-items:start;}
+  .main-col .span-all{grid-column:1 / -1;}
+  .nw-value{font-size:38px;}
+  .chart-wrap{height:180px;}
+}
+@media (min-width:1300px){
+  .card{padding:38px;}
 }
 
-.sub-head{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+.sub-head{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:22px;color:var(--text-dim);}
 .sub-head i{color:var(--accent);}
 .sub-head .spacer{flex:1;}
 .icon-btn-sm{
@@ -108,17 +113,17 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 
 /* ---- hero / net worth ---- */
-.eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:6px;}
-.nw-value{font-family:'Outfit',sans-serif;font-weight:800;font-size:clamp(26px,7vw,32px);letter-spacing:-.5px;word-break:break-word;}
-.nw-sub{font-size:12.5px;color:var(--text-faint);margin-top:4px;}
-.chart-wrap{margin-top:16px;height:clamp(120px,32vw,150px);}
+.eyebrow{font-size:11px;letter-spacing:1.5px;color:var(--text-faint);font-weight:600;margin-bottom:8px;}
+.nw-value{font-family:'Outfit',sans-serif;font-weight:800;font-size:clamp(28px,7vw,34px);letter-spacing:-.5px;word-break:break-word;}
+.nw-sub{font-size:12.5px;color:var(--text-faint);margin-top:6px;}
+.chart-wrap{margin-top:22px;height:clamp(120px,32vw,150px);}
 
 /* ---- live data rows ---- */
 .live-row{
   display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-  padding:11px 0;border-bottom:1px dashed var(--border);
+  padding:14px 0;border-bottom:1px solid var(--border);
 }
-.live-row:last-child{border-bottom:none;}
+.live-row:last-child{border-bottom:none;padding-bottom:0;}
 .live-row a.lr-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .live-row a.lr-name:hover{color:var(--accent);}
 .live-row a.lr-name i{color:var(--accent);font-size:14px;}
@@ -129,58 +134,64 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
   border-radius:999px;padding:2px 7px;margin-left:6px;
 }
 .live-pill i{font-size:6px;}
-.live-note{font-size:11.5px;color:var(--text-faint);margin-top:10px;line-height:1.5;}
+.live-note{font-size:11.5px;color:var(--text-faint);margin-top:16px;line-height:1.6;}
 
 /* ---- manual entry fields ---- */
-.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.field{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
 .field span{font-size:12px;color:var(--text-faint);font-weight:500;}
 input[type="text"],input[type="number"]{
-  font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--text);background:var(--surface-2);
-  border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;width:100%;min-height:44px;
+  font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--text);
+  background:color-mix(in srgb, var(--text) 4%, var(--surface-2));
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 15px;width:100%;min-height:46px;
   box-shadow:var(--shadow-in-sm); transition:box-shadow .2s var(--ease);
 }
 @media (min-width:560px){ input[type="text"],input[type="number"]{ font-size:14px; } }
-input::placeholder{color:var(--text-faint);font-family:'Inter',sans-serif;}
+input::placeholder{color:var(--text-dim);font-family:'Inter',sans-serif;}
 input:focus{outline:none;box-shadow:var(--shadow-in-sm), 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;}
 @media (max-width:560px){ .form-grid{grid-template-columns:1fr;} }
+.form-grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 20px;}
+@media (max-width:560px){ .form-grid-3{grid-template-columns:1fr 1fr;} }
+@media (max-width:400px){ .form-grid-3{grid-template-columns:1fr;} }
 
-.bank-row,.custom-row{display:flex;gap:8px;align-items:flex-start;}
+.bank-row,.custom-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:14px;}
+.bank-row .field,.custom-row .field{margin-bottom:0;}
 .custom-row .field{flex:1;}
 .rm-btn{
-  flex:0 0 auto;width:42px;height:42px;margin-top:2px;border-radius:var(--radius-sm);
-  background:var(--surface-2);border:1px solid var(--border);color:var(--text-faint);font-size:16px;
+  flex:0 0 auto;width:46px;height:46px;border-radius:var(--radius-sm);
+  background:transparent;border:1px solid var(--border);color:var(--text-faint);font-size:16px;
+  display:flex;align-items:center;justify-content:center;
 }
 .rm-btn:hover{color:var(--red);border-color:var(--red);}
 
 .dashed-btn{
-  width:100%;padding:12px;border-radius:var(--radius-sm);border:1.5px dashed color-mix(in srgb, var(--accent) 55%, transparent);
-  color:var(--accent);font-size:13px;font-weight:600;margin-top:2px;
+  width:100%;padding:13px;border-radius:var(--radius-sm);border:1px solid var(--border);
+  color:var(--text-dim);font-size:13px;font-weight:600;margin-top:4px;
 }
-.dashed-btn:hover{background:color-mix(in srgb, var(--accent) 8%, transparent);}
+.dashed-btn:hover{color:var(--accent);border-color:color-mix(in srgb, var(--accent) 55%, transparent);}
 
-.form-actions{display:flex;align-items:center;gap:14px;margin-top:6px;flex-wrap:wrap;}
+.form-actions{display:flex;align-items:center;gap:16px;margin-top:10px;flex-wrap:wrap;}
 .save-hint{font-size:12.5px;color:var(--green);opacity:0;transition:opacity .3s;}
 .save-hint.show{opacity:1;}
 
 .btn-primary,.btn-secondary,.btn-danger{
-  display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;padding:11px 20px;
+  display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;padding:12px 22px;
   border-radius:999px;transition:all .18s var(--ease);border:1px solid transparent;box-shadow:var(--shadow-sm);
 }
 .btn-primary{background:var(--accent);color:#0B0D10;}
 .btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px);}
-.btn-secondary{background:var(--surface-2);border-color:var(--border);color:var(--text);}
-.btn-secondary:hover{color:var(--accent);transform:translateY(-1px);}
-.btn-danger{background:var(--surface-2);color:var(--red);}
+.btn-secondary{background:transparent;border-color:var(--border);color:var(--text-dim);}
+.btn-secondary:hover{color:var(--text);border-color:var(--text-dim);}
+.btn-danger{background:transparent;color:var(--red);}
 
 /* ---- breakdown rows ---- */
-.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--border);font-size:13.5px;}
+.row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
 .row:last-child{border-bottom:none;}
 .row span:first-child{color:var(--text-dim);}
 .row span:last-child{color:var(--text);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:13px;}
-.row.subtotal{font-weight:700;border-bottom:none;border-top:1px solid var(--border);padding-top:14px;margin-top:6px;}
+.row.subtotal{font-weight:700;border-bottom:none;border-top:1px solid var(--border);padding-top:18px;margin-top:8px;}
 .row.subtotal span:last-child{color:var(--accent);font-size:15px;}
-.row.net{border-bottom:none;border-top:2px solid var(--accent);padding-top:14px;margin-top:4px;}
+.row.net{border-bottom:none;border-top:2px solid var(--accent);padding-top:18px;margin-top:6px;}
 .row.net span:first-child{color:var(--text);font-weight:700;font-family:'Outfit',sans-serif;font-size:14.5px;}
 .row.net span:last-child{font-size:18px;}
 
@@ -208,8 +219,8 @@ input:focus{outline:none;box-shadow:var(--shadow-in-sm), 0 0 0 2px color-mix(in 
 
 .guest-banner{
   display:none;align-items:center;gap:10px;font-size:12.5px;color:var(--text-dim);
-  background:color-mix(in srgb, var(--accent) 10%, var(--surface-2));border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:16px;
+  background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:22px;
 }
 .guest-banner i{color:var(--accent);}
 body.br-guest-mode .guest-banner{display:flex;}
@@ -242,7 +253,6 @@ body.br-guest-mode .mobile-actionbar .btn-primary{opacity:.6;}
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
     <a href="home.html" class="brand"><div class="brand-mark">BR</div><div class="brand-name">Black<span>Road</span></div></a>
     <a href="blackroad-dashboard.html" class="back-link"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
-    <a href="home.html" class="back-link nav-desktop-only"><i class="bi bi-house-door"></i> Home</a>
   </div>
   <div class="page-badge"><i class="bi bi-journal-richtext"></i> Manual Accounting</div>
 </div>
@@ -286,7 +296,7 @@ body.br-guest-mode .mobile-actionbar .btn-primary{opacity:.6;}
   <!-- ============ MAIN COLUMN ============ -->
   <div class="main-col">
 
-    <div class="guest-banner"><i class="bi bi-eye"></i> Browsing as a guest — this ledger is view-only. Sign in to save your entries.</div>
+    <div class="guest-banner span-all"><i class="bi bi-eye"></i> Browsing as a guest — this ledger is view-only. Sign in to save your entries.</div>
 
     <div class="card">
       <h4 class="sub-head"><i class="bi bi-bank2"></i> Banks</h4>
@@ -295,36 +305,30 @@ body.br-guest-mode .mobile-actionbar .btn-primary{opacity:.6;}
     </div>
 
     <div class="card">
-      <h4 class="sub-head"><i class="bi bi-wallet2"></i> Cash &amp; Investments</h4>
-      <div class="form-grid">
-        <label class="field"><span>Cash</span><input type="number" id="cash" placeholder="0" inputmode="decimal"></label>
-        <label class="field"><span>Fixed Deposit</span><input type="number" id="fd" placeholder="0" inputmode="decimal"></label>
-        <label class="field"><span>Stocks</span><input type="number" id="stock" placeholder="0" inputmode="decimal"></label>
-        <label class="field"><span>Demat Account</span><input type="number" id="demat" placeholder="0" inputmode="decimal"></label>
-      </div>
-    </div>
-
-    <div class="card">
-      <h4 class="sub-head"><i class="bi bi-hourglass-split"></i> Pending &amp; Other</h4>
-      <div class="form-grid">
-        <label class="field"><span>Pending Amount</span><input type="number" id="pending" placeholder="0" inputmode="decimal"></label>
-        <label class="field"><span>Other Assets</span><input type="number" id="other" placeholder="0" inputmode="decimal"></label>
-      </div>
-    </div>
-
-    <div class="card">
       <h4 class="sub-head"><i class="bi bi-plus-circle"></i> Additional Assets</h4>
       <div id="customs"></div>
       <button class="dashed-btn" id="addCustomBtn" type="button"><i class="bi bi-plus-lg"></i> Add Additional Asset</button>
     </div>
 
-    <div class="form-actions">
+    <div class="card span-all">
+      <h4 class="sub-head"><i class="bi bi-wallet2"></i> Cash, Investments &amp; Other</h4>
+      <div class="form-grid-3">
+        <label class="field"><span>Cash</span><input type="number" id="cash" placeholder="0" inputmode="decimal"></label>
+        <label class="field"><span>Fixed Deposit</span><input type="number" id="fd" placeholder="0" inputmode="decimal"></label>
+        <label class="field"><span>Stocks</span><input type="number" id="stock" placeholder="0" inputmode="decimal"></label>
+        <label class="field"><span>Demat Account</span><input type="number" id="demat" placeholder="0" inputmode="decimal"></label>
+        <label class="field"><span>Pending Amount</span><input type="number" id="pending" placeholder="0" inputmode="decimal"></label>
+        <label class="field"><span>Other Assets</span><input type="number" id="other" placeholder="0" inputmode="decimal"></label>
+      </div>
+    </div>
+
+    <div class="form-actions span-all">
       <button class="btn-primary" id="saveBtn"><i class="bi bi-check2"></i> Calculate &amp; Save</button>
       <button class="btn-secondary" id="resetBtn"><i class="bi bi-arrow-counterclockwise"></i> Reset entries</button>
       <span class="save-hint" id="saveHint">Saved ✓</span>
     </div>
 
-    <div class="card">
+    <div class="card span-all">
       <h4 class="sub-head"><i class="bi bi-list-ul"></i> Breakdown</h4>
       <div id="result"></div>
     </div>
@@ -518,7 +522,7 @@ function addCustom(name='', val=''){
   row.className = 'custom-row';
   row.innerHTML = `<label class="field"><span>Asset Name</span><input type="text" class="custom-name" placeholder="e.g. Provident Fund"></label>
     <label class="field"><span>Amount</span><input type="number" class="custom-amt" placeholder="0" inputmode="decimal"></label>
-    <button type="button" class="rm-btn" title="Remove" style="margin-top:24px;">&times;</button>`;
+    <button type="button" class="rm-btn" title="Remove">&times;</button>`;
   row.querySelector('.custom-name').value = name;
   row.querySelector('.custom-amt').value = val;
   row.querySelector('.rm-btn').addEventListener('click', ()=> row.remove());
