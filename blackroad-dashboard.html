@@ -1099,7 +1099,7 @@ footer{
       <a class="nav-link" data-target="settings"><i class="bi bi-gear"></i>Settings</a>
       <a class="nav-link" href="https://microintel.github.io/vision/" target="_blank" rel="noopener"><i class="bi bi-calculator-fill"></i>Financial Calculators</a>
       <a class="nav-link" id="downloadAppLink"><i class="bi bi-cloud-download-fill"></i>Download</a>
-      <a class="nav-link" id="aboutUsageLink"><i class="bi bi-info-circle-fill"></i>About &amp; Usage</a>
+      <a class="nav-link" href="manual-accounting.html"><i class="bi bi-journal-richtext"></i>Manual Accounting</a>
     </nav>
 
     <div class="sidebar-footer">
@@ -2689,7 +2689,8 @@ swatches.forEach(s=>{
    BACKUP & RESTORE — full cross-database IndexedDB export/import
    Every store, in every IndexedDB database this dashboard reads
    (main BlackRoadDB + the sub-apps' own LendLedger, sip-compounder,
-   BlackRoad2, and BlackRoadFD databases), is dumped with its exact
+   BlackRoad2, BlackRoadFD, and BlackRoad Accounting databases), is
+   dumped with its exact
    keys/values and restored the same way — no reshaping, no
    re-deriving. Import clears each store and put()s the records
    straight back, so ids and structure survive round-trip exactly.
@@ -2740,6 +2741,18 @@ const BACKUP_DB_SCHEMAS_BASE = {
   BlackRoadFD: {
     stores: {
       deposits: { keyPath:'id', autoIncrement:true },
+    }
+  },
+  'BlackRoad Accounting': {
+    // Key-value store (no keyPath) — the Manual Accounting page
+    // (/manual-accounting.html) puts the single manual-entries snapshot
+    // in under the explicit key "manual", so this needs the same
+    // keyless export/import path as blackStocks above. Mutual Fund
+    // and Loans & Liabilities values are never stored here — they're
+    // read live from sip-compounder / LendLedger and already backed
+    // up as part of those databases.
+    stores: {
+      sst: { keyless:true },
     }
   }
 };
@@ -3886,9 +3899,6 @@ const downloadAppLink = document.getElementById('downloadAppLink');
 function goToDownloadPage(){ window.location.href = 'download.html'; }
 if(downloadAppBtn) downloadAppBtn.addEventListener('click', goToDownloadPage);
 if(downloadAppLink) downloadAppLink.addEventListener('click', goToDownloadPage);
-
-const aboutUsageLink = document.getElementById('aboutUsageLink');
-if(aboutUsageLink) aboutUsageLink.addEventListener('click', ()=>{ window.location.href = 'about-usage.html'; });
 
 /* Register the service worker so the app is actually installable
    (Chrome/Edge require one for the install prompt to fire). */
