@@ -348,7 +348,7 @@
               <i data-lucide="chevron-right" class="row-chevron"></i>
             </button>
             <div class="settings-row-detail" id="settingsCsvBody">
-              <p class="settings-row-detail-text">Exports your full transaction ledger — date, type, symbol, quantity, price and notes — as a .csv file that opens in any spreadsheet app.</p>
+              <p class="settings-row-detail-text">Exports your full transaction ledger — date, type, symbol, quantity, price, MTF flag and notes — as a .csv file that opens in any spreadsheet app.</p>
               <button class="btn btn-primary" id="exportCsvBtn"><i data-lucide="file-down"></i>Export CSV</button>
             </div>
           </div>
@@ -455,6 +455,12 @@
           <label>Symbol</label>
           <input type="text" id="txnSymbol" placeholder="RELIANCE">
         </div>
+      </div>
+      <div class="field field-stacked mtf-field" id="mtfRow">
+        <label class="mtf-checkbox-label">
+          <input type="checkbox" id="txnMTF">
+          <span>This trade used MTF (Margin Trading Facility)</span>
+        </label>
       </div>
       <div class="field field-stacked" id="sellStockRow" style="display:none;">
         <label>Stock to sell</label>

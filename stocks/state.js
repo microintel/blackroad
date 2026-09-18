@@ -319,6 +319,13 @@ function calculateStockHolding(symbol){
   };
 }
 
+// True if any BUY transaction for this symbol was tagged as bought via MTF —
+// used to badge a holding, independent of the P&L math above (MTF is a
+// display-only tag and never changes quantity/avgPrice/P&L calculations).
+function hasMTFBuy(symbol){
+  return getSymbolTransactions(symbol).some(t => t.type === 'BUY' && t.isMTF);
+}
+
 function getAllSymbols(){
   return [...new Set(transactions.map(t => t.symbol))];
 }
@@ -451,12 +458,12 @@ function getAvailableMonths(){
 // holdings — the transactions themselves, since that's the actual source
 // of truth and re-imports cleanly into any spreadsheet).
 function transactionsToCSV(){
-  const header = ['Date','Type','Symbol','Name','Quantity','Price','Amount','Notes'];
+  const header = ['Date','Type','Symbol','Name','Quantity','Price','Amount','MTF','Notes'];
   const rows = transactions.slice()
     .sort((a,b) => (a.date === b.date) ? a.seq - b.seq : (a.date < b.date ? -1 : 1))
     .map(t => [
       t.date, t.type, t.symbol, t.name, t.quantity, t.price,
-      round2(t.quantity * t.price), (t.notes || '').replace(/"/g,'""')
+      round2(t.quantity * t.price), (t.isMTF ? 'Yes' : 'No'), (t.notes || '').replace(/"/g,'""')
     ]);
   const csvLines = [header, ...rows].map(r =>
     r.map(cell => /[",\n]/.test(String(cell)) ? `"${String(cell).replace(/"/g,'""')}"` : String(cell)).join(',')

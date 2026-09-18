@@ -90,11 +90,12 @@ function renderDashboard(){
 function holdingCardHTML(h, full){
   const cls = pnlClass(h.unrealizedPnL);
   const weight = calculatePortfolioWeight(h.symbol);
+  const isMTF = hasMTFBuy(h.symbol);
   return `
     <div class="holding-card" onclick="openDetailModal('${escAttr(h.symbol)}')" role="button" tabindex="0" aria-label="View details for ${escAttr(h.name)}" onkeydown="if(event.key==='Enter')this.click()">
       <div class="hc-row">
         <div class="hc-id-text">
-          <div class="stock-name">${escHtml(h.name)}</div>
+          <div class="stock-name">${escHtml(h.name)}${isMTF ? ' <span class="mtf-badge">MTF</span>' : ''}</div>
           <div class="stock-symbol">${h.quantity} X ATP ${fmtMoney(h.avgPrice)}</div>
         </div>
         <div class="hc-pnl-block">
@@ -129,6 +130,7 @@ function txnCardHTML(t){
       </div>
       <div class="tc-meta">
         <span class="type-badge ${isBuy ? 'buy' : 'sell'}"><i data-lucide="${typeIcon}"></i>${t.type}</span>
+        ${t.isMTF ? '<span class="mtf-badge">MTF</span>' : ''}
         <span>${t.quantity} shares · ${fmtMoney(t.price)}</span>
       </div>
       ${tags.length ? `<div class="tc-tags">${tags.map(tag => `<span class="tag-chip">#${escHtml(tag)}</span>`).join('')}</div>` : ''}

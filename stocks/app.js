@@ -93,6 +93,7 @@ function duplicateTransaction(id){
   document.getElementById('txnQty').value = t.quantity;
   document.getElementById('txnPrice').value = t.price;
   document.getElementById('txnNotes').value = t.notes || '';
+  document.getElementById('txnMTF').checked = !!t.isMTF;
   setTxnTypeFields();
   if(t.type === 'SELL'){
     const held = calculateStockHolding(t.symbol);
@@ -121,6 +122,7 @@ function openTxnModal(id){
     document.getElementById('txnQty').value = t.quantity;
     document.getElementById('txnPrice').value = t.price;
     document.getElementById('txnNotes').value = t.notes || '';
+    document.getElementById('txnMTF').checked = !!t.isMTF;
     setTxnTypeFields();
     if(t.type === 'SELL'){
       const held = calculateStockHolding(t.symbol);
@@ -141,6 +143,7 @@ function openTxnModal(id){
     document.getElementById('txnQty').value = '';
     document.getElementById('txnPrice').value = '';
     document.getElementById('txnNotes').value = '';
+    document.getElementById('txnMTF').checked = false;
     sellStockSearch.value = '';
     sellStockHint.classList.remove('show');
     setTxnTypeFields();
@@ -166,6 +169,7 @@ const sellStockSearch = document.getElementById('sellStockSearch');
 const sellStockList = document.getElementById('sellStockList');
 const sellStockHint = document.getElementById('sellStockHint');
 
+const mtfRow = document.getElementById('mtfRow');
 function setTxnTypeFields(){
   const isSell = document.getElementById('txnType').value === 'SELL';
   buyStockRow.style.display = isSell ? 'none' : '';
@@ -177,6 +181,7 @@ document.getElementById('txnType').addEventListener('change', () => {
   // free-typed stock and a SELL's picked holding aren't interchangeable.
   document.getElementById('txnName').value = '';
   document.getElementById('txnSymbol').value = '';
+  document.getElementById('txnMTF').checked = false;
   sellStockSearch.value = '';
   sellStockHint.classList.remove('show');
   setTxnTypeFields();
@@ -214,6 +219,9 @@ function selectSellStock(symbol, name, qty){
   sellStockHint.textContent = `You hold ${qty} share${Number(qty) === 1 ? '' : 's'} of ${symbol}.`;
   sellStockHint.classList.add('show');
   sellStockList.classList.remove('open');
+  // Auto-tag as MTF if this holding was originally bought via MTF; the
+  // checkbox stays editable so the user can override it either way.
+  document.getElementById('txnMTF').checked = hasMTFBuy(symbol);
 }
 
 sellStockSearch.addEventListener('focus', () => renderSellStockList(''));
@@ -251,6 +259,7 @@ document.getElementById('txnSaveBtn').addEventListener('click', () => {
   const quantity = round6(parseFloat(document.getElementById('txnQty').value));
   const price = round2(parseFloat(document.getElementById('txnPrice').value));
   const notes = document.getElementById('txnNotes').value.trim();
+  const isMTF = document.getElementById('txnMTF').checked;
 
   if(!date || !name || !symbol || !quantity || quantity <= 0 || isNaN(price) || price < 0){
     errEl.textContent = 'Fill in date, stock name, symbol, a positive quantity, and a valid price.';
@@ -258,7 +267,7 @@ document.getElementById('txnSaveBtn').addEventListener('click', () => {
     return;
   }
 
-  const candidate = { id: id || genId(), seq: id ? transactions.find(t=>t.id===id).seq : ++seqCounter, date, type, symbol, name, quantity, price, notes };
+  const candidate = { id: id || genId(), seq: id ? transactions.find(t=>t.id===id).seq : ++seqCounter, date, type, symbol, name, quantity, price, notes, isMTF };
   const check = validateTransaction(candidate, id);
   if(!check.ok){
     errEl.textContent = `You don't have that many shares to sell — you only hold ${check.available}.`;
@@ -350,7 +359,7 @@ function openTxnDetailModal(id){
 
   document.getElementById('txnDetailTitle').textContent = `${t.name} (${t.symbol})`;
   document.getElementById('txnDetailGrid').innerHTML = `
-    <div><div class="k">Type</div><div class="v">${escHtml(t.type)}</div></div>
+    <div><div class="k">Type</div><div class="v">${escHtml(t.type)}${t.isMTF ? ' <span class="mtf-badge">MTF</span>' : ''}</div></div>
     <div><div class="k">Date</div><div class="v">${fmtDate(t.date)}</div></div>
     <div><div class="k">Shares</div><div class="v">${t.quantity}</div></div>
     <div><div class="k">Price per share</div><div class="v">${fmtMoney(t.price)}</div></div>
@@ -1011,8 +1020,9 @@ function generatePrintReport(ym){
       <td class="num">${fmtMoney(t.price)}</td>
       <td class="num">${fmtMoney(t.quantity * t.price, true)}</td>
       <td class="num">${t.type === 'SELL' && pnlMap[t.id] !== undefined ? fmtSigned(pnlMap[t.id], true) : '—'}</td>
+      <td>${t.isMTF ? 'MTF' : '—'}</td>
     </tr>
-  `).join('') : `<tr><td colspan="7" class="pr-empty">No transactions ${isAll ? 'yet' : 'this month'}.</td></tr>`;
+  `).join('') : `<tr><td colspan="8" class="pr-empty">No transactions ${isAll ? 'yet' : 'this month'}.</td></tr>`;
 
   const pnlLabel = isAll ? 'Realized P&amp;L (all time)' : 'Realized P&amp;L (month)';
 
@@ -1028,7 +1038,7 @@ function generatePrintReport(ym){
       <div class="pr-cell"><div class="pr-lbl">Unrealized P&amp;L (now)</div><div class="pr-val ${pnlClass(s.unrealizedPnL)}">${fmtSigned(s.unrealizedPnL, true)}</div></div>
     </div>
     <table class="pr-table">
-      <thead><tr><th>Date</th><th>Type</th><th>Stock</th><th>Qty</th><th>Price</th><th>Amount</th><th>Realized P&amp;L</th></tr></thead>
+      <thead><tr><th>Date</th><th>Type</th><th>Stock</th><th>Qty</th><th>Price</th><th>Amount</th><th>Realized P&amp;L</th><th>MTF</th></tr></thead>
       <tbody>${rowsHTML}</tbody>
     </table>
     <div class="pr-footer">Blackboard's Equity Report · This report is informational only, not investment advice.</div>
