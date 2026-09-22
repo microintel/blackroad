@@ -3778,11 +3778,13 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       (e.transactions || []).forEach((t) => {
         const amt = Number(t.amount) || 0;
         if(incIsInvestmentCategory(t.category)){
-          totalInvestment += amt;
-          const explicit = String(t.direction ?? t.action ?? t.side ?? t.cashFlow ?? "").trim().toLowerCase();
-          const isInflow = ["sell","redeem","withdraw","withdrawal","maturity","credit","in","cashin","cash-in"].includes(explicit);
+          // t.type is what the Statement page's Buy/Sell picker actually
+          // saves (see incomeStatement/statement.js) — check that first,
+          // then fall back to the older field names for legacy entries.
+          const explicit = String(t.type ?? t.direction ?? t.action ?? t.side ?? t.cashFlow ?? "").trim().toLowerCase();
+          const isInflow = ["sell","redeem","redemption","withdraw","withdrawal","maturity","credit","in","cashin","cash-in"].includes(explicit);
           if(isInflow) investmentInflow += amt;
-          else investmentOutflow += amt;
+          else { totalInvestment += amt; investmentOutflow += amt; }
           return;
         }
         totalExpense += amt;
@@ -3799,7 +3801,10 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       hasData: entries.length > 0,
       totalIncome,
       totalExpense,
-      totalInvestment,
+      // Money still parked in assets right now — lifetime buys minus
+      // whatever has since been sold/redeemed. Matches the "Invested"
+      // figure on the Income Statement dashboard.
+      totalInvestment: Math.max(0, totalInvestment - investmentInflow),
       investmentOutflow,
       investmentInflow,
       cash: totalIncome - totalExpense - investmentOutflow + investmentInflow,
