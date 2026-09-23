@@ -3818,10 +3818,11 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       hasData: entries.length > 0,
       totalIncome,
       totalExpense,
-      // Money still parked in assets right now — lifetime buys minus
-      // whatever has since been sold/redeemed. Matches the "Invested"
-      // figure on the Income Statement dashboard.
-      totalInvestment: Math.max(0, totalInvestment - investmentInflow),
+      // Money still parked in assets right now, summed per category so
+      // an oversold category elsewhere can't drag this below what other
+      // categories still genuinely hold (see investedByCategory below,
+      // and shared.js's totalNetInvested() on the Income Statement side).
+      totalInvestment: investedByCategory.reduce((sum, row) => sum + row.amount, 0),
       investmentOutflow,
       investmentInflow,
       investedByCategory,
