@@ -449,6 +449,21 @@ function investmentBreakdownByCategory(entries) {
     .sort((a, b) => b.net - a.net);
 }
 
+/* Same idea as investmentBreakdownByCategory(), collapsed to one number.
+   Deliberately NOT the same as "totalInvestment - totalInvestmentSale"
+   computed globally: that raw global subtraction lets a category that
+   was sold for more than its recorded buys (e.g. a Sell transaction
+   entered as full proceeds including profit, rather than just principal)
+   drag every OTHER category's total down too. Clamping each category at
+   0 first, then summing, keeps one oversold category from ever eating
+   into a different category's still-open position. Use this wherever a
+   single "Invested" figure is shown; keep the raw totalInvestment /
+   totalInvestmentSale subtraction for cash-flow math (cash balance),
+   where the true unclamped numbers are what actually happened. */
+function totalNetInvested(entries) {
+  return investmentBreakdownByCategory(entries).reduce((sum, row) => sum + row.net, 0);
+}
+
 /* ---------------- Predefined expense categories ----------------
    Curated defaults offered in the category picker when adding an
    expense. People can still type their own via "Others" — this list

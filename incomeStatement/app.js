@@ -65,12 +65,12 @@ function renderDashboard() {
   const cashBalance = totalIncome - totalExpense - totalInvestment + totalInvestmentSale;
   document.getElementById("qsBalance").textContent = fmtMoney(cashBalance);
   document.getElementById("qsCount").textContent = String(totalCount);
-  // "Invested" card: money still parked in assets right now — lifetime
-  // buys minus whatever has since been sold/redeemed (Sell transactions).
-  // History (the original buy entries) is untouched; only this running
-  // total goes down when a position is closed.
+  // "Invested" card: money still parked in assets right now, summed per
+  // category (see shared.js totalNetInvested()) so an oversold category
+  // elsewhere can't drag this number below what other categories still
+  // genuinely hold.
   const qsInv = document.getElementById("qsInvestment");
-  if (qsInv) qsInv.textContent = fmtMoney(Math.max(0, totalInvestment - totalInvestmentSale));
+  if (qsInv) qsInv.textContent = fmtMoney(totalNetInvested(ENTRIES));
 
   // ---- Net balance hero card ----
   document.getElementById("statIncome").textContent = fmtMoney(totalIncome);
