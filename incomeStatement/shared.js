@@ -415,6 +415,40 @@ function calculateLedgerSummary(entries) {
   };
 }
 
+/* ---------------- Per-category net invested ----------------
+   Every "Invested" total elsewhere in the app (dashboard card, cash
+   balance, stats) nets buys against sells ACROSS ALL investment
+   categories combined (Mutual Fund + SIP + Stock + FD). That's correct
+   for cash, but it means fully exiting Stock alone can still read as
+   "invested" as long as an SIP/MF/FD position is still open elsewhere —
+   there was no per-category view to check a single category actually
+   nets to zero. This breaks the same buy/sell numbers out per category
+   instead of lumping them, so "Stock" specifically shows what's still
+   parked there right now. History (every buy/sell transaction) is
+   untouched; this is just a different rollup of the same numbers. */
+function investmentBreakdownByCategory(entries) {
+  const totals = new Map(); // category -> { invested, sold }
+  (entries || []).forEach((entry) => {
+    (entry.transactions || []).forEach((t) => {
+      if (!isInvestmentCategory(t.category)) return;
+      const cat = String(t.category || "").trim() || "Uncategorized";
+      const amt = Math.max(0, Number(t.amount) || 0);
+      if (!totals.has(cat)) totals.set(cat, { invested: 0, sold: 0 });
+      const row = totals.get(cat);
+      if (investmentDirection(t) === "sell") row.sold += amt;
+      else row.invested += amt;
+    });
+  });
+  return [...totals.entries()]
+    .map(([category, v]) => ({
+      category,
+      invested: v.invested,   // lifetime buys in this category
+      sold: v.sold,           // lifetime sells in this category
+      net: Math.max(0, v.invested - v.sold) // what's still parked there now
+    }))
+    .sort((a, b) => b.net - a.net);
+}
+
 /* ---------------- Predefined expense categories ----------------
    Curated defaults offered in the category picker when adding an
    expense. People can still type their own via "Others" — this list

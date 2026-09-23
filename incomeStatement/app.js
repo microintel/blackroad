@@ -91,6 +91,24 @@ function renderDashboard() {
         </div>`).join("");
   }
 
+  // ---- Invested by category (Stock/Mutual Fund/SIP/FD kept separate,
+  //      so a fully-sold category reads ₹0 on its own even if others
+  //      are still open — see shared.js investmentBreakdownByCategory) ----
+  const investedByCatList = document.getElementById("investedByCategoryList");
+  if (investedByCatList) {
+    const breakdown = investmentBreakdownByCategory(ENTRIES);
+    if (breakdown.length === 0) {
+      investedByCatList.innerHTML = `<div class="chart-empty">No investments logged yet</div>`;
+    } else {
+      investedByCatList.innerHTML = breakdown
+        .map((row) => `
+          <div class="source-row">
+            <span>${escapeHTML(row.category)}</span>
+            <span class="val">${fmtMoney(row.net)}</span>
+          </div>`).join("");
+    }
+  }
+
   // ---- Investment returns (kept separate from genuine income above) ----
   const invReturnList = document.getElementById("invReturnList");
   if (invReturnList) {

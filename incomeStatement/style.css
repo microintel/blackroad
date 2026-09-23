@@ -1110,6 +1110,29 @@ body{ padding-left: var(--rail-w); }
   flex-wrap:wrap;
   margin-top:2px;
 }
+.invested-by-cat-strip{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:2px;
+}
+.invested-by-cat-chip{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:var(--radius-pill);
+  background:var(--card);
+  border:1px solid var(--line-soft);
+  font-size:0.78rem;
+  color:var(--text-faint);
+}
+.invested-by-cat-chip b{
+  font-family:var(--font-mono);
+  color:var(--accent2);
+  font-weight:600;
+}
 .date-filter{
   display:flex;
   align-items:center;

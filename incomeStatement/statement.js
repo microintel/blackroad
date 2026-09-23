@@ -20,6 +20,26 @@ async function refresh() {
   ENTRIES = await getAllEntries();
   ENTRIES.sort((a, b) => new Date(b.date) - new Date(a.date));
   renderLedger();
+  renderInvestedByCategoryStrip();
+}
+
+/* Net invested per category (buys minus sells), shown right above the
+   ledger. Individual buy transactions below stay visible as history even
+   after being sold — this strip is the live "what's still parked here
+   right now" figure for each category. */
+function renderInvestedByCategoryStrip() {
+  const strip = document.getElementById("investedByCategoryStrip");
+  if (!strip) return;
+  const breakdown = investmentBreakdownByCategory(ENTRIES);
+  if (breakdown.length === 0) {
+    strip.hidden = true;
+    strip.innerHTML = "";
+    return;
+  }
+  strip.hidden = false;
+  strip.innerHTML = breakdown
+    .map((row) => `<div class="invested-by-cat-chip">${escapeHTML(row.category)} <b>${fmtMoney(row.net)}</b></div>`)
+    .join("");
 }
 
 function inDateRange(dateStr) {

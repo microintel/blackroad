@@ -271,9 +271,10 @@ function getFilteredItems(term) {
     }
     if (sourcesNorm.length && !sourcesNorm.some((s) => it._fromNorm.includes(s))) return false;
     if (categoriesNorm.length) {
-      // Category chips are built from every transaction category, expense
-      // and investment alike, so both kinds are eligible here.
-      if (it.kind !== "expense" && it.kind !== "investment") return false;
+      // Category chips are built from every category in the ledger —
+      // income entry categories (Salary, Stock Return, ...) as well as
+      // expense/investment transaction categories — so every kind is
+      // eligible here, matched against its own category field.
       if (!categoriesNorm.some((c) => norm(it.category).includes(c))) return false;
     }
     if (fTime && tTime) {
