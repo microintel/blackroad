@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark" data-style="neumo">
+<html lang="en" data-theme="dark" data-style="flat">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1247,6 +1247,8 @@ footer{
         <div class="bars" data-bars id="incomeCategoryBars">
           <div class="chart-empty">Loading from the Income Statement ledger…</div>
         </div>
+
+        <div id="investedByCategoryStrip" hidden style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;"></div>
       </section>
 
       <!-- MUTUAL FUNDS -->
@@ -2499,8 +2501,8 @@ styleOpts.forEach(b=>{
   });
 });
 // Sync the picker with whatever style the inline head script already
-// applied from localStorage on this load (defaults to neumorphic).
-applyStyle(html.getAttribute('data-style') || 'neumo', false);
+// applied from localStorage on this load (defaults to flat).
+applyStyle(html.getAttribute('data-style') || 'flat', false);
 
 /* ============ MOBILE SIDEBAR ============ */
 const sidebar = document.getElementById('sidebar');
@@ -3772,6 +3774,14 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
     const entries = await incGetAllEntries();
     let totalIncome = 0, totalExpense = 0, totalInvestment = 0, investmentOutflow = 0, investmentInflow = 0;
     const catTotals = new Map();
+    // Per-investment-category buy/sell, kept separate from the lumped
+    // totalInvestment above. totalInvestment nets Mutual Fund + SIP +
+    // Stock + FD together, which is right for cash — but it means fully
+    // exiting Stock alone can still read as "invested" while an SIP/MF/FD
+    // position stays open. investedByCategory below is the same numbers,
+    // split per category, so a fully-sold Stock position shows ₹0 on its
+    // own regardless of what else is held.
+    const investByCat = new Map(); // category -> { invested, sold }
 
     entries.forEach((e) => {
       totalIncome += Number(e.income) || 0;
@@ -3783,8 +3793,11 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
           // then fall back to the older field names for legacy entries.
           const explicit = String(t.type ?? t.direction ?? t.action ?? t.side ?? t.cashFlow ?? "").trim().toLowerCase();
           const isInflow = ["sell","redeem","redemption","withdraw","withdrawal","maturity","credit","in","cashin","cash-in"].includes(explicit);
-          if(isInflow) investmentInflow += amt;
-          else { totalInvestment += amt; investmentOutflow += amt; }
+          const cat = (t.category || "").trim() || "Uncategorized";
+          if(!investByCat.has(cat)) investByCat.set(cat, { invested: 0, sold: 0 });
+          const row = investByCat.get(cat);
+          if(isInflow){ investmentInflow += amt; row.sold += amt; }
+          else { totalInvestment += amt; investmentOutflow += amt; row.invested += amt; }
           return;
         }
         totalExpense += amt;
@@ -3797,6 +3810,10 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       .map(([label, amount]) => ({ label, amount }))
       .sort((a, b) => b.amount - a.amount);
 
+    const investedByCategory = [...investByCat.entries()]
+      .map(([label, v]) => ({ label, amount: Math.max(0, v.invested - v.sold) }))
+      .sort((a, b) => b.amount - a.amount);
+
     return {
       hasData: entries.length > 0,
       totalIncome,
@@ -3807,6 +3824,7 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh
       totalInvestment: Math.max(0, totalInvestment - investmentInflow),
       investmentOutflow,
       investmentInflow,
+      investedByCategory,
       cash: totalIncome - totalExpense - investmentOutflow + investmentInflow,
       // `net` is retained as the cash figure for compatibility with the
       // existing dashboard widgets. It is NOT total net worth.
@@ -3856,6 +3874,24 @@ async function refreshIncomeSummary(){
     if(incVal) incVal.textContent = IncomeStore.formatINR(summary.totalIncome);
     if(expVal) expVal.textContent = IncomeStore.formatINR(summary.totalExpense);
     if(invVal) invVal.textContent = IncomeStore.formatINR(summary.totalInvestment);
+
+    // 3b) Invested by category — same buy/sell numbers as the total
+    // above, but kept separate per category (Stock, Mutual Fund, SIP,
+    // FD) so a fully-sold Stock position reads ₹0 on its own even
+    // while another category is still open.
+    const investedStrip = document.getElementById('investedByCategoryStrip');
+    if(investedStrip){
+      const rows = (summary.investedByCategory || []).filter(r => r.amount > 0);
+      if(rows.length === 0){
+        investedStrip.hidden = true;
+        investedStrip.innerHTML = '';
+      } else {
+        investedStrip.hidden = false;
+        investedStrip.innerHTML = rows.map(r =>
+          `<span class="chip up">${IncomeStore.escapeHTML(r.label)}: ${IncomeStore.formatINR(r.amount)}</span>`
+        ).join('');
+      }
+    }
 
     // 4) Expense-by-category bars (top 6 categories, scaled to the largest)
     const barsWrap = document.getElementById('incomeCategoryBars');
